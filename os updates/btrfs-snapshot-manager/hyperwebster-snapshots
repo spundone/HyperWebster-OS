@@ -1,0 +1,49 @@
+#!/bin/bash
+# hyperwebster-snapshots - quick snapshot / btrfs maintenance menu.
+set -euo pipefail
+
+pick() {
+  if command -v fuzzel >/dev/null 2>&1; then
+    fuzzel --dmenu --prompt "Snapshots › " "$@"
+  elif command -v rofi >/dev/null 2>&1; then
+    rofi -dmenu -p "Snapshots"
+  else
+    echo "Install fuzzel or rofi for the snapshot menu." >&2
+    exit 1
+  fi
+}
+
+menu="Btrfs Assistant (GUI)
+List snapshots (terminal)
+Update with snapshot
+Open Limine boot menu hint"
+
+choice=$(printf '%s\n' "$menu" | pick) || exit 0
+
+case "$choice" in
+  "Btrfs Assistant (GUI)")
+    if command -v btrfs-assistant >/dev/null 2>&1; then
+      exec btrfs-assistant
+    fi
+    if command -v btrfs-assistant-launcher >/dev/null 2>&1; then
+      exec btrfs-assistant-launcher
+    fi
+    notify-send "Snapshots" "btrfs-assistant is not installed." 2>/dev/null || true
+    ;;
+  "List snapshots (terminal)")
+    if command -v snapper >/dev/null 2>&1; then
+      exec "${TERMINAL:-kitty}" -e bash -lc 'snapper -c root list; echo; read -rp "Press Enter…"'
+    fi
+    notify-send "Snapshots" "snapper is not installed." 2>/dev/null || true
+    ;;
+  "Update with snapshot")
+    if command -v hyperwebster-update >/dev/null 2>&1; then
+      exec "${TERMINAL:-kitty}" -e hyperwebster-update
+    fi
+    notify-send "Snapshots" "hyperwebster-update not found." 2>/dev/null || true
+    ;;
+  "Open Limine boot menu hint")
+    notify-send -t 12000 "Boot snapshots" \
+      "Reboot and pick a dated HyperWebster entry in Limine to roll back."
+    ;;
+esac
