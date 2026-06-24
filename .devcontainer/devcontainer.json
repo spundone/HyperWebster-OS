@@ -1,0 +1,28 @@
+{
+  "name": "HyperWebster ISO Builder",
+  "build": {
+    "dockerfile": "../docker/Dockerfile",
+    "context": "../docker"
+  },
+  "workspaceFolder": "/build",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/build,type=bind",
+  "runArgs": [
+    "--privileged",
+    "--cap-add=SYS_ADMIN",
+    "--security-opt=seccomp=unconfined"
+  ],
+  "containerEnv": {
+    "HYPERWEBSTER_BUILD_UID": "${localEnv:UID}",
+    "HYPERWEBSTER_BUILD_GID": "${localEnv:GID}",
+    "HYPERWEBSTER_BUILD_USER": "${localEnv:USER}"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "postCreateCommand": "echo 'Arch build environment ready. Place archlinux-*.iso in repo root, then: ./hyperwebster.sh'",
+  "remoteUser": "root"
+}
