@@ -55,7 +55,7 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for hardware guidance and
 On an **Arch Linux** host with internet:
 
 ```bash
-sudo pacman -S --needed git libisoburn squashfs-tools coreutils devtools pacman-contrib
+sudo pacman -S --needed git libisoburn squashfs-tools coreutils devtools pacman-contrib reflector
 git clone https://github.com/spundone/HyperWebster-OS.git
 cd HyperWebster-OS
 curl -LO https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
@@ -148,6 +148,45 @@ Features worth validating on your hardware:
 - **LUKS2** encrypts the root partition; back up your passphrase even with TPM enrolled.
 - NVIDIA open modules target Turing+ (RTX 20-series and newer).
 - Package snapshot is from build day - run `sudo pacman -Syu` once online.
+
+## Troubleshooting (ISO build)
+
+### Pacman mirror timeouts during `./hyperwebster.sh`
+
+The offline-repo download phase pulls hundreds of packages from Arch mirrors on
+the **build host**. A single slow mirror (for example `geo.mirror.pkgbuild.com`
+stalling below 1 byte/sec) makes pacman abort with "too many errors from a
+single mirror".
+
+**What the script does now:** it ranks mirrors with `reflector` when available,
+falls back to a curated multi-mirror list, sets `DisableDownloadTimeout` and
+`ParallelDownloads`, and retries failed downloads up to three times (refreshing
+mirrors between attempts).
+
+**Retry the build:**
+
+```bash
+# Force fresh mirror ranking, then rebuild (reuses cached AUR builds)
+HYPERWEBSTER_REFRESH_MIRRORS=1 ./hyperwebster.sh
+```
+
+**Optional — rank mirrors yourself first:**
+
+```bash
+sudo reflector --latest 20 --sort rate --save /etc/pacman.d/mirrorlist
+HYPERWEBSTER_MIRRORLIST=/etc/pacman.d/mirrorlist ./hyperwebster.sh
+```
+
+**Still failing?** Delete only the partial download cache and retry (keeps AUR
+build stamps in `offline/aur/`):
+
+```bash
+rm -f offline/build-mirrorlist offline/dl-pacman.conf
+rm -rf offline/dl-db
+HYPERWEBSTER_REFRESH_MIRRORS=1 ./hyperwebster.sh
+```
+
+For a full package refresh (slow), delete the entire `offline/` directory.
 
 ## Credits
 

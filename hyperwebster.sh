@@ -206,6 +206,112 @@ AUR_BUILD_ORDER=(
 # offline payload cache in $OFFLINE is deliberately NOT cleaned.
 trap 'sudo rm -rf "$WORK" 2>/dev/null || true' EXIT
 
+BUILD_MIRRORLIST="$OFFLINE/build-mirrorlist"
+
+# Rank Arch mirrors for ISO-build downloads (offline closure + AUR chroot).
+# Override with HYPERWEBSTER_MIRRORLIST=/path/to/mirrorlist. Set
+# HYPERWEBSTER_REFRESH_MIRRORS=1 to force re-ranking on the next build.
+prepare_build_mirrorlist() {
+  if [ -n "${HYPERWEBSTER_MIRRORLIST:-}" ]; then
+    echo "==> Using custom build mirrorlist: $HYPERWEBSTER_MIRRORLIST"
+    cp "$HYPERWEBSTER_MIRRORLIST" "$BUILD_MIRRORLIST"
+    return 0
+  fi
+
+  if [ -f "$BUILD_MIRRORLIST" ] && [ -z "${HYPERWEBSTER_REFRESH_MIRRORS:-}" ]; then
+    echo "    Reusing cached build mirrorlist ($BUILD_MIRRORLIST)."
+    echo "    (set HYPERWEBSTER_REFRESH_MIRRORS=1 to re-rank, or delete the file)"
+    return 0
+  fi
+
+  echo "==> Preparing Arch mirrorlist for ISO build downloads..."
+  mkdir -p "$OFFLINE"
+  if command -v reflector >/dev/null 2>&1; then
+    echo "    Ranking mirrors with reflector..."
+    if ! reflector --latest 20 --sort rate --download-timeout 30 --save "$BUILD_MIRRORLIST" \
+        --protocol https; then
+      echo "    reflector failed — retrying with a shorter mirror list." >&2
+      reflector --latest 10 --sort rate --save "$BUILD_MIRRORLIST" --protocol https \
+        || true
+    fi
+  fi
+  if [ ! -s "$BUILD_MIRRORLIST" ]; then
+    echo "    reflector not installed or failed — using multi-mirror fallback list."
+    echo "    (optional: sudo pacman -S reflector for faster mirror selection)"
+    cat > "$BUILD_MIRRORLIST" <<'MIRRORS'
+## HyperWebster build fallback mirrorlist (pacman tries each Server in order)
+Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
+Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch
+Server = https://mirror.rackspace.com/archlinux/$repo/os/$arch
+Server = https://mirror.lty.me/archlinux/$repo/os/$arch
+Server = https://mirrors.mit.edu/archlinux/$repo/os/$arch
+Server = https://mirror.math.princeton.edu/pub/archlinux/$repo/os/$arch
+Server = https://archlinux.mirror.constant.com/$repo/os/$arch
+Server = https://mirror.fcix.net/archlinux/$repo/os/$arch
+Server = https://us.arch.niranjan.co/$repo/os/$arch
+Server = https://arch.mirror.constant.com/$repo/os/$arch
+MIRRORS
+  fi
+}
+
+write_dl_pacman_conf() {
+  cat > "$OFFLINE/dl-pacman.conf" <<DLPAC
+[options]
+Architecture = x86_64
+ParallelDownloads = 8
+DisableDownloadTimeout
+SigLevel = Required DatabaseOptional
+
+[hyperwebster]
+SigLevel = Optional TrustAll
+Server = file://$OFFLINE/iso/repo
+
+[core]
+Include = $BUILD_MIRRORLIST
+
+[extra]
+Include = $BUILD_MIRRORLIST
+
+[omarchy]
+SigLevel = Optional TrustAll
+Server = https://pkgs.omarchy.org/edge/\$arch
+
+[cachyos]
+SigLevel = Optional TrustAll
+Server = https://mirror.cachyos.org/repo/x86_64/cachyos
+Server = https://cdn.cachyos.org/repo/x86_64/cachyos
+DLPAC
+}
+
+# Download the full offline-repo closure with mirror refresh + retries.
+download_offline_closure() {
+  local attempt=1 max_attempts=3
+  sudo rm -rf "$OFFLINE/dl-db"
+  mkdir -p "$OFFLINE/dl-db"
+  while [ "$attempt" -le "$max_attempts" ]; do
+    echo "==> Downloading full package dependency closure (attempt $attempt/$max_attempts)..."
+    if sudo pacman -Syw --noconfirm \
+      --config "$OFFLINE/dl-pacman.conf" \
+      --dbpath "$OFFLINE/dl-db" \
+      --cachedir "$OFFLINE/iso/repo" \
+      "${BASE_PKGS[@]}" "${GPU_ALL_PKGS[@]}" "${LIMINE_TOOLS[@]}"; then
+      return 0
+    fi
+    echo "WARNING: pacman download failed (attempt $attempt/$max_attempts)." >&2
+    if [ "$attempt" -lt "$max_attempts" ]; then
+      echo "    Refreshing mirrors and retrying..." >&2
+      HYPERWEBSTER_REFRESH_MIRRORS=1 prepare_build_mirrorlist
+      write_dl_pacman_conf
+    fi
+    attempt=$((attempt + 1))
+  done
+  echo "ERROR: package download failed after $max_attempts attempts." >&2
+  echo "       Try: HYPERWEBSTER_REFRESH_MIRRORS=1 ./hyperwebster.sh" >&2
+  echo "       Or:  sudo reflector --latest 20 --sort rate --save /etc/pacman.d/mirrorlist" >&2
+  echo "            HYPERWEBSTER_MIRRORLIST=/etc/pacman.d/mirrorlist ./hyperwebster.sh" >&2
+  return 1
+}
+
 # ===========================================================================
 # write_installer — emit the live-ISO installer to the given path.
 # This function holds the script that runs on the *target* machine inside
@@ -2153,6 +2259,8 @@ __INSTALLER_PAYLOAD__
 build_offline_payload() {
   echo "==> Building offline payload (cached in $OFFLINE)..."
   mkdir -p "$OFFLINE/iso/repo" "$OFFLINE/iso/vendor" "$OFFLINE/aur"
+  prepare_build_mirrorlist
+  write_dl_pacman_conf
 
   # ---- vendored source tarballs (pinned) ----------------------------------
   if [ ! -f "$OFFLINE/iso/vendor/caelestia-dotfiles.tar.gz" ]; then
@@ -2264,16 +2372,17 @@ Architecture = auto
 SigLevel = Required DatabaseOptional
 LocalFileSigLevel = Optional
 ParallelDownloads = 8
+DisableDownloadTimeout
 
 [hyperwebster]
 SigLevel = Optional TrustAll
 Server = file://$OFFLINE/iso/repo
 
 [core]
-Include = /etc/pacman.d/mirrorlist
+Include = $BUILD_MIRRORLIST
 
 [extra]
-Include = /etc/pacman.d/mirrorlist
+Include = $BUILD_MIRRORLIST
 CHROOTPAC
   if [ ! -d "$OFFLINE/chroot/root" ]; then
     echo "==> Creating clean build chroot (devtools mkarchroot)..."
@@ -2364,38 +2473,7 @@ CHROOTPAC
   # caelestia stack (from the local repo, pulling its repo deps) — against an
   # EMPTY local db, and download into the repo dir. Already-present files are
   # skipped, so this is cheap on rebuilds.
-  echo "==> Downloading full package dependency closure..."
-  cat > "$OFFLINE/dl-pacman.conf" <<DLPAC
-[options]
-Architecture = x86_64
-ParallelDownloads = 8
-SigLevel = Required DatabaseOptional
-
-[hyperwebster]
-SigLevel = Optional TrustAll
-Server = file://$OFFLINE/iso/repo
-
-[core]
-Server = https://geo.mirror.pkgbuild.com/\$repo/os/\$arch
-
-[extra]
-Server = https://geo.mirror.pkgbuild.com/\$repo/os/\$arch
-
-[omarchy]
-SigLevel = Optional TrustAll
-Server = https://pkgs.omarchy.org/edge/\$arch
-
-[cachyos]
-SigLevel = Optional TrustAll
-Server = https://mirror.cachyos.org/repo/x86_64/cachyos
-DLPAC
-  sudo rm -rf "$OFFLINE/dl-db"   # populated by root (sudo pacman -Syw)
-  mkdir -p "$OFFLINE/dl-db"
-  sudo pacman -Syw --noconfirm \
-    --config "$OFFLINE/dl-pacman.conf" \
-    --dbpath "$OFFLINE/dl-db" \
-    --cachedir "$OFFLINE/iso/repo" \
-    "${BASE_PKGS[@]}" "${GPU_ALL_PKGS[@]}" "${LIMINE_TOOLS[@]}"
+  download_offline_closure
 
   # ---- finalise the repo ----------------------------------------------------
   # Prune superseded package versions, then rebuild the db from everything
