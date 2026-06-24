@@ -165,6 +165,7 @@ Edit the keymap here and the help updates itself.
 | `Super+Shift+Alt+S` | Region capture, live (swappy → ~/Pictures/Screenshots) |
 | `Super+Print` | Color picker — hyprpicker (Omarchy key) |
 | `Super+Shift+C` | Color picker (alias) |
+| `Super+Ctrl+Print` | OCR — extract text from region → clipboard (Omarchy key) |
 | `Ctrl+Alt+R` | Record screen (no audio) |
 | `Super+Alt+R` | Record screen **with sound** |
 | `Super+Shift+Alt+R` | Record a region |
@@ -173,6 +174,7 @@ Edit the keymap here and the help updates itself.
 
 | Keys | Action |
 |------|--------|
+| `Super+Ctrl+N` | Toggle night light (hyprsunset blue-light filter) |
 | `XF86AudioRaiseVolume` / `LowerVolume` | Volume ±10% (unmutes first) |
 | `XF86AudioMute` | Mute / unmute output |
 | `XF86AudioMicMute` | Mute / unmute microphone |
@@ -198,6 +200,15 @@ Edit the keymap here and the help updates itself.
 | `Super+Ctrl+E` | Emoji picker (Omarchy key) |
 | `Super+Period` | Emoji picker (alias) |
 | `Ctrl+Shift+Alt+V` | Alternate paste — types last clip (needs ydotool, NOT installed: dead bind) |
+
+## 12b. Share & transcode (Omarchy-inspired)
+
+| Keys | Action |
+|------|--------|
+| `Super+Ctrl+S` | Share files on LAN — opens **omarchy-send** (LocalSend-compatible) |
+| `Super+Ctrl+Period` | Transcode picture/video for sharing (fuzzel menus) |
+
+CLI: `omarchy-send`, `hyperwebster-transcode`, bash aliases `img2jpg` / `transcode-video-1080p` (via `omarchy-transcode` shim).
 
 ## 13. Power
 

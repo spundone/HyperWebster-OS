@@ -22,6 +22,7 @@ done
 [ -d "$SRC/fish-to-bash" ] && cp -a "$SRC/fish-to-bash" "$DEST/"
 [ -d "$SRC/software-install" ] && cp -a "$SRC/software-install" "$DEST/"
 [ -d "$SRC/omarchy-keys" ] && cp -a "$SRC/omarchy-keys" "$DEST/"
+[ -d "$SRC/omarchy-extras" ] && cp -a "$SRC/omarchy-extras" "$DEST/"
 [ -d "$SRC/omadots-extras" ] && cp -a "$SRC/omadots-extras" "$DEST/"
 [ -d "$SRC/monitor-control" ] && cp -a "$SRC/monitor-control" "$DEST/"
 [ -d "$SRC/updates-panel" ] && cp -a "$SRC/updates-panel" "$DEST/"

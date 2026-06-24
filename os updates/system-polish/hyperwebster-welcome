@@ -10,5 +10,6 @@ notify-send -t 30000 -i help-about-symbolic "Welcome to HyperWebster" \
 Super+Space — launch apps
 Super+I — install software (Shelly)
 Super+Ctrl+H — monitor setup
+Super+Ctrl+S — share files on LAN (omarchy-send)
 Firewall: ufw is on — sudo ufw status"
 touch "$STAMP"

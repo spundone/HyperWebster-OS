@@ -116,8 +116,10 @@ help the user manage their machine safely.
   /boot/EFI/Linux/hyperwebster_linux.efi). Worst case: reboot → pick a snapshot.
 - `[omarchy]` repo in pacman.conf provides prebuilt limine-snapper tools.
 - omarchy-send is installed (LAN file transfer; receive dir `~/Omarchy-Send`,
-  TUI in launcher, CLI: `omarchy-send -to <alias> <files>`). Its config
-  contains a private key — never copy/share `~/.config/omarchy-send/`.
+  `Super+Ctrl+S` or launcher, CLI: `omarchy-send -to <alias> <files>`).
+  Transcode: `Super+Ctrl+Period` or `hyperwebster-transcode`. OCR: `Super+Ctrl+Print`.
+  Night light: `Super+Ctrl+N`. Its config contains a private key — never
+  copy/share `~/.config/omarchy-send/`.
 
 ## Theme
 

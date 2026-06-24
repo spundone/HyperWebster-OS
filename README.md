@@ -31,6 +31,9 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for the target machine profile and
 - **Data drive automount** — non-system disks premount under `/mnt/<label>` at boot.
 - **Omarchy-style keybindings** — `Super+K` cheatsheet, `Super+Space` launcher,
   `Super+D` dashboard, `Super+Grave` workspace overview.
+- **Omarchy-inspired utilities** — `omarchy-send` LAN sharing (`Super+Ctrl+S`),
+  media transcode (`Super+Ctrl+Period`), OCR capture (`Super+Ctrl+Print`),
+  night light toggle (`Super+Ctrl+N`), Omarchy bash setup + `[omarchy]` repo.
 - **Software story**: `yay` (AUR), **Shelly** on `Super+I`, flatpak preconfigured.
 - **Btrfs + bootable snapshots** via snapper/snap-pac; roll back from Limine.
 - **`hyperwebster-update`** — snapshot → upgrade → layer migrations.
@@ -88,7 +91,30 @@ and `~/.local/share/hyperwebster/`. Delete a file to revert one change.
 hyperwebster-blur-toggle enable      # frosted glass (optional)
 hyperwebster-launcher-raycast        # refresh Raycast-like launcher settings
 hyprmoncfg apply tcl-t89c-tv         # TV display profile
+hyperwebster-transcode               # resize media for sharing (Omarchy-style)
+omarchy-send                         # LAN file transfer TUI
 ```
+
+## Omarchy-inspired features
+
+HyperWebster cherry-picks Omarchy's UX without shipping the full distro.
+See `os updates/omarchy-extras/README.md` for the full mapping.
+
+| Feature | Key / command | Notes |
+|---------|---------------|-------|
+| Keybinding layout | `Super+K` cheatsheet | Full Omarchy default map on caelestia |
+| LAN file share | `Super+Ctrl+S`, `omarchy-send` | [28allday/omarchy-send](https://github.com/28allday/omarchy-send) |
+| Media transcode | `Super+Ctrl+Period` | fuzzel menus; `omarchy-transcode` shim for bash aliases |
+| OCR capture | `Super+Ctrl+Print` | grim + tesseract |
+| Night light | `Super+Ctrl+N` | hyprsunset; Quick Settings tile too |
+| Bash shell setup | default login shell | Vendored from Omarchy `default/bash` |
+| Developer polish | omadots configs | starship, tmux, btop, LazyVim |
+| Gaming installer shims | `omarchy-pkg-add` etc. | DeckShift / Chimera compatibility |
+| Limine snapshot tools | `[omarchy]` pacman repo | Prebuilt `limine-snapper-sync` updates |
+
+**Not ported:** Walker/Elephant launcher (caelestia launcher instead), Waybar,
+theme/background switchers, Omarchy reminders, full `omarchy` CLI menus.
+
 
 On-box AI guide: `~/.claude/skills/hyperwebster/SKILL.md` and
 `~/.local/share/hyperwebster/ONBOX-AI-NOTES.md`.

@@ -27,8 +27,11 @@ them. Please support the originals; each remains under its own licence.
 - **[Limine](https://github.com/limine-bootloader/limine)** — UEFI bootloader.
 - **[snapper](https://github.com/openSUSE/snapper)** + **snap-pac** — btrfs
   snapshots on package transactions.
-- **[Omarchy](https://omarchy.org)** — keybinding layout inspiration and
-  prebuilt `[omarchy]` repo for Limine snapshot tooling.
+- **[Omarchy](https://omarchy.org)** — keybinding layout inspiration,
+  prebuilt `[omarchy]` repo for Limine snapshot tooling, bash shell setup,
+  and utility workflows (share, transcode, OCR) adapted in `omarchy-extras`.
+- **[omarchy-send](https://github.com/28allday/omarchy-send)** — LocalSend-compatible
+  LAN file transfer (vendored binary).
 - **cryptsetup / LUKS** + **systemd-cryptenroll** — full-disk encryption with
   optional TPM2 auto-unlock.
 

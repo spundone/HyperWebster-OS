@@ -1,0 +1,27 @@
+#!/bin/bash
+# hyperwebster-ocr-capture — region screenshot → OCR → clipboard.
+# Adapted from Omarchy's omarchy-capture-text-extraction (basecamp/omarchy).
+set -euo pipefail
+
+cleanup_freeze() {
+  [[ -n ${PID:-} ]] && kill "$PID" 2>/dev/null
+}
+trap cleanup_freeze EXIT
+
+command -v tesseract >/dev/null 2>&1 || {
+  notify-send -u critical "OCR" "tesseract not installed — run: sudo pacman -S tesseract"
+  exit 1
+}
+
+hyprpicker -r -z >/dev/null 2>&1 &
+PID=$!
+sleep 0.1
+SELECTION=$(slurp 2>/dev/null) || exit 0
+[[ -n $SELECTION ]] || exit 0
+
+TEXT=$(grim -g "$SELECTION" - | tesseract stdin stdout --oem 1 --psm 6 \
+  -l "${HYPERWEBSTER_OCR_LANGS:-eng}" --dpi 300 -c preserve_interword_spaces=1 2>/dev/null) || exit 1
+[[ -n $TEXT ]] || exit 1
+
+printf '%s' "$TEXT" | wl-copy
+notify-send "Copied text from selection to clipboard"

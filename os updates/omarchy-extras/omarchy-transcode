@@ -1,0 +1,3 @@
+#!/bin/sh
+# omarchy-transcode — HyperWebster shim. Omarchy bash aliases call this name.
+exec hyperwebster-transcode "$@"

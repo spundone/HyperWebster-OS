@@ -1,0 +1,3 @@
+#!/bin/sh
+# hyperwebster-share — open omarchy-send (LocalSend-compatible LAN transfer).
+exec kitty --class TUI.float -e omarchy-send

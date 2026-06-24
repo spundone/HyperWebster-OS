@@ -78,8 +78,8 @@ overwritten). Installer: `install-omarchy-keys.sh` (idempotent).
 - Keys left unbound after the moves: `Super+Q`, `Super+C`, `Super+E`,
   `Super+U`, `Super+Comma`, `Super+L`, `Super+Alt+Space`.
 - Omarchy-only, no equivalent: walker/omarchy menus, waybar toggles, theme/
-  background switchers, webapps, reminders, OCR, share, transcode, nightlight,
-  zoom, monitor scaling.
+  background switchers, webapps, reminders, nightlight (→ `Super+Ctrl+N` in
+  omarchy-extras), share/transcode/OCR (→ omarchy-extras layer), monitor scaling.
 
 `../HyperWebster-keybindings.md` is rewritten to the new map, so the `Super+K`
 cheatsheet reflects all of this automatically.

@@ -111,6 +111,8 @@ BASE_PKGS=(
   hyprland uwsm xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
   hyprpicker hyprlock hypridle hyprsunset wl-clipboard cliphist inotify-tools
   grim slurp swappy brightnessctl playerctl pavucontrol
+  # omarchy-extras: OCR + picture transcode (ffmpeg already via cliamp)
+  tesseract imagemagick
   # Display manager: SDDM (layer change 16 — DeckShift's desktop<->gaming
   # session switching rewrites SDDM config; greetd/tuigreet couldn't do this).
   # xorg-server is for SDDM's X11 GREETER only (DisplayServer=x11, the
@@ -1625,6 +1627,11 @@ install -m 755 "$LAYER/hyperwebster-keybinds" "$LAYER/hyperwebster-keybinds-gen"
   "$LAYER/super-clipboard/super-copy" \
   "$LAYER/super-clipboard/super-paste" \
   "$LAYER/screenshots/hyperwebster-screenshot" \
+  "$LAYER/omarchy-extras/hyperwebster-share" \
+  "$LAYER/omarchy-extras/hyperwebster-transcode" \
+  "$LAYER/omarchy-extras/hyperwebster-ocr-capture" \
+  "$LAYER/omarchy-extras/hyperwebster-nightlight-toggle" \
+  "$LAYER/omarchy-extras/omarchy-transcode" \
   "$LAYER/additions-installer/hyperwebster-additions" \
   "$LAYER/app-theme-awareness/hyperwebster-app-theme-sync" \
   "$LAYER/kernel-reboot-notify/hyperwebster-reboot-check" \
@@ -1729,6 +1736,8 @@ echo "==> Omarchy keymap + layer binds..."
   echo ''
   cat "$LAYER/omarchy-keys/omarchy-keys-user.conf"
   echo ''
+  cat "$LAYER/omarchy-extras/omarchy-extras-keys.conf"
+  echo ''
   cat "$LAYER/monitor-control/hyprland-monitor-control.conf"
   echo ''
   sed -n '/# >>> super-clipboard/,/# <<< super-clipboard/p' \
@@ -1749,6 +1758,17 @@ echo "==> Omarchy keymap + layer binds..."
 # swappy (the caelestia region/freeze annotate binds) saves to the same place.
 install -d -m 755 "$M_HOME/Pictures/Screenshots" "$M_HOME/.config/swappy"
 install -m 644 "$LAYER/screenshots/swappy-config" "$M_HOME/.config/swappy/config"
+
+# --- omarchy-extras: XCompose emoji sequences + env for XWayland apps.
+install -d -m 755 "$M_HOME/.config/environment.d"
+{
+  echo '# HyperWebster omarchy-extras — sourced from Omarchy default/xcompose'
+  cat "$LAYER/omarchy-extras/xcompose"
+} > "$M_HOME/.XCompose"
+cat > "$M_HOME/.config/environment.d/99-hyperwebster-compose.conf" <<'COMPOSE_ENV'
+# HyperWebster — Omarchy-style XCompose sequences (XWayland apps).
+XCOMPOSEFILE=$HOME/.XCompose
+COMPOSE_ENV
 
 # --- changes 7+8: user services. No systemd in the chroot — enable = the
 # symlink systemctl would create, targets read from each unit's [Install].

@@ -1,0 +1,23 @@
+#!/bin/bash
+# hyperwebster-nightlight-toggle — toggle hyprsunset blue-light filter.
+# Omarchy uses Super+Ctrl+N; HyperWebster maps the same key.
+set -euo pipefail
+
+FLAG="${XDG_STATE_HOME:-$HOME/.local/state}/hyperwebster/nightlight-on"
+TEMP="${HYPERWEBSTER_NIGHTLIGHT_K:-4000}"
+
+if ! pgrep -x hyprsunset >/dev/null 2>&1; then
+  hyprsunset >/dev/null 2>&1 &
+  sleep 0.2
+fi
+
+if [[ -f $FLAG ]]; then
+  rm -f "$FLAG"
+  hyprctl hyprsunset identity >/dev/null 2>&1 || true
+  notify-send -u low "Night light" "Disabled"
+else
+  mkdir -p "$(dirname "$FLAG")"
+  touch "$FLAG"
+  hyprctl hyprsunset temperature "$TEMP" >/dev/null 2>&1 || true
+  notify-send -u low "Night light" "Enabled (${TEMP}K)"
+fi

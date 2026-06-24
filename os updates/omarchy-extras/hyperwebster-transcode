@@ -1,0 +1,167 @@
+#!/bin/bash
+# hyperwebster-transcode — resize pictures/videos for sharing.
+# Adapted from Omarchy's omarchy-transcode; uses fuzzel instead of Walker menus.
+set -euo pipefail
+
+menu() {
+  local prompt="$1"
+  shift
+  printf '%s\n' "$@" | fuzzel --dmenu --prompt "$prompt " --width 40
+}
+
+pick_file() {
+  local roots="$1"
+  local IFS=:
+  local root files=()
+  for root in $roots; do
+    [[ -d $root ]] || continue
+    while IFS= read -r -d '' f; do
+      files+=("$f")
+    done < <(find "$root" -maxdepth 4 -type f \
+      \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \
+         -o -iname '*.gif' -o -iname '*.heic' -o -iname '*.avif' \
+         -o -iname '*.mp4' -o -iname '*.mov' -o -iname '*.m4v' \
+         -o -iname '*.mkv' -o -iname '*.webm' -o -iname '*.avi' \) \
+      -printf '%T@ %p\0' 2>/dev/null | sort -zrn | cut -z -d' ' -f2-)
+  done
+  ((${#files[@]})) || return 1
+  printf '%s\n' "${files[@]}" | fuzzel --dmenu --prompt 'file> ' --width 80
+}
+
+media_type() {
+  local mime
+  mime=$(file -b --mime-type "$1")
+  case "$mime" in
+    image/*) echo picture ;;
+    video/*) echo video ;;
+    *) echo "Unsupported file type: $mime" >&2; return 1 ;;
+  esac
+}
+
+output_path() {
+  local input="$1" format="$2" resolution="$3"
+  local dir base stem
+  dir=$(dirname -- "$input")
+  base=$(basename -- "$input")
+  stem="${base%.*}"
+  printf '%s/%s-%s.%s' "$dir" "$stem" "$resolution" "$format"
+}
+
+transcode_picture() {
+  local input="$1" format="$2" resolution="$3" output="$4" resize
+  case "$resolution" in
+    high) resize='3160x>' ;;
+    medium) resize='2160x>' ;;
+    low) resize='1080x>' ;;
+    *) echo "Invalid picture resolution: $resolution" >&2; return 1 ;;
+  esac
+  case "$format" in
+    jpg) magick "$input" -resize "$resize" -quality 85 -strip "$output" ;;
+    png) magick "$input" -resize "$resize" -strip \
+           -define png:compression-filter=5 -define png:compression-level=9 \
+           -define png:compression-strategy=1 -define png:exclude-chunk=all "$output" ;;
+    *) echo "Invalid picture format: $format" >&2; return 1 ;;
+  esac
+}
+
+transcode_video() {
+  local input="$1" format="$2" resolution="$3" output="$4" scale
+  case "$resolution" in
+    4k) scale='scale=-2:2160' ;;
+    1080p) scale='scale=-2:1080' ;;
+    720p) scale='scale=-2:720' ;;
+    *) echo "Invalid video resolution: $resolution" >&2; return 1 ;;
+  esac
+  case "$format" in
+    mp4)
+      if [[ $resolution == 4k ]]; then
+        ffmpeg -hide_banner -loglevel error -y -i "$input" -vf "$scale" \
+          -c:v libx265 -preset slow -crf 24 -c:a aac -b:a 192k "$output"
+      else
+        ffmpeg -hide_banner -loglevel error -y -i "$input" -vf "$scale" \
+          -c:v libx264 -preset fast -crf 23 -c:a copy "$output"
+      fi
+      ;;
+    gif)
+      ffmpeg -hide_banner -loglevel error -y -i "$input" \
+        -vf "fps=10,$scale:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" "$output"
+      ;;
+    *) echo "Invalid video format: $format" >&2; return 1 ;;
+  esac
+}
+
+usage() {
+  cat <<'EOF'
+Usage: hyperwebster-transcode [--path DIR] [input] [format] [resolution]
+
+Interactive (no args): pick a file from ~/Pictures and ~/Videos, then format/resolution.
+CLI: hyperwebster-transcode video.mov mp4 1080p
+
+Formats: pictures jpg png | videos mp4 gif
+Resolutions: pictures high medium low | videos 4k 1080p 720p
+EOF
+}
+
+main() {
+  local input="" format="" resolution="" search_path=""
+  local positional=()
+
+  while (($# > 0)); do
+    case "$1" in
+      --path)
+        shift
+        [[ $# -gt 0 ]] || { echo "Missing value for --path" >&2; return 2; }
+        search_path="$1"
+        ;;
+      -h|--help) usage; return 0 ;;
+      --) shift; positional+=("$@"); break ;;
+      --*) echo "Unknown option: $1" >&2; usage >&2; return 2 ;;
+      *) positional+=("$1") ;;
+    esac
+    shift
+  done
+
+  input="${positional[0]:-}"
+  format="${positional[1]:-}"
+  resolution="${positional[2]:-}"
+  search_path="${search_path:-$HOME/Pictures:$HOME/Videos}"
+
+  if [[ -z $input ]]; then
+    input=$(pick_file "$search_path") || return 1
+  fi
+  [[ -n $input && -f $input ]] || { echo "File not found: $input" >&2; return 1; }
+
+  local type
+  type=$(media_type "$input")
+
+  if [[ -z $format ]]; then
+    if [[ $type == picture ]]; then
+      format=$(menu 'format' jpg png) || return 1
+    else
+      format=$(menu 'format' mp4 gif) || return 1
+    fi
+  fi
+
+  if [[ -z $resolution ]]; then
+    if [[ $type == picture ]]; then
+      resolution=$(menu 'resolution' high medium low) || return 1
+    else
+      resolution=$(menu 'resolution' 4k 1080p 720p) || return 1
+    fi
+  fi
+
+  local output
+  output=$(output_path "$input" "$format" "$resolution")
+
+  if [[ $type == video ]]; then
+    notify-send "Transcoding video…" "$(basename -- "$input") → $format ($resolution)"
+    transcode_video "$input" "$format" "$resolution" "$output"
+  else
+    transcode_picture "$input" "$format" "$resolution" "$output"
+  fi
+
+  printf 'file://%s\n' "$(realpath -- "$output")" | wl-copy --type text/uri-list
+  notify-send "Transcoded" "Saved $(basename -- "$output") — URI copied to clipboard"
+}
+
+main "$@"
