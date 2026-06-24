@@ -6,27 +6,39 @@ Window.SetBackgroundBottomColor(0, 0, 0);
 screen_width = Window.GetWidth();
 screen_height = Window.GetHeight();
 
-star_col = 0.95;
-body_col = 0.75;
-accent_col = 0.55;
-
-fun text_line(y, str, r, g, b) {
-    local.image = Image.Text(str, r, g, b, 1.0);
-    local.sprite = Sprite(local.image);
-    local.sprite.SetX(screen_width / 2 - local.image.GetWidth() / 2);
-    local.sprite.SetY(y);
-    local.sprite.SetOpacity(1);
-}
-
-# Starman figure (monospace lines, centred).
 base_y = screen_height / 2 - 72;
-text_line(base_y,       "*", star_col, star_col, 0.45);
-text_line(base_y + 22,  "/|\\", body_col, body_col, body_col);
-text_line(base_y + 44,  "/ | \\", body_col, body_col, body_col);
-text_line(base_y + 66,  "  |  ", body_col, body_col, body_col);
-text_line(base_y + 88,  " / \\ ", body_col, body_col, body_col);
 
-title.image = Image.Text("HYPERWEBSTER", accent_col, 0.88, 0.55, 1.0);
+star.image = Image.Text("*", 0.95, 0.95, 0.45, 1.0);
+star.sprite = Sprite(star.image);
+star.sprite.SetX(screen_width / 2 - star.image.GetWidth() / 2);
+star.sprite.SetY(base_y);
+star.sprite.SetOpacity(1);
+
+arms.image = Image.Text("/|\\", 0.75, 0.75, 0.75, 1.0);
+arms.sprite = Sprite(arms.image);
+arms.sprite.SetX(screen_width / 2 - arms.image.GetWidth() / 2);
+arms.sprite.SetY(base_y + 22);
+arms.sprite.SetOpacity(1);
+
+body.image = Image.Text("/ | \\", 0.75, 0.75, 0.75, 1.0);
+body.sprite = Sprite(body.image);
+body.sprite.SetX(screen_width / 2 - body.image.GetWidth() / 2);
+body.sprite.SetY(base_y + 44);
+body.sprite.SetOpacity(1);
+
+torso.image = Image.Text("  |  ", 0.75, 0.75, 0.75, 1.0);
+torso.sprite = Sprite(torso.image);
+torso.sprite.SetX(screen_width / 2 - torso.image.GetWidth() / 2);
+torso.sprite.SetY(base_y + 66);
+torso.sprite.SetOpacity(1);
+
+legs.image = Image.Text(" / \\ ", 0.75, 0.75, 0.75, 1.0);
+legs.sprite = Sprite(legs.image);
+legs.sprite.SetX(screen_width / 2 - legs.image.GetWidth() / 2);
+legs.sprite.SetY(base_y + 88);
+legs.sprite.SetOpacity(1);
+
+title.image = Image.Text("HYPERWEBSTER", 0.55, 0.88, 0.55, 1.0);
 title.sprite = Sprite(title.image);
 title.sprite.SetX(screen_width / 2 - title.image.GetWidth() / 2);
 title.sprite.SetY(base_y + 118);
