@@ -1,0 +1,14 @@
+#!/bin/sh
+# xdg-terminal-exec — offline shim (HyperWebster).
+# app2unit's terminal handler defaults to `xdg-terminal-exec`, which HyperWebster
+# did not ship, so launching any Terminal=true desktop entry failed with
+# "Terminal launch requested but 'xdg-terminal-exec' is unavailable!".
+# This shim launches the configured terminal ($TERMINAL, else kitty) following
+# the xdg-terminal-exec calling convention. The builder should ship the real
+# freedesktop xdg-terminal-exec package; this shim is the offline fallback and
+# self-removes from PATH precedence if that binary lands in /usr/bin.
+set -u
+TERM_EMU="${TERMINAL:-kitty}"
+[ "${1:-}" = "--" ] && shift
+[ "$#" -eq 0 ] && exec "$TERM_EMU"
+exec "$TERM_EMU" "$@"

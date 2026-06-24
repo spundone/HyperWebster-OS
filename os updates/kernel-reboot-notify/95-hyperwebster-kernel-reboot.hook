@@ -1,0 +1,15 @@
+# HyperWebster: warn (in pacman/yay output) when a kernel image changes, so
+# out-of-band `pacman -Syu` / `yay` updates also remind the user to reboot.
+# The desktop notification is handled by hyperwebster-reboot-check (end of
+# hyperwebster-update / at login); this hook covers the terminal case.
+[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = usr/lib/modules/*/vmlinuz
+
+[Action]
+Description = HyperWebster: kernel changed — a reboot is required to load it...
+When = PostTransaction
+Exec = /bin/sh -c 'printf "\n>> HyperWebster: kernel changed — REBOOT REQUIRED to load the new kernel.\n>> At the Limine menu, boot the UKI entry.\n\n"'

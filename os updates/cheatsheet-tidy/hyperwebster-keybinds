@@ -1,0 +1,46 @@
+#!/bin/sh
+# hyperwebster-keybinds — searchable on-screen keybinding cheatsheet for HyperWebster.
+# The keymap is NOT stored here: it is generated from the markdown doc by
+# hyperwebster-keybinds-gen on every launch, so the cheatsheet can never drift from
+# ~/Downloads/HyperWebster-keybindings.md. The generated list is cached so the help
+# still works if the markdown is temporarily missing.
+#
+# Read-only: typing filters the list; selecting a line copies that shortcut to
+# the clipboard (if wl-copy is present) and never executes anything.
+#
+# --width 100 must stay in sync with the generator's $HYPERWEBSTER_KEYS_COLS default
+# (98 = 100 minus margin) — the generator truncates actions to that budget so
+# every line fits the panel.
+set -u
+
+DATA_DIR="$HOME/.local/share/hyperwebster"
+LIST="$DATA_DIR/keybinds.list"
+mkdir -p "$DATA_DIR"
+
+# Find the generator next to this script (no PATH dependency), else fall back.
+SELF_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+GEN="$SELF_DIR/hyperwebster-keybinds-gen"
+[ -x "$GEN" ] || GEN="hyperwebster-keybinds-gen"
+
+# Regenerate from the markdown when available; otherwise keep the cached list.
+if "$GEN" > "$LIST.tmp" 2>/dev/null && [ -s "$LIST.tmp" ]; then
+  mv "$LIST.tmp" "$LIST"
+else
+  rm -f "$LIST.tmp"
+fi
+
+if [ ! -s "$LIST" ]; then
+  command -v notify-send >/dev/null 2>&1 &&
+    notify-send -u critical "HyperWebster keys" "Cheatsheet unavailable — keymap markdown not found."
+  exit 1
+fi
+
+selection=$(fuzzel --dmenu \
+  --prompt "keys> " \
+  --width 100 \
+  --lines 20 \
+  --no-icons < "$LIST" 2>/dev/null)
+
+if [ -n "${selection:-}" ] && command -v wl-copy >/dev/null 2>&1; then
+  printf '%s' "$selection" | wl-copy
+fi

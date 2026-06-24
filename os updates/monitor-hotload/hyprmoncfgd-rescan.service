@@ -1,0 +1,9 @@
+[Unit]
+Description=Restart hyprmoncfgd to pick up profile changes
+
+[Service]
+Type=oneshot
+# try-restart: only bounce the daemon if it is already running — respect a
+# user who stopped/disabled it. The daemon applies the best-matching profile
+# on startup (see "triggered: startup" in its log), which is the rescan.
+ExecStart=/usr/bin/systemctl --user try-restart hyprmoncfgd.service

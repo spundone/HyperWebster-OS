@@ -1,0 +1,125 @@
+{
+  "_comment": "HyperWebster additions manifest — drives Settings → Additions. Each item: id (slug), name, desc (one line, shown until installed), icon (Material Symbol), check (sh, exit 0 = installed), install (sh, runs in a visible floating terminal — interactive sudo is fine). Sources policy: official pacman repos ([extra]/[omarchy]) or official upstream installers/git only — no AUR, no Flatpak.",
+  "items": [
+    {
+      "id": "deckshift",
+      "name": "DeckShift Gaming Mode",
+      "desc": "Steam Big Picture gamescope session (Super+Shift+S)",
+      "icon": "sports_esports",
+      "check": "test -x /usr/local/bin/switch-to-gaming",
+      "install": "set -e; [ -d \"$HOME/deckshift/.git\" ] || git clone https://git.no-signal.uk/hyperwebster/deckshift.git \"$HOME/deckshift\"; cd \"$HOME/deckshift\"; chmod +x deckshift.sh; ./deckshift.sh; sh \"$HOME/.local/share/hyperwebster/deckshift-login/install-deckshift-login.sh\""
+    },
+    {
+      "id": "spotify",
+      "name": "Spotify",
+      "desc": "Music streaming client",
+      "icon": "music_note",
+      "check": "pacman -Q spotify",
+      "install": "sudo pacman -S --needed --noconfirm spotify"
+    },
+    {
+      "id": "once",
+      "name": "Once",
+      "desc": "Basecamp self-hosted web app manager",
+      "icon": "deployed_code",
+      "check": "pacman -Q once-bin",
+      "install": "sudo pacman -S --needed --noconfirm once-bin"
+    },
+    {
+      "id": "obsidian",
+      "name": "Obsidian",
+      "desc": "Knowledge base and Markdown notes",
+      "icon": "edit_note",
+      "check": "pacman -Q obsidian",
+      "install": "sudo pacman -S --needed --noconfirm obsidian"
+    },
+    {
+      "id": "obs",
+      "name": "OBS Studio",
+      "desc": "Screen recording and streaming (+ hardware encoders)",
+      "icon": "videocam",
+      "check": "sh \"$HOME/.local/share/hyperwebster/additions-installer/obs-extras.sh\" check",
+      "install": "sh \"$HOME/.local/share/hyperwebster/additions-installer/obs-extras.sh\" install"
+    },
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "desc": "Anthropic terminal coding agent",
+      "icon": "smart_toy",
+      "check": "command -v claude",
+      "install": "curl -fsSL https://claude.ai/install.sh | bash"
+    },
+    {
+      "id": "codex",
+      "name": "Codex CLI",
+      "desc": "OpenAI terminal coding agent",
+      "icon": "code",
+      "check": "command -v codex",
+      "install": "curl -fsSL https://chatgpt.com/codex/install.sh | sh"
+    },
+    {
+      "id": "opencode",
+      "name": "opencode",
+      "desc": "Open-source terminal coding agent",
+      "icon": "data_object",
+      "check": "command -v opencode",
+      "install": "curl -fsSL https://opencode.ai/install | bash"
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama",
+      "desc": "Run LLMs locally (GPU-accelerated)",
+      "icon": "neurology",
+      "check": "pacman -Q ollama",
+      "install": "gpu=$(lspci -nn 2>/dev/null | grep -iE 'VGA|3D|Display'); if echo \"$gpu\" | grep -qi '10de'; then pkg=ollama-cuda; elif echo \"$gpu\" | grep -qi '1002'; then pkg=ollama-rocm; else pkg=ollama; fi; echo \"Installing $pkg\"; sudo pacman -S --needed --noconfirm \"$pkg\""
+    },
+    {
+      "id": "lmstudio",
+      "name": "LM Studio",
+      "desc": "Desktop app to run LLMs locally (GPU-accelerated)",
+      "icon": "psychology",
+      "check": "pacman -Q lmstudio-bin || pacman -Q lmstudio",
+      "install": "sudo pacman -S --needed --noconfirm lmstudio-bin"
+    },
+    {
+      "id": "dropbox",
+      "name": "Dropbox",
+      "desc": "Cloud file sync and sharing",
+      "icon": "cloud_sync",
+      "check": "pacman -Q dropbox",
+      "install": "sudo pacman -S --needed --noconfirm dropbox dropbox-cli nautilus-dropbox; systemctl --user enable --now dropbox 2>/dev/null || true; echo 'Dropbox installed — it will open a browser to link your account on first start.'"
+    },
+    {
+      "id": "tailscale",
+      "name": "Tailscale",
+      "desc": "Mesh VPN to connect your devices",
+      "icon": "vpn_lock",
+      "check": "pacman -Q tailscale",
+      "install": "sudo pacman -S --needed --noconfirm tailscale; sudo systemctl enable --now tailscaled; echo 'Tailscale installed. Connect with: sudo tailscale up'"
+    },
+    {
+      "id": "pinta",
+      "name": "Pinta",
+      "desc": "Simple image editor (Paint.NET-style)",
+      "icon": "brush",
+      "check": "pacman -Q pinta",
+      "install": "sudo pacman -S --needed --noconfirm pinta"
+    },
+    {
+      "id": "kdenlive",
+      "name": "Kdenlive",
+      "desc": "Video editor (hardware-accelerated export)",
+      "icon": "movie_edit",
+      "check": "pacman -Q kdenlive",
+      "install": "sudo pacman -S --needed --noconfirm kdenlive"
+    },
+    {
+      "id": "pi",
+      "name": "Pi Coding Agent",
+      "desc": "Interactive AI coding agent (multi-provider)",
+      "icon": "robot_2",
+      "check": "command -v pi",
+      "install": "curl -fsSL https://pi.dev/install.sh | sh"
+    }
+  ]
+}

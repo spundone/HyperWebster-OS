@@ -1,0 +1,3 @@
+# HyperWebster: flip the CachyOS repos from the settings toggle without a password.
+# Pinned to the fixed, root-owned helper, which itself only accepts detect/status/enable/disable.
+%wheel ALL=(ALL) NOPASSWD: /usr/local/bin/hyperwebster-cachy-repo detect, /usr/local/bin/hyperwebster-cachy-repo status, /usr/local/bin/hyperwebster-cachy-repo enable, /usr/local/bin/hyperwebster-cachy-repo disable

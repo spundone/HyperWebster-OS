@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# omarchy-pkg-add — HyperWebster shim for Omarchy's helper of the same name.
+#
+# HyperWebster ships yay (and Shelly) instead of the Omarchy CLI helpers, so
+# Omarchy-targeted install scripts (e.g. the DeckShift gaming installer) fail at
+# `omarchy-pkg-add: command not found`. This provides the same idempotent
+# package-install behaviour via yay.
+exec yay -S --needed --noconfirm "$@"

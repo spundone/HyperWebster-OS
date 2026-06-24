@@ -1,0 +1,9 @@
+#!/bin/sh
+# hyperwebster-webapp-remove — remove a web app created by hyperwebster-webapp-install.
+set -eu
+[ $# -ge 1 ] || { echo 'Usage: hyperwebster-webapp-remove "App Name"' >&2; exit 1; }
+NAME="$1"
+APPS="$HOME/.local/share/applications"
+rm -f "$APPS/$NAME.desktop" "$APPS/icons/$NAME".*
+update-desktop-database "$APPS" 2>/dev/null || true
+echo "Removed web app: $NAME"

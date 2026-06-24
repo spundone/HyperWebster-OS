@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# super-copy — make a single Super+C "copy" in every app.
+#
+# Wayland has no global copy; each app owns its own shortcut. Terminals use
+# Ctrl+Shift+C (Ctrl+C is SIGINT); GUI apps use Ctrl+C. This sends the right
+# one to the focused window using Hyprland's built-in `sendshortcut`
+# dispatcher — no external tools (ydotool/wtype) required.
+set -euo pipefail
+
+cls=$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // empty' | tr '[:upper:]' '[:lower:]')
+
+case "$cls" in
+  *kitty*|*foot*|*ghostty*|*alacritty*|*wezterm*|*xterm*|*konsole*|*term*)
+    hyprctl dispatch sendshortcut "CTRL SHIFT, C, activewindow" ;;
+  *)
+    hyprctl dispatch sendshortcut "CTRL, C, activewindow" ;;
+esac

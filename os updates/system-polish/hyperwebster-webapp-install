@@ -1,0 +1,38 @@
+#!/bin/sh
+# hyperwebster-webapp-install — wrap a website in a chromium app window with a menu
+# entry (Omarchy-style web apps). Usage:
+#   hyperwebster-webapp-install "App Name" https://app.example.com [https://icon.png]
+set -eu
+
+[ $# -ge 2 ] || { echo 'Usage: hyperwebster-webapp-install "App Name" URL [ICON_URL]' >&2; exit 1; }
+NAME="$1"; URL="$2"; ICON_URL="${3:-}"
+
+APPS="$HOME/.local/share/applications"
+ICONS="$APPS/icons"
+mkdir -p "$APPS" "$ICONS"
+
+ICON=web-browser
+if [ -n "$ICON_URL" ]; then
+  EXT="${ICON_URL##*.}"
+  case "$EXT" in png|svg|ico|jpg) ;; *) EXT=png ;; esac
+  if curl -fsSL "$ICON_URL" -o "$ICONS/$NAME.$EXT"; then
+    ICON="$ICONS/$NAME.$EXT"
+  else
+    echo "icon download failed — using generic icon" >&2
+  fi
+fi
+
+cat > "$APPS/$NAME.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=$NAME
+Comment=$NAME (web app)
+Exec=chromium --app="$URL"
+Icon=$ICON
+Terminal=false
+StartupNotify=true
+Categories=Network;
+EOF
+
+update-desktop-database "$APPS" 2>/dev/null || true
+echo "Installed web app: $NAME -> $URL (find it in the launcher)"

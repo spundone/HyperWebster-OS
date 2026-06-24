@@ -1,0 +1,49 @@
+#!/bin/bash
+# gaming-session-switch — DeckShift-compatible session-switch helper, patched
+# for password-at-boot. Same path + same {gaming|desktop} interface as
+# DeckShift's original (the existing sudoers rule and switch-to-gaming /
+# switch-to-desktop / os-session-select callers all keep working).
+#
+# DeckShift's original keeps a PERMANENT SDDM autologin drop-in and only flips
+# its Session= line, so the machine never shows a password screen. This version
+# writes the drop-in fresh on every switch and arms a one-shot marker in /run;
+# sddm-autologin-gate (ExecStartPre on sddm.service) consumes the marker so the
+# autologin applies to THAT restart only. Cold boots, crashes, and manual SDDM
+# restarts find no marker and get the normal password greeter.
+set -u
+
+CONF="/etc/sddm.conf.d/zz-gaming-session.conf"
+MARKER="/run/deckshift-session-switch"
+
+if [[ $EUID -ne 0 ]]; then
+  echo "Error: must run as root (callers use: sudo -n $0 ...)" >&2
+  exit 1
+fi
+
+# The desktop user comes from sudo (all DeckShift callers invoke via sudo -n).
+USER_NAME="${SUDO_USER:-}"
+if [[ -z "$USER_NAME" ]]; then
+  USER_NAME=$(loginctl list-sessions --no-legend 2>/dev/null | awk '$3 != "sddm" && $3 != "" { print $3; exit }')
+fi
+if [[ -z "$USER_NAME" ]]; then
+  echo "Error: cannot determine the user to autologin" >&2
+  exit 1
+fi
+
+case "${1:-}" in
+  gaming)  SESSION="gamescope-session-steam-nm" ;;
+  desktop) SESSION="hyprland-uwsm" ;;
+  *)
+    echo "Usage: $0 {gaming|desktop}" >&2
+    exit 1
+    ;;
+esac
+
+cat > "$CONF" << EOF
+[Autologin]
+User=${USER_NAME}
+Session=${SESSION}
+Relogin=false
+EOF
+touch "$MARKER"
+echo "Session set to: $1 mode (one-shot autologin armed)"

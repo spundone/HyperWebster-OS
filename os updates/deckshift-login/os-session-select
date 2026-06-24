@@ -1,0 +1,15 @@
+#!/bin/bash
+# /usr/lib/os-session-select — Steam's "Exit to Desktop" handler. This is
+# DeckShift's original version, verbatim (shipped here so the installer can
+# restore it if something else overwrote it). It flips the session back to
+# desktop, shuts Steam down, and restarts SDDM; with the patched
+# gaming-session-switch the autologin back to the desktop is one-shot.
+rm -f /tmp/.gaming-session-active
+sudo -n /usr/local/bin/gaming-session-switch desktop 2>/dev/null || {
+  echo "Warning: Failed to update session config"
+}
+timeout 5 steam -shutdown 2>/dev/null || true
+sleep 1
+nohup sudo -n systemctl restart sddm &>/dev/null &
+disown
+exit 0

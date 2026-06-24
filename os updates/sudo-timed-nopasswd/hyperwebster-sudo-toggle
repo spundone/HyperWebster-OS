@@ -1,0 +1,134 @@
+#!/bin/sh
+# hyperwebster-sudo-toggle — time-boxed passwordless sudo ("sudoless" mode).
+#
+# enable : grant the human user NOPASSWD: ALL for WINDOW_MIN minutes, then
+#          auto-revert. Requires root (run via `sudo`); you authenticate ONCE.
+# disable: revert now (remove the drop-in, cancel the timer). Requires root,
+#          but inside an active window `sudo -n` works without a password.
+# status : print active/inactive (+minutes remaining). Needs NO root — reads a
+#          world-readable stamp, so the panel toggle can poll it.
+#
+# Safety:
+#  - the sudoers drop-in is validated with `visudo -cf` BEFORE it is installed;
+#    a malformed file is never moved into place (a broken sudoers locks you out).
+#  - auto-revert is a root-owned transient systemd timer (no password needed).
+#  - a boot-time oneshot (hyperwebster-sudoless-boot-clean.service) removes the
+#    drop-in on every boot, so a reboot during the window can never leave
+#    passwordless sudo enabled (transient timers don't survive reboot).
+set -eu
+
+DROPIN=/etc/sudoers.d/01-hyperwebster-sudoless
+STAMP=/run/hyperwebster-sudoless.stamp          # tmpfs: world-readable, cleared on reboot
+WINDOW_MIN=15
+REVERT_UNIT=hyperwebster-sudoless-revert
+SELF=/usr/local/bin/hyperwebster-sudo-toggle
+
+die() { echo "hyperwebster-sudo-toggle: $*" >&2; exit 1; }
+need_root() { [ "$(id -u)" -eq 0 ] || die "must run as root (use: sudo $SELF $1)"; }
+
+target_user() {
+    # who to grant: the invoking human (via sudo), never root
+    if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+        printf '%s\n' "$SUDO_USER"; return 0
+    fi
+    # fallback: the lowest normal login account (uid 1000-60000) with a shell
+    awk -F: '$3>=1000 && $3<60000 && $7 !~ /(nologin|false)$/ {print $1; exit}' /etc/passwd
+}
+
+cancel_timer() {
+    # Stop ONLY the .timer (disarm a pending revert). NEVER stop the .service:
+    # when disable() is invoked BY that service (the timer fired), stopping it
+    # would SIGTERM us mid-run — which is exactly the bug that left the drop-in
+    # in place. reset-failed both is harmless cleanup.
+    systemctl stop "${REVERT_UNIT}.timer" 2>/dev/null || true
+    systemctl reset-failed "${REVERT_UNIT}.timer" "${REVERT_UNIT}.service" 2>/dev/null || true
+}
+
+cmd_enable() {
+    need_root enable
+    user=$(target_user)
+    [ -n "$user" ] || die "could not determine target user"
+
+    tmp=$(mktemp /tmp/hyperwebster-sudoless.XXXXXX) || die "mktemp failed"
+    trap 'rm -f "$tmp"' EXIT
+    cat > "$tmp" <<EOF
+# Managed by hyperwebster-sudo-toggle — TIME-BOXED, auto-reverts after ${WINDOW_MIN} min.
+# Do not edit by hand; run \`sudo hyperwebster-sudo-toggle disable\` to revert now.
+$user ALL=(ALL:ALL) NOPASSWD: ALL
+EOF
+    # validate BEFORE installing — never move a broken sudoers file into place
+    visudo -cf "$tmp" >/dev/null 2>&1 || die "sudoers validation failed; aborting (no change made)"
+
+    install -m 0440 -o root -g root "$tmp" "$DROPIN"
+    rm -f "$tmp"; trap - EXIT
+    date +%s > "$STAMP"; chmod 0644 "$STAMP"
+
+    # arm the auto-revert (fresh 15-min window each enable)
+    cancel_timer
+    systemd-run --quiet --unit="$REVERT_UNIT" --on-active="${WINDOW_MIN}min" \
+        --description="Revert HyperWebster timed passwordless sudo" \
+        "$SELF" disable >/dev/null 2>&1 \
+        || echo "WARNING: could not arm auto-revert timer; run 'sudo $SELF disable' manually" >&2
+
+    echo "sudoless ENABLED for $user — ${WINDOW_MIN} min (auto-reverts; reboot also clears it)"
+}
+
+cmd_enable_tui() {
+    # Runs as the human user inside the floating prompt terminal (class
+    # hyperwebster-sudo). Drives the SINGLE password prompt for `enable`, then keeps
+    # the window readable on failure so the user sees why — the old flow let the
+    # terminal vanish on failure, which read as "the switch is broken".
+    #   -k : ignore any cached/stale credential so the prompt is always fresh and
+    #        a pam_faillock lockout surfaces here instead of silently reverting.
+    printf '\n  Enable passwordless sudo for %s minutes.\n\n' "$WINDOW_MIN"
+    if sudo -k -p "  [sudo] password for %p: " "$SELF" enable; then
+        printf '\n  Done — closing.\n'
+        sleep 1
+        return 0
+    fi
+    # reached only when sudo failed (wrong password, or faillock lockout)
+    printf '\n  Could not enable passwordless sudo.\n'
+    printf '  If you mistyped a few times the account may be briefly locked\n'
+    printf '  (~10 min by pam_faillock). Wait and retry, or from a TTY:\n'
+    printf '      su -    then    faillock --user %s --reset\n' "$(id -un)"
+    printf '\n  Press Enter to close. '
+    read -r _ || true
+    return 1
+}
+
+cmd_disable() {
+    need_root disable
+    # who held the grant — needed to clear their cached sudo ticket below
+    u=$(awk '/NOPASSWD/{print $1; exit}' "$DROPIN" 2>/dev/null || true)
+    # Remove the grant FIRST. If we're running from inside the revert service,
+    # cancel_timer used to stop our own unit and kill us before this line ran,
+    # leaving the drop-in in place. Drop the privilege before touching units.
+    rm -f "$DROPIN" "$STAMP"
+    sync
+    # Invalidate the user's cached sudo credential too: sudo caches an auth
+    # ticket (~15 min, timestamp_timeout) independent of the drop-in, so without
+    # this a sudo run just before revert would stay passwordless past the window.
+    [ -n "$u" ] && rm -f "/run/sudo/ts/$u" 2>/dev/null || true
+    cancel_timer
+    echo "sudoless DISABLED — password required again"
+}
+
+cmd_status() {
+    if [ -f "$STAMP" ]; then
+        start=$(cat "$STAMP" 2>/dev/null || echo 0)
+        now=$(date +%s)
+        left=$(( start + WINDOW_MIN*60 - now ))
+        [ "$left" -lt 0 ] && left=0
+        echo "active $(( (left + 59) / 60 ))"   # "active <minutes-remaining>"
+    else
+        echo "inactive 0"
+    fi
+}
+
+case "${1:-}" in
+    enable)     cmd_enable ;;
+    enable-tui) cmd_enable_tui ;;
+    disable)    cmd_disable ;;
+    status)     cmd_status ;;
+    *) echo "usage: hyperwebster-sudo-toggle {enable|enable-tui|disable|status}" >&2; exit 2 ;;
+esac

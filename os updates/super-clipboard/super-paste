@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# super-paste — make a single Super+V "paste" in every app.
+#
+# Terminals paste with Ctrl+Shift+V; GUI apps with Ctrl+V. Sends the right one
+# to the focused window via Hyprland's built-in `sendshortcut` dispatcher.
+# Clipboard *history* lives on Super+Ctrl+V (and Super+Alt+V delete-mode).
+set -euo pipefail
+
+cls=$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // empty' | tr '[:upper:]' '[:lower:]')
+
+case "$cls" in
+  *kitty*|*foot*|*ghostty*|*alacritty*|*wezterm*|*xterm*|*konsole*|*term*)
+    hyprctl dispatch sendshortcut "CTRL SHIFT, V, activewindow" ;;
+  *)
+    hyprctl dispatch sendshortcut "CTRL, V, activewindow" ;;
+esac

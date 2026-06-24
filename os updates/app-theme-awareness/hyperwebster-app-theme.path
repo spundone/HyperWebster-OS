@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch Caelestia scheme and re-sync external app theme on change
+
+[Path]
+PathChanged=%h/.local/state/caelestia/scheme.json
+Unit=hyperwebster-app-theme.service
+
+[Install]
+WantedBy=default.target

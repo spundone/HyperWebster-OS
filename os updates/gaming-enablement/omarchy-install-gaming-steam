@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# omarchy-install-gaming-steam — HyperWebster shim for Omarchy's Steam bootstrap.
+#
+# Installs Steam (yay resolves the lib32 GPU driver deps) and best-effort
+# launches it once for first-run setup, mirroring Omarchy's behaviour. Requires
+# the [multilib] repo enabled (steam is a multilib package) — see
+# install-gaming-enablement.sh.
+set -euo pipefail
+
+yay -S --needed --noconfirm steam
+
+# Best-effort first launch (non-fatal), like Omarchy's bootstrap.
+if command -v steam >/dev/null 2>&1; then
+  setsid -f steam >/dev/null 2>&1 || true
+fi

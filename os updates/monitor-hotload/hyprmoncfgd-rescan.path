@@ -1,0 +1,13 @@
+[Unit]
+Description=Watch hyprmoncfg profiles and re-apply on change
+# hyprmoncfgd only re-evaluates profiles on startup, monitor hotplug and lid
+# events — saving a profile in the TUI (plain "Save Profile") changes nothing
+# live until the next login. Watch the profiles dir and bounce the daemon,
+# which re-scores and applies the best profile on startup.
+
+[Path]
+PathChanged=%h/.config/hyprmoncfg/profiles
+Unit=hyprmoncfgd-rescan.service
+
+[Install]
+WantedBy=default.target

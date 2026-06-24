@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# omarchy-hw-nvidia-without-gsp — HyperWebster shim. Exit 0 only for legacy pre-GSP
+# NVIDIA (Maxwell/Pascal/Volta → the nvidia-580xx driver branch).
+#
+# This shim cannot reliably tell GPU generations apart, so it defaults to the
+# modern branch (always exit 1; omarchy-hw-nvidia-gsp handles present cards). If
+# you actually run a pre-Turing NVIDIA card, install nvidia-580xx-utils /
+# nvidia-580xx-dkms by hand.
+exit 1

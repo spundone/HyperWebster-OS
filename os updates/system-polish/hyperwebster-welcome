@@ -1,0 +1,14 @@
+#!/bin/sh
+# hyperwebster-welcome — one-time first-login pointer at the discoverability keys.
+# Run from hypr-user.conf via exec-once; stamps itself so it never repeats.
+STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/hyperwebster/welcomed"
+[ -e "$STAMP" ] && exit 0
+mkdir -p "$(dirname "$STAMP")"
+sleep 8   # let the shell finish starting so the notification isn't lost
+notify-send -t 30000 -i help-about-symbolic "Welcome to HyperWebster" \
+"Super+K — all keybindings (searchable)
+Super+Space — launch apps
+Super+I — install software (Shelly)
+Super+Ctrl+H — monitor setup
+Firewall: ufw is on — sudo ufw status"
+touch "$STAMP"

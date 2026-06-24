@@ -1,0 +1,306 @@
+#!/bin/bash
+# hyperwebster-cachy-repo — enable/disable the CachyOS pacman repositories, auto-
+# selecting the best x86-64 microarchitecture tier the CPU supports (v4 > v3).
+# Optimized CachyOS repos require x86-64-v3 or newer; below that this refuses.
+#
+# Driven by the sudoless GUI toggle:
+#     sudo -n /usr/local/bin/hyperwebster-cachy-repo {enable|disable|status|detect} [--dry-run]
+#
+# enable: trust keys + install mirrorlists + add repo stanzas, then run
+# `pacman -Suu --noconfirm` to switch the system over to the CachyOS optimized
+# builds — UNATTENDED, so a single toggle flip auto-converts (the GUI still shows
+# the transaction in the floating terminal). --noconfirm auto-accepts any
+# replacements/removals pacman proposes. We do NOT swap in the upstream CachyOS
+# `pacman` package — it is pinned stock via --ignore pacman (keeps the local DB
+# clean). enable also installs the CachyOS kernel (linux-cachyos).
+# disable strips the repos, then reverts ONLY the CachyOS-built packages back to
+# their stock Arch builds (-Suuy for version diffs + a targeted reinstall of the
+# same-version rebuilds, identified by Packager "CachyOS …" in the local DB) and
+# removes the keyring/key — a true round-trip back to stock, UNATTENDED. Touches
+# only what was actually converted (nothing converted => instant, no base pull).
+# A CachyOS-exclusive package with no stock equivalent is auto-skipped + REPORTED
+# (not auto-removed). The CachyOS KERNEL is the exception: disable removes
+# linux-cachyos, but only after confirming stock `linux` is installed so the box
+# stays bootable.
+set -u
+
+PACCONF="/etc/pacman.conf"
+PACBAK="/etc/pacman.conf.hyperwebster-cachy.bak"
+CACHY_TARBALL="https://mirror.cachyos.org/cachyos-repo.tar.xz"
+MIRROR="https://mirror.cachyos.org/repo/x86_64/cachyos"
+CACHY_KEY="F3B607488DB35A47"
+KEYSERVER="keyserver.ubuntu.com"
+
+DRYRUN=0
+ARGS=()
+for a in "$@"; do
+  if [[ "$a" == "--dry-run" ]]; then DRYRUN=1; else ARGS+=("$a"); fi
+done
+set -- ${ARGS+"${ARGS[@]}"}
+CMD="${1:-}"
+
+run() { echo "+ $*"; [[ $DRYRUN -eq 1 ]] && return 0; "$@"; }
+
+detect_tier() {
+  local h; h=$(/lib/ld-linux-x86-64.so.2 --help 2>/dev/null)
+  if   grep -q "x86-64-v4 (supported" <<<"$h"; then echo v4
+  elif grep -q "x86-64-v3 (supported" <<<"$h"; then echo v3
+  else echo none; fi
+}
+
+is_enabled() { grep -qE '^\[cachyos' "$PACCONF" 2>/dev/null; }
+
+# --- durable stock-pacman pin -------------------------------------------------
+# `--ignore pacman` only pins pacman for THIS helper's own transaction. While the
+# CachyOS repos are enabled, a routine `pacman -Syu` / `yay -Syu` / hyperwebster-update
+# upgrades pacman to the CachyOS build, which stamps `%INSTALLED_DB%` into every
+# local-DB entry it touches — stock pacman then warns about that unknown key on
+# EVERY op (a flood that looks exactly like DB corruption). So while enabled we
+# pin pacman in pacman.conf via IgnorePkg too; disable removes the pin. HyperWebster
+# ships no IgnorePkg by default, so we manage a single standalone line.
+ensure_ignore_pacman() {
+  grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=.*\bpacman\b' "$PACCONF" && return 0
+  if grep -qE '^[[:space:]]*IgnorePkg[[:space:]]*=' "$PACCONF"; then
+    run sed -i -E 's/^([[:space:]]*IgnorePkg[[:space:]]*=.*)$/\1 pacman/' "$PACCONF"
+  else
+    run sed -i -E '/^\[options\]/a IgnorePkg = pacman' "$PACCONF"
+  fi
+}
+
+remove_ignore_pacman() {
+  # remove a standalone `IgnorePkg = pacman` line we added…
+  run sed -i -E '/^[[:space:]]*IgnorePkg[[:space:]]*=[[:space:]]*pacman[[:space:]]*$/d' "$PACCONF"
+  # …or drop just the `pacman` token from a shared IgnorePkg list
+  run sed -i -E 's/^([[:space:]]*IgnorePkg[[:space:]]*=.*[[:space:]])pacman([[:space:],]|$)/\1\2/' "$PACCONF"
+}
+
+# Strip the CachyOS `%INSTALLED_DB%` field from the pacman LOCAL DB (left behind
+# whenever a CachyOS pacman ran while enabled — e.g. a normal -Syu). The field is
+# informational only; stock pacman doesn't use it and just warns. Removing it
+# silences the warning flood. Each block is exactly `%INSTALLED_DB%` + one value
+# line + a blank separator. Idempotent: only rewrites desc files that contain it.
+strip_installed_db() {
+  local db="/var/lib/pacman/local" n=0 desc tmp hits
+  hits=$(grep -lrx '%INSTALLED_DB%' "$db"/*/desc 2>/dev/null) || true
+  [[ -z "$hits" ]] && { echo "Local pacman DB already clean (no %INSTALLED_DB%)."; return 0; }
+  while IFS= read -r desc; do
+    [[ -z "$desc" ]] && continue
+    if [[ $DRYRUN -eq 1 ]]; then echo "+ strip %INSTALLED_DB% from $desc"; n=$((n+1)); continue; fi
+    tmp="$desc.nsclean.$$"
+    if awk '/^%INSTALLED_DB%$/{s=1;next} s&&/^$/{s=0;next} s{next} {print}' "$desc" > "$tmp" \
+       && chmod --reference="$desc" "$tmp" 2>/dev/null; then
+      mv -f "$tmp" "$desc"; n=$((n+1))
+    else
+      rm -f "$tmp"
+    fi
+  done <<< "$hits"
+  echo "Stripped %INSTALLED_DB% from $n local-DB entr(y/ies); stock pacman is quiet again."
+}
+
+need_root() {
+  [[ $EUID -eq 0 ]] && return 0
+  echo "Error: must run as root (the toggle uses: sudo -n $0 $CMD)" >&2
+  exit 1
+}
+
+# Fetch + extract the upstream repo tarball (for the maintained .awk stanza
+# files + current keyring/mirrorlist package versions). Echoes the dir.
+fetch_upstream() {
+  local d; d=$(mktemp -d /tmp/hyperwebster-cachy.XXXXXX) || return 1
+  if [[ $DRYRUN -eq 1 ]]; then echo "$d"; return 0; fi
+  curl -fsSL "$CACHY_TARBALL" | tar -xJ -C "$d" || return 1
+  echo "$d"
+}
+
+case "$CMD" in
+  detect) detect_tier ;;
+
+  status) if is_enabled; then echo enabled; exit 0; else echo disabled; exit 1; fi ;;
+
+  enable)
+    need_root
+    if ! is_enabled; then
+      tier=$(detect_tier)
+      if [[ "$tier" == none ]]; then
+        echo "Error: CPU supports neither x86-64-v3 nor v4; CachyOS optimized repos" >&2
+        echo "       unavailable. Nothing changed." >&2
+        exit 2
+      fi
+      echo "Detected microarchitecture tier: x86-64-$tier"
+      up=$(fetch_upstream) || { echo "Error: could not fetch CachyOS repo tarball (network?)." >&2; exit 4; }
+      trap 'rm -rf "$up"' EXIT
+      src="$up/cachyos-repo"
+
+      # 1) trust the CachyOS signing key
+      run pacman-key --recv-keys "$CACHY_KEY" --keyserver "$KEYSERVER"
+      run pacman-key --lsign-key "$CACHY_KEY"
+
+      # 2) install keyring + mirrorlists (versions tracked from upstream script;
+      #    deliberately EXCLUDE the upstream 'pacman-*' replacement — keep stock pacman)
+      pkgs=()
+      if [[ $DRYRUN -eq 1 ]]; then
+        pkgs=(cachyos-keyring-XX cachyos-mirrorlist-XX cachyos-v3-mirrorlist-XX cachyos-v4-mirrorlist-XX)
+      else
+        mapfile -t pkgs < <(grep -oE '[a-z0-9.+_-]+\.pkg\.tar\.zst' "$src/cachyos-repo.sh" \
+                            | grep -vE '^pacman-' | sort -u)
+      fi
+      urls=(); for p in "${pkgs[@]}"; do urls+=("$MIRROR/$p"); done
+      run pacman -U --noconfirm "${urls[@]}"
+
+      # 3) add the repo stanzas via upstream's maintained awk (tier-appropriate).
+      case "$tier" in
+        v4) awkf="install-v4-repo.awk" ;;
+        v3) awkf="install-repo.awk" ;;
+      esac
+      run cp -a "$PACCONF" "$PACBAK"
+      run gawk -i inplace -f "$src/$awkf" "$PACCONF"
+
+      # The upstream awk sets `Architecture = auto`, which STOCK pacman reads as
+      # just x86_64 — so it would REJECT every x86-64-v3/v4 package ("does not
+      # have a valid architecture") and the conversion would silently do nothing.
+      # (CachyOS's own pacman build reads `auto` as v3/v4; we keep stock pacman.)
+      # So set the tier arch EXPLICITLY.
+      case "$tier" in
+        v4) arch="x86_64 x86_64_v3 x86_64_v4" ;;
+        v3) arch="x86_64 x86_64_v3" ;;
+      esac
+      run sed -i "s/^Architecture = .*/Architecture = $arch/" "$PACCONF"
+      run pacman -Sy
+
+      if [[ $DRYRUN -eq 0 ]] && ! is_enabled; then
+        echo "Error: CachyOS repos not present in $PACCONF after setup." >&2
+        exit 3
+      fi
+      echo "CachyOS repos added (x86-64-$tier)."
+    else
+      echo "CachyOS repos already present — upgrading to optimized builds…"
+    fi
+
+    # Pull the optimized builds, UNATTENDED (--noconfirm) so a single toggle flip
+    # auto-converts the system without a prompt. The GUI still shows the full
+    # transaction in the floating terminal for visibility. NB: --noconfirm
+    # auto-accepts replacements/removals pacman proposes — that's the trade-off
+    # for hands-off conversion.
+    #
+    # --ignore pacman: the cachyos repo ships its OWN pacman build; without this
+    # the -Suu swaps stock pacman for it, which stamps a `%INSTALLED_DB%` key into
+    # every local-DB entry that stock pacman then warns about on every op. Pin
+    # pacman to the stock build so the DB stays clean (matches the keyring/mirror-
+    # list exclusion in step 2 — stock pacman is kept throughout).
+    #
+    # Make that pin DURABLE: --ignore only covers this transaction, but the repos
+    # stay enabled afterwards, so a later routine -Syu would pull the CachyOS pacman
+    # and contaminate the local DB with %INSTALLED_DB%. Pin pacman in pacman.conf
+    # for as long as CachyOS is enabled (disable removes the pin).
+    ensure_ignore_pacman
+    run pacman -Suu --noconfirm --ignore pacman
+
+    # Install the CachyOS KERNEL. The repo switch above converts USERSPACE only;
+    # the kernel is a separate, explicit install. linux-cachyos is CachyOS's
+    # default (sched-ext + BORE, LTO, v3/v4-tuned). The limine-mkinitcpio-hook
+    # auto-generates the boot entry — no manual limine.conf editing. --needed keeps
+    # a re-flip idempotent; stock `linux` is left in place as a fallback entry.
+    run pacman -S --noconfirm --needed linux-cachyos linux-cachyos-headers
+    echo "CachyOS optimized builds + linux-cachyos kernel installed."
+    echo ">> REBOOT and pick the linux-cachyos entry at the Limine menu to run it."
+    ;;
+
+  disable)
+    need_root
+    if ! is_enabled; then echo "CachyOS repos already disabled."; exit 0; fi
+    up=$(fetch_upstream) || up=""
+    [[ -n "$up" ]] && trap 'rm -rf "$up"' EXIT
+
+    # 1) strip the CachyOS repo stanzas (pacman now sees only the stock repos)
+    run cp -a "$PACCONF" "$PACBAK"
+    if [[ -n "$up" && ( $DRYRUN -eq 1 || -f "$up/cachyos-repo/remove-repo.awk" ) ]]; then
+      run gawk -i inplace -f "$up/cachyos-repo/remove-repo.awk" "$PACCONF"
+    fi
+    if [[ $DRYRUN -eq 0 ]] && is_enabled; then   # belt-and-braces if any remain
+      run sed -i '/^\[cachyos/,/^$/d' "$PACCONF"
+    fi
+    # restore the stock Architecture (enable set it to the v3/v4 tier explicitly)
+    run sed -i 's/^Architecture = .*/Architecture = auto/' "$PACCONF"
+    # drop the durable stock-pacman pin enable added (no longer needed off cachy)
+    remove_ignore_pacman
+
+    # 2) TARGETED REVERT — put ONLY the CachyOS-built packages back on stock.
+    #    -Suuy refreshes the stock DBs and downgrades/upgrades any cachy package
+    #    whose version differs from stock (its Packager flips back to Arch). Then
+    #    force-reinstall the REMAINING same-version CachyOS rebuilds — found by
+    #    their Packager ("CachyOS <admin@cachyos.org>") recorded in the local DB —
+    #    so we touch ONLY what was actually converted, never the whole base
+    #    (nothing converted => nothing to do). UNATTENDED (--noconfirm).
+    #    A CachyOS-built package with no stock equivalent (e.g. a linux-cachyos
+    #    kernel) is auto-skipped and REPORTED — not auto-removed (could be the
+    #    running kernel); the user decides.
+    run pacman -Suuy --noconfirm
+
+    # Remove the CachyOS kernel — but ONLY once stock `linux` is confirmed present,
+    # so the box never loses its last bootable kernel. If stock linux is somehow
+    # missing, install it FIRST; if it still can't be installed, KEEP linux-cachyos.
+    # The limine-mkinitcpio-hook drops the boot entry automatically on removal.
+    # (linux-cachyos is CachyOS-exclusive, so the targeted revert below would
+    #  otherwise just report it as an orphan and leave it installed + running.)
+    if [[ $DRYRUN -eq 1 ]]; then
+      echo "+ (if linux-cachyos present) ensure stock linux installed, then:"
+      echo "+   pacman -Rns --noconfirm linux-cachyos linux-cachyos-headers"
+    elif pacman -Qq linux-cachyos >/dev/null 2>&1; then
+      if ! pacman -Qq linux >/dev/null 2>&1; then
+        echo "Stock 'linux' missing — installing it before removing the CachyOS kernel…"
+        run pacman -S --noconfirm --needed linux linux-headers
+      fi
+      if pacman -Qq linux >/dev/null 2>&1; then
+        run pacman -Rns --noconfirm linux-cachyos linux-cachyos-headers
+        echo "Removed the CachyOS kernel; stock 'linux' remains as the boot entry."
+        echo ">> REBOOT into stock 'linux' at the Limine menu to stop running the CachyOS kernel."
+      else
+        echo "WARNING: could not ensure stock 'linux' is installed —"
+        echo "         KEEPING linux-cachyos so the box stays bootable. Remove it manually"
+        echo "         only after a stock kernel is installed."
+      fi
+    fi
+
+    if [[ $DRYRUN -eq 1 ]]; then
+      echo "+ pacman -S --noconfirm <CachyOS-built pkgs (by Packager) that exist in stock>"
+      echo "+ (CachyOS-exclusive pkgs are reported, not reinstalled or removed)"
+    else
+      # CachyOS-built packages (by Packager), EXCLUDING the cachy keyring/mirrorlist
+      # packages themselves — those are removed in step 3, not reinstalled.
+      mapfile -t cachy_built < <(LC_ALL=C pacman -Qi 2>/dev/null \
+        | awk -F': ' '/^Name +:/{n=$2} /^Packager +:/{if ($2 ~ /CachyOS/) print n}' \
+        | grep -vxE 'cachyos-(keyring|mirrorlist|v3-mirrorlist|v4-mirrorlist)')
+      if [[ ${#cachy_built[@]} -eq 0 ]]; then
+        echo "No CachyOS-built packages remain — nothing to reinstall."
+      else
+        mapfile -t avail < <(pacman -Slq)
+        declare -A in_stock=(); for p in "${avail[@]}"; do in_stock["$p"]=1; done
+        reinstall=(); orphan=()
+        for p in "${cachy_built[@]}"; do
+          if [[ -n "${in_stock[$p]:-}" ]]; then reinstall+=("$p"); else orphan+=("$p"); fi
+        done
+        [[ ${#reinstall[@]} -gt 0 ]] && run pacman -S --noconfirm "${reinstall[@]}"
+        if [[ ${#orphan[@]} -gt 0 ]]; then
+          echo
+          echo "NOTE: ${#orphan[@]} CachyOS-built package(s) have no stock equivalent"
+          echo "      (CachyOS-exclusive) — left in place, review/remove manually:"
+          printf '        %s\n' "${orphan[@]}"
+        fi
+      fi
+    fi
+
+    # 3) remove the CachyOS keyring/mirrorlists + trust key (best-effort)
+    run sh -c "pacman -Rns --noconfirm cachyos-keyring cachyos-mirrorlist cachyos-v3-mirrorlist cachyos-v4-mirrorlist 2>/dev/null || true"
+    run sh -c "pacman-key --delete $CACHY_KEY 2>/dev/null || true"
+
+    # 4) clean up any %INSTALLED_DB% the CachyOS pacman stamped into the local DB
+    #    while enabled (otherwise stock pacman warns about it on every op forever).
+    strip_installed_db
+    echo "CachyOS disabled; native packages reverted to stock Arch builds."
+    ;;
+
+  *)
+    echo "Usage: $0 {detect|status|enable|disable} [--dry-run]" >&2
+    exit 1
+    ;;
+esac

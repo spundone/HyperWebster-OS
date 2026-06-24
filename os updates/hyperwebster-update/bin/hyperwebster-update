@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# hyperwebster-update — update a HyperWebster system. Modeled on Omarchy's update flow,
+# adapted for HyperWebster: there is no central HyperWebster git repo, so the layer ships
+# with the ISO and is re-applied idempotently via forward-only migrations.
+# New *layer* changes arrive in a new ISO; this command keeps a running box
+# current on packages and keeps the layer consistent after upgrades.
+#
+# Flow: snapshot -> package upgrade (pacman + AUR) -> run new migrations.
+set -euo pipefail
+
+# --- resolve the HyperWebster source root (works through the ~/.local/bin symlink) --
+SELF=$(readlink -f -- "$0")
+BIN_DIR=$(dirname -- "$SELF")
+UPDATE_DIR=$(dirname -- "$BIN_DIR")                 # .../hyperwebster-update
+ROOT=$(dirname -- "$UPDATE_DIR")                    # repo root; components live here
+MIG_DIR="$UPDATE_DIR/migrations"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/hyperwebster/applied"
+
+# --- options ------------------------------------------------------------------
+ASSUME_YES=0; DO_PACKAGES=1; DO_SNAPSHOT=1; DO_CAELESTIA=0
+for a in "$@"; do
+  case "$a" in
+    -y|--yes)       ASSUME_YES=1 ;;
+    --no-packages)  DO_PACKAGES=0 ;;
+    --no-snapshot)  DO_SNAPSHOT=0 ;;
+    --caelestia)    DO_CAELESTIA=1 ;;
+    -h|--help)
+      cat <<EOF
+Usage: hyperwebster-update [options]
+  -y, --yes       non-interactive (pass --noconfirm to the package upgrade)
+  --no-packages   skip the pacman/AUR upgrade (re-apply the HyperWebster layer only)
+  --no-snapshot   skip the pre-update snapper snapshot
+  --caelestia     also 'git pull' the Caelestia dotfiles (may clobber local edits)
+EOF
+      exit 0 ;;
+    *) echo "unknown option: $a" >&2; exit 2 ;;
+  esac
+done
+
+log() { printf '\033[1;34m::\033[0m %s\n' "$*"; }
+
+# --- 1. snapshot (btrfs/snapper, best effort) ---------------------------------
+snapshot() {
+  command -v snapper >/dev/null 2>&1 || { log "snapper not present — skipping snapshot"; return; }
+  local cfg
+  cfg=$(snapper list-configs 2>/dev/null | awk 'NR>2 {print $1; exit}')
+  [ -n "${cfg:-}" ] || { log "no snapper config — skipping snapshot"; return; }
+  log "pre-update snapshot (config: $cfg)"
+  sudo snapper -c "$cfg" create -d "hyperwebster-update $(date '+%Y-%m-%d %H:%M')" || log "snapshot failed (continuing)"
+}
+
+# --- 2. ensure an AUR helper (bootstrap yay if missing) -----------------------
+HELPER=""
+ensure_helper() {
+  local h
+  for h in yay paru; do command -v "$h" >/dev/null 2>&1 && { HELPER="$h"; return; }; done
+  log "no AUR helper found — bootstrapping yay (yay-bin)"
+  sudo pacman -S --needed --noconfirm git base-devel
+  local tmp; tmp=$(mktemp -d)
+  git clone --depth 1 https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin"
+  ( cd "$tmp/yay-bin" && makepkg -si --noconfirm )
+  rm -rf "$tmp"
+  HELPER=yay
+}
+
+# --- 3. package upgrade (repo + AUR) ------------------------------------------
+update_packages() {
+  ensure_helper
+  local nc=""; [ "$ASSUME_YES" = 1 ] && nc="--noconfirm"
+  # yay menus (exclude/clean/diff/edit PKGBUILD) look like a hang mid-update —
+  # pre-answer them with None. The pacman proceed confirm still appears.
+  local menus=""
+  [ "$HELPER" = yay ] && menus="--answerupgrade None --answerclean None --answerdiff None --answeredit None"
+  log "upgrading packages with $HELPER"
+  "$HELPER" -Syu $menus $nc
+}
+
+# --- 4. migrations (re-apply / advance the HyperWebster layer) ----------------------
+run_migrations() {
+  mkdir -p "$(dirname "$STATE")"; touch "$STATE"
+  local m base ran=0
+  for m in "$MIG_DIR"/*.sh; do
+    [ -e "$m" ] || continue
+    base=$(basename "$m")
+    grep -qxF "$base" "$STATE" && continue
+    log "migration: $base"
+    if HYPERWEBSTER_SRC="$ROOT" bash "$m"; then
+      echo "$base" >> "$STATE"; ran=$((ran + 1))
+    else
+      echo "migration $base FAILED" >&2; exit 1
+    fi
+  done
+  log "$ran new migration(s) applied"
+}
+
+# --- 5. caelestia dotfiles (opt-in) -------------------------------------------
+update_caelestia() {
+  local d="$HOME/.local/share/caelestia"
+  [ -d "$d/.git" ] || { log "caelestia repo not found — skipping"; return; }
+  log "git pull caelestia (ff-only)"
+  git -C "$d" pull --ff-only || log "caelestia pull skipped (local changes / non-ff)"
+}
+
+# --- run ----------------------------------------------------------------------
+if [ "$ASSUME_YES" != 1 ]; then
+  printf 'Update HyperWebster now? [y/N] '; read -r ans
+  case "${ans:-}" in y|Y) ;; *) echo "aborted"; exit 0 ;; esac
+fi
+
+[ "$DO_SNAPSHOT" = 1 ] && snapshot
+[ "$DO_PACKAGES" = 1 ] && update_packages
+run_migrations
+[ "$DO_CAELESTIA" = 1 ] && update_caelestia
+# >>> hyperwebster kernel-reboot-notify >>>
+# If a kernel update landed, tell the user to reboot (and to pick the UKI entry
+# at the Limine menu). Helper is a no-op when the running kernel is still on disk.
+command -v hyperwebster-reboot-check >/dev/null 2>&1 && hyperwebster-reboot-check || true
+# <<< hyperwebster kernel-reboot-notify <<<
+log "HyperWebster up to date"

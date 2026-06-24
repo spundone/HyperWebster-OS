@@ -1,0 +1,13 @@
+[SddmGreeterTheme]
+Name=Caelestia
+Description=Material greeter matching the desktop scheme, wallpaper and font
+Type=sddm-theme
+Version=1.0
+Website=
+Screenshot=
+MainScript=Main.qml
+ConfigFile=theme.conf
+TranslationsDirectory=
+Theme-Id=caelestia
+Theme-API=2.0
+QtVersion=6

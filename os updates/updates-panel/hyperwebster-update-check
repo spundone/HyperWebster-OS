@@ -1,0 +1,66 @@
+#!/bin/sh
+# hyperwebster-update-check — gather update status into a small JSON cache that the
+# settings app's Updates page (and anything else) can read instantly.
+# Writes: ~/.local/state/hyperwebster/update-status.json
+# Run by hyperwebster-update-check.timer (and on demand from the Updates page).
+set -u
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/hyperwebster"
+OUT="$STATE_DIR/update-status.json"
+HYPERWEBSTER_REPO="$HOME/.local/share/hyperwebster"
+mkdir -p "$STATE_DIR"
+
+# Official repo updates (checkupdates is safe: uses a temp db copy, no root).
+repo=0
+if command -v checkupdates >/dev/null 2>&1; then
+  repo=$(checkupdates 2>/dev/null | grep -c . || true)
+fi
+
+# AUR updates.
+aur=0
+for h in yay paru; do
+  if command -v "$h" >/dev/null 2>&1; then
+    aur=$("$h" -Qua 2>/dev/null | grep -c . || true)
+    break
+  fi
+done
+
+# Flatpak updates (may touch the network; keep it bounded).
+flatpak=0
+if command -v flatpak >/dev/null 2>&1; then
+  flatpak=$(timeout 20 flatpak remote-ls --updates 2>/dev/null | grep -c . || true)
+fi
+
+# HyperWebster layer: migrations present in the on-system repo but not yet applied.
+migrations=0
+applied="$STATE_DIR/applied"
+if [ -d "$HYPERWEBSTER_REPO/hyperwebster-update/migrations" ]; then
+  for m in "$HYPERWEBSTER_REPO/hyperwebster-update/migrations"/*.sh; do
+    [ -e "$m" ] || continue
+    base=$(basename "$m")
+    [ -f "$applied" ] && grep -qxF "$base" "$applied" && continue
+    migrations=$((migrations + 1))
+  done
+fi
+
+# Last full system upgrade, from pacman's log.
+last_upgrade=""
+if [ -r /var/log/pacman.log ]; then
+  last_upgrade=$(grep -F 'starting full system upgrade' /var/log/pacman.log \
+    | tail -1 | sed 's/^\[\([^]]*\)\].*/\1/')
+fi
+
+checked=$(date -Is)
+
+cat > "$OUT" <<EOF
+{
+  "checked": "$checked",
+  "repo": $repo,
+  "aur": $aur,
+  "flatpak": $flatpak,
+  "migrations_pending": $migrations,
+  "last_upgrade": "$last_upgrade"
+}
+EOF
+
+cat "$OUT"

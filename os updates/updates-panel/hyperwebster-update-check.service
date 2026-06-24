@@ -1,0 +1,6 @@
+[Unit]
+Description=HyperWebster update status check (writes update-status.json)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/hyperwebster-update-check

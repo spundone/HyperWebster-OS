@@ -1,0 +1,54 @@
+#!/bin/bash
+# hyperwebster-cachy-db-clean — repair tool for boxes already contaminated by a
+# CachyOS pacman run.
+#
+# Symptom this fixes: every pacman/yay op prints a flood of
+#   warning: <pkg>: unknown key '%INSTALLED_DB%' in local database
+# `%INSTALLED_DB%` is a field the CachyOS `pacman` build writes into the local DB;
+# stock Arch pacman doesn't understand it and warns about it on EVERY operation.
+# It is harmless (the DB is structurally valid — `pacman -Dk` passes — and
+# transactions resolve fine), but it looks exactly like database corruption.
+#
+# This strips the `%INSTALLED_DB%` field from every /var/lib/pacman/local/*/desc.
+# Each block is exactly: a `%INSTALLED_DB%` line + one value line + a blank
+# separator. Idempotent — only rewrites files that contain the field; safe to
+# re-run. Use --dry-run to preview. REQUIRES ROOT (writes the local DB) unless
+# --dry-run.
+set -u
+
+DB="${PACMAN_LOCAL_DB:-/var/lib/pacman/local}"
+DRY=0
+[[ "${1:-}" == "--dry-run" ]] && DRY=1
+
+if [[ $DRY -eq 0 && $EUID -ne 0 ]]; then
+  echo "Run as root (writes $DB), e.g.: sudo $0   — or preview with: $0 --dry-run" >&2
+  exit 1
+fi
+
+mapfile -t hits < <(grep -lrx '%INSTALLED_DB%' "$DB"/*/desc 2>/dev/null)
+if [[ ${#hits[@]} -eq 0 ]]; then
+  echo "Local pacman DB already clean — no %INSTALLED_DB% fields found."
+  exit 0
+fi
+
+echo "Found %INSTALLED_DB% in ${#hits[@]} package entr(y/ies)."
+n=0
+for desc in "${hits[@]}"; do
+  if [[ $DRY -eq 1 ]]; then
+    echo "+ would strip: $desc"
+    n=$((n+1)); continue
+  fi
+  tmp="$desc.nsclean.$$"
+  if awk '/^%INSTALLED_DB%$/{s=1;next} s&&/^$/{s=0;next} s{next} {print}' "$desc" > "$tmp" \
+     && chmod --reference="$desc" "$tmp" 2>/dev/null; then
+    mv -f "$tmp" "$desc"; n=$((n+1))
+  else
+    rm -f "$tmp"; echo "  ! failed to rewrite: $desc" >&2
+  fi
+done
+
+if [[ $DRY -eq 1 ]]; then
+  echo "(dry-run) would have cleaned $n entr(y/ies). Re-run as root without --dry-run."
+else
+  echo "Cleaned $n local-DB entr(y/ies). Verify with:  pacman -Dk   and a quiet  pacman -Q"
+fi

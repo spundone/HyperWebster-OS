@@ -1,0 +1,15 @@
+[Unit]
+Description=Clear HyperWebster timed passwordless sudo at boot (safety net)
+# A reboot ends any sudoless session: transient revert timers do not survive a
+# reboot, but the /etc/sudoers.d drop-in does — so remove it unconditionally on
+# every boot. Runs before the user can act.
+DefaultDependencies=no
+After=local-fs.target
+Before=sysinit.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/hyperwebster-sudo-toggle disable
+
+[Install]
+WantedBy=sysinit.target

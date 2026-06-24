@@ -1,0 +1,20 @@
+#%PAM-1.0
+# Caelestia lock-screen authentication (HyperWebster).
+#
+# Deliberately does NOT use pam_faillock: a desktop screen-lock must never lock
+# the user out of their OWN running session. With faillock in the path (the old
+# "passwd"->system-auth route), a few failed unlocks tripped a temporary account
+# lock that then refused the *correct* password until /run/faillock cleared on
+# reboot. See README.md.
+#
+# pam_unix verifies the password supplied via the PAM conversation (the lock UI)
+# using the setuid unix_chkpwd helper, so it works for the uid-1000 Quickshell
+# process. Add pam_systemd_home below if/when systemd-homed users are supported.
+#
+# F8a: deliberately NO `nullok` — a screen lock must never accept an empty
+# password. (Only changes behaviour for empty-password accounts, which are
+# correctly rejected; normal password auth is unaffected.)
+auth      required   pam_unix.so
+account   required   pam_unix.so
+password  required   pam_unix.so
+session   required   pam_unix.so

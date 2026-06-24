@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# hyperwebster-screenshot — take a screenshot that is BOTH copied to the clipboard and
+# saved to ~/Pictures/Screenshots. Modes:
+#   region (default)  select an area with a crosshair cursor (slurp)
+#   full              whole screen
+# Deps: grim, slurp, wl-clipboard, libnotify (all in the base image).
+set -euo pipefail
+
+mode="${1:-region}"
+dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
+mkdir -p "$dir"
+file="$dir/Screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"
+
+case "$mode" in
+  region)
+    geom="$(slurp)" || exit 0          # selection cancelled (Esc) -> do nothing
+    grim -g "$geom" "$file" ;;
+  full)
+    grim "$file" ;;
+  *)
+    echo "usage: hyperwebster-screenshot [region|full]" >&2; exit 1 ;;
+esac
+
+wl-copy < "$file"
+notify-send -i "$file" -a hyperwebster-screenshot \
+  "Screenshot saved" "$(basename "$file") — copied to clipboard"

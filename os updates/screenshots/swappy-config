@@ -1,0 +1,6 @@
+# HyperWebster: make swappy (the screenshot annotator the caelestia region/freeze
+# binds pipe into) save into ~/Pictures/Screenshots like everything else.
+[Default]
+save_dir = $HOME/Pictures/Screenshots
+save_filename_format = Screenshot_%Y-%m-%d_%H-%M-%S.png
+show_panel = false

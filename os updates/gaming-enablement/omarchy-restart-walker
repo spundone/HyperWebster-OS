@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# omarchy-restart-walker — HyperWebster shim. HyperWebster uses the caelestia launcher
+# (Quickshell), not Omarchy's Walker/Elephant. There is no Walker service to
+# restart, so just refresh the desktop-entry database (so newly-added .desktop
+# files, e.g. DeckShift's, show up) and succeed.
+update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
+exit 0

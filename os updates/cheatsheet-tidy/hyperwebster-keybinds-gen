@@ -1,0 +1,82 @@
+#!/bin/sh
+# hyperwebster-keybinds-gen — parse the HyperWebster keymap markdown and emit display-ready
+# cheatsheet lines on stdout. The markdown is the SINGLE SOURCE OF TRUTH; the
+# on-screen help (hyperwebster-keybinds) is always derived from it, so the two cannot
+# drift. Reads every "| keys | action |" table row except the "Source map"
+# section.
+#
+# Panel format: two columns only — key, action — sized so every
+# line fits the fuzzel panel:
+#   - no section tag column (visual noise in the popup; the markdown keeps it)
+#   - doc-only parentheticals are stripped from actions: provenance notes like
+#     "(Omarchy key)", "(was hover-only)" belong in the doc,
+#     not the panel. Meaningful ones ("(logout / shutdown / reboot)") stay.
+#   - actions are ellipsis-truncated so no line exceeds $HYPERWEBSTER_KEYS_COLS
+#     characters (default 98 — the hyperwebster-keybinds fuzzel width of 100 minus
+#     margin). Keep the two in sync.
+#
+# Usage: hyperwebster-keybinds-gen [path-to-markdown]
+#   Source resolution order: $1 arg → $HYPERWEBSTER_KEYMAP_MD → known locations.
+set -eu
+
+MD="${1:-${HYPERWEBSTER_KEYMAP_MD:-}}"
+if [ -z "$MD" ]; then
+  for cand in "$HOME/Downloads/HyperWebster-keybindings.md" \
+              "$HOME/.local/share/hyperwebster/HyperWebster-keybindings.md"; do
+    [ -f "$cand" ] && { MD="$cand"; break; }
+  done
+fi
+[ -n "${MD:-}" ] && [ -f "$MD" ] || {
+  echo "hyperwebster-keybinds-gen: keymap markdown not found (set \$HYPERWEBSTER_KEYMAP_MD)" >&2
+  exit 1
+}
+
+awk -v cols="${HYPERWEBSTER_KEYS_COLS:-98}" '
+function trim(s){ gsub(/\*\*/, "", s); gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+
+# ---- section headings -------------------------------------------------------
+/^## / {
+  insrc = (substr($0, 4) ~ /^Source map/)     # not keybinds: skip the section
+  next
+}
+insrc { next }
+
+# ---- table rows -------------------------------------------------------------
+/^\|/ {
+  if ($0 ~ /^[|: -]+$/) next                   # markdown separator row
+  n = split($0, c, "|")                        # c[1] is empty (text before first |)
+  keys = c[2]; gsub(/`/, "", keys); keys = trim(keys)
+  if (keys == "" || keys == "Keys" || keys == "File") next
+  desc = ""
+  for (i = 3; i < n; i++) {                     # join any remaining columns
+    cell = c[i]; gsub(/`/, "", cell); cell = trim(cell)
+    if (cell != "") desc = (desc == "") ? cell : desc " — " cell
+  }
+
+  # strip doc-only parentheticals (provenance/changelog), keep the rest
+  out = ""; rest = desc
+  while (match(rest, /\([^()]*\)/)) {
+    pre = substr(rest, 1, RSTART - 1)
+    par = substr(rest, RSTART, RLENGTH)
+    rest = substr(rest, RSTART + RLENGTH)
+    if (par ~ /Omarchy|change [0-9]+|^\(was |moved |HyperWebster|dev\/debug/) par = ""
+    out = out pre par
+  }
+  desc = out rest
+  gsub(/  +/, " ", desc)                        # collapse gaps left by stripping
+  gsub(/[ \t]+$/, "", desc)
+  sub(/ — $/, "", desc)
+
+  KEY[++r] = keys; DSC[r] = desc
+  if (length(keys) > wk) wk = length(keys)
+}
+
+END {
+  budget = cols - wk - 2                        # action space after the key column
+  for (i = 1; i <= r; i++) {
+    d = DSC[i]
+    if (length(d) > budget) d = substr(d, 1, budget - 1) "…"
+    printf "%-*s  %s\n", wk, KEY[i], d
+  }
+}
+' "$MD"

@@ -1,0 +1,20 @@
+#!/bin/bash
+# sddm-autologin-gate — ExecStartPre for sddm.service (one-shot autologin).
+#
+# A DeckShift session switch arms autologin right before restarting SDDM:
+# gaming-session-switch writes the autologin drop-in AND touches the marker.
+# This gate runs every time SDDM starts:
+#   - marker present  -> a switch is in flight: consume the marker, keep the
+#                        drop-in, SDDM autologins into the target session once;
+#   - marker absent   -> cold boot / crash / manual restart: delete any stale
+#                        drop-in so the normal password greeter shows.
+# /run is tmpfs, so the marker can never survive a reboot.
+CONF="/etc/sddm.conf.d/zz-gaming-session.conf"
+MARKER="/run/deckshift-session-switch"
+
+if [[ -f "$MARKER" ]]; then
+  rm -f "$MARKER"
+else
+  rm -f "$CONF"
+fi
+exit 0

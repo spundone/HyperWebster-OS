@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# omarchy-hw-nvidia-gsp — HyperWebster shim. Exit 0 if an NVIDIA GPU is present (and
+# thus should use the modern, GSP-firmware driver branch: nvidia-utils). Exit 1
+# if no NVIDIA GPU. DeckShift only calls this when it has already detected an
+# NVIDIA card, to choose modern vs legacy.
+#
+# Limitation: this defaults any present NVIDIA card to the modern/GSP branch
+# (correct for Turing/RTX-20 and newer, ~2018+). It does not distinguish very
+# old pre-Turing cards — see omarchy-hw-nvidia-without-gsp.
+if lspci -d 10de:: 2>/dev/null | grep -qiE 'VGA|3D|Display'; then
+  exit 0
+fi
+exit 1

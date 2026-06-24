@@ -1,0 +1,9 @@
+[Unit]
+Description=Sync external app theme (portal/GTK) to Caelestia's light/dark mode
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/hyperwebster-app-theme-sync
+
+[Install]
+WantedBy=default.target
