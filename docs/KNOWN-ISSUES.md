@@ -48,5 +48,45 @@ or full `hyperwebster-update --no-packages --no-snapshot`. Terminal workaround:
 
 ## LUKS passphrase every boot (TPM not unlocking)
 
-See [HARDWARE.md](HARDWARE.md#luks-tpm-auto-unlock) for `hyperwebster-luks-tpm-enroll`
-and PCR troubleshooting.
+**Symptom:** Plymouth asks for a disk passphrase on every cold boot, or you only
+see a black screen until you press Esc.
+
+**Quick fix on the installed PC:**
+
+```sh
+hyperwebster-update
+sudo hyperwebster-luks-tpm-status
+sudo hyperwebster-luks-tpm-enroll --pcrs 7+11 /dev/disk/by-partuuid/YOUR-LUKS-PARTUUID
+```
+
+Replace `YOUR-LUKS-PARTUUID` with the LUKS partition from `lsblk -o NAME,PARTUUID,FSTYPE`
+(root `crypto_LUKS` partition, usually `nvme0n1p2` or similar).
+
+### Troubleshooting flow
+
+```mermaid
+flowchart TD
+  A[Cold boot] --> B{TPM token enrolled?}
+  B -->|No| C[Passphrase every boot — expected]
+  B -->|Yes| D{TPM unlock succeeds?}
+  D -->|Yes| E[SDDM / desktop]
+  D -->|No| F[Plymouth passphrase prompt]
+  F --> G{USB keyboard attached?}
+  G -->|Yes| H[Enter LUKS passphrase]
+  G -->|No| I[Plug keyboard — controllers cannot type passphrase]
+  H --> E
+  C --> J["sudo hyperwebster-luks-tpm-enroll --pcrs 7+11 DEVICE"]
+  J --> K[Reboot — should auto-unlock]
+  F --> L{Black screen no prompt?}
+  L -->|Yes| M[Press Esc for TTY fallback]
+  M --> N[hyperwebster-update then reboot]
+```
+
+| Check | Command |
+|-------|---------|
+| Full diagnostic | `sudo hyperwebster-luks-tpm-status` |
+| TPM tokens on disk | `sudo systemd-cryptenroll --list /dev/disk/by-partuuid/…` |
+| Initramfs hooks | `grep -E 'plymouth|sd-encrypt' /etc/mkinitcpio.conf` |
+| Kernel LUKS params | `cat /proc/cmdline` — expect `rd.luks.name=` |
+
+See [HARDWARE.md](HARDWARE.md#luks-tpm-auto-unlock) for enrollment details and PCR notes.

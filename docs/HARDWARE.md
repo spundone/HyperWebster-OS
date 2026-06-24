@@ -77,9 +77,12 @@ The installer offers **LUKS2** on the root partition (EFI stays unencrypted).
 ### TPM2 auto-unlock (controller-friendly boot)
 
 When a TPM is present (`/dev/tpmrm0`), the installer asks whether to enroll
-**TPM2** via `systemd-cryptenroll` (PCR 7 - Secure Boot state). The LUKS
-passphrase is sealed in the TPM; cold boot unlocks without typing when PCRs
-match.
+**TPM2** via `systemd-cryptenroll` (PCR 7 - Secure Boot state, auto-retry
+**7+11** on failure). The LUKS passphrase is sealed in the TPM; cold boot
+unlocks without typing when PCRs match.
+
+At install you can set the **LUKS fallback passphrase to match your login
+password** so you only remember one secret when TPM unlock is unavailable.
 
 The install passphrase remains a **fallback** if TPM unlock fails (firmware
 update, PCR drift, cleared TPM). Re-enroll:
@@ -90,30 +93,51 @@ sudo hyperwebster-luks-tpm-enroll /dev/disk/by-partuuid/YOUR-LUKS-PARTUUID
 
 (`hyperwebster-luks-tpm-enroll` rebuilds the initramfs and runs `limine-update` when available.)
 
+#### Diagnostics
+
+```sh
+sudo hyperwebster-luks-tpm-status
+```
+
+Checks TPM hardware, LUKS tokens, `sd-encrypt` / Plymouth hooks, kernel cmdline,
+and suggests fixes. Exit code 1 means something in the TPM chain needs attention;
+passphrase unlock should still work.
+
 #### Troubleshooting
 
 | Symptom | What to do |
 |---------|------------|
-| Passphrase every boot | `sudo systemd-cryptenroll --list /dev/disk/by-partuuid/…` — if no TPM2 token, re-enroll with `hyperwebster-luks-tpm-enroll`. |
-| Enrollment failed at install | TPM may be unavailable in the live ISO chroot — enroll after first boot with the same command. |
-| Worked once, fails after BIOS update | PCR drift — passphrase fallback should still work; re-enroll with `--pcrs 7+11`. |
-| Secure Boot disabled | Try `sudo hyperwebster-luks-tpm-enroll --pcrs 7+11 /dev/disk/by-partuuid/…`. |
-| Initramfs missing TPM support | Confirm `sd-encrypt` in `/etc/mkinitcpio.conf`; run `hyperwebster-update` or `install-luks-tpm-unlock.sh`. |
+| Passphrase every boot | `hyperwebster-luks-tpm-status` — no TPM2 token? `hyperwebster-luks-tpm-enroll --pcrs 7+11 …` |
+| Black screen at unlock | Press **Esc** for TTY fallback once; run `hyperwebster-update` to refresh Plymouth + hooks |
+| Prompt times out (~90s) | Ensure cmdline has `rd.luks.options=timeout=0` and `x-systemd.device-timeout=0`; `sudo limine-update` |
+| Enrollment failed at install | TPM may be unavailable in the live ISO chroot — enroll after first boot |
+| Worked once, fails after BIOS update | PCR drift — passphrase fallback on Plymouth splash; re-enroll with `--pcrs 7+11` |
+| Secure Boot disabled | `sudo hyperwebster-luks-tpm-enroll --pcrs 7+11 /dev/disk/by-partuuid/…` |
+| Initramfs missing TPM support | Confirm `sd-encrypt` and `plymouth` (before `sd-encrypt`) in `/etc/mkinitcpio.conf` |
 
 Verify TPM: `systemd-cryptenroll --tpm2-device=list` and `tpm2_pcrread sha256:7` (package `tpm2-tools`).
+
+#### Controller / TV setups
+
+When TPM auto-unlock works, cold boot reaches SDDM with no keyboard. When it
+fails, Plymouth shows a **graphical passphrase field** on the Starman splash —
+plug a **USB keyboard**; game controllers cannot enter the passphrase.
 
 #### Boot flow (LUKS + TPM)
 
 1. **Limine** loads the UKI (kernel + initramfs).
-2. **initramfs / sd-encrypt** - `systemd-cryptsetup` reads `/etc/crypttab` and
-   the `rd.luks.name=` kernel parameter, tries the TPM2 token first, then falls
-   back to a Plymouth passphrase prompt if needed.
+2. **initramfs** - Plymouth starts, then **`sd-encrypt`** / `systemd-cryptsetup`
+   reads `/etc/crypttab` and `rd.luks.name=`, tries the TPM2 token first, then
+   shows the Plymouth passphrase prompt if needed.
 3. **btrfs** - root mounts `@` via `root=UUID=… rootflags=subvol=@`.
 4. **Plymouth** - HyperWebster splash until the desktop session starts.
 5. **SDDM** - login greeter (or Starman one-shot autologin when armed).
 
-Verify TPM PCR policy on your motherboard and that Plymouth/SDDM still flow
-cleanly after auto-unlock.
+#### Security note
+
+HyperWebster does **not** offer a LUKS keyfile on the EFI System Partition —
+the ESP is unencrypted and physical access would bypass encryption. TPM2 +
+passphrase fallback is the supported model.
 
 ## Gaming boot (Starman)
 

@@ -683,14 +683,23 @@ USE_LUKS=$MENU_CHOICE
 
 LUKS_PW=""
 if [ "$USE_LUKS" -eq 0 ]; then
-  while true; do
-    csecret LUKS_PW1 "LUKS passphrase (fallback when TPM unlock fails): "
-    csecret LUKS_PW2 "Confirm LUKS passphrase: "
-    if [ -z "$LUKS_PW1" ]; then cecho "Empty — try again."; continue; fi
-    if [ "$LUKS_PW1" != "$LUKS_PW2" ]; then cecho "Mismatch — try again."; continue; fi
-    break
-  done
-  LUKS_PW="$LUKS_PW1"
+  echo
+  tui_menu "LUKS fallback passphrase (when TPM unlock fails)?" \
+    "Same as $USERNAME login password" \
+    "Different passphrase (enter twice)"
+  if [ "$MENU_CHOICE" -eq 0 ]; then
+    LUKS_PW="$USER_PW"
+    cecho "LUKS fallback will use your login password." "$NSI_DIM" "$NSI_R"
+  else
+    while true; do
+      csecret LUKS_PW1 "LUKS passphrase (fallback when TPM unlock fails): "
+      csecret LUKS_PW2 "Confirm LUKS passphrase: "
+      if [ -z "$LUKS_PW1" ]; then cecho "Empty — try again."; continue; fi
+      if [ "$LUKS_PW1" != "$LUKS_PW2" ]; then cecho "Mismatch — try again."; continue; fi
+      break
+    done
+    LUKS_PW="$LUKS_PW1"
+  fi
   cecho "Root partition will be LUKS2-encrypted." "$NSI_DIM" "$NSI_R"
   LUKS_TPM=1
   if [ -e /dev/tpmrm0 ] || [ -e /dev/tpm0 ]; then
@@ -1057,7 +1066,9 @@ echo "==> Installing Limine bootloader (UEFI)..."
 if [ "$USE_LUKS" -eq 0 ]; then
   BTRFS_UUID=$(blkid -s UUID -o value "$BTRFS_DEV")
   # sd-encrypt uses rd.luks.* (LUKS superblock UUID), not legacy cryptdevice=.
-  KERNEL_OPTS="rd.luks.name=$LUKS_UUID=$LUKS_NAME root=UUID=$BTRFS_UUID rw rootflags=subvol=@"
+  # timeout=0 avoids ~90s passphrase prompt expiry; x-systemd.device-timeout=0
+  # keeps the initrd root device job open while typing on a TV/couch setup.
+  KERNEL_OPTS="rd.luks.name=$LUKS_UUID=$LUKS_NAME rd.luks.options=timeout=0 root=UUID=$BTRFS_UUID rw rootflags=subvol=@,x-systemd.device-timeout=0"
 else
   ROOT_PARTUUID=$(blkid -s PARTUUID -o value "$ROOT_PART")
   KERNEL_OPTS="root=PARTUUID=$ROOT_PARTUUID rw rootflags=subvol=@"
@@ -2192,7 +2203,7 @@ if [ "$USE_LUKS" -eq 0 ] && [ "${LUKS_TPM:-1}" -eq 0 ]; then
   chmod 600 "$TPM_PW"
   LUKS_DEV="/dev/disk/by-partuuid/$LUKS_PARTUUID"
   if arch-chroot /mnt hyperwebster-luks-tpm-enroll \
-       --passphrase-file /root/hyperwebster-luks-pw --pcrs 7 "$LUKS_DEV"; then
+       --passphrase-file /root/hyperwebster-luks-pw "$LUKS_DEV"; then
     echo "    TPM2 token enrolled (passphrase remains fallback)."
     arch-chroot /mnt limine-update 2>/dev/null \
       && echo "    Limine UKI refreshed after TPM enrollment." \

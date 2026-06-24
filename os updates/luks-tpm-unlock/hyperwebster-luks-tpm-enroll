@@ -10,7 +10,7 @@ Usage: hyperwebster-luks-tpm-enroll [options] <luks-device>
 
 Options:
   --passphrase-file PATH   LUKS passphrase file (default: prompt)
-  --pcrs LIST              TPM PCRs (default: 7 — Secure Boot state; try 7+11 if boot fails)
+  --pcrs LIST              TPM PCRs (default: 7 — Secure Boot state; auto-retries 7+11 on failure)
   --dry-run                print actions only
 
 Example (fresh install chroot):
@@ -18,6 +18,11 @@ Example (fresh install chroot):
 
 Example (running system, root):
   hyperwebster-luks-tpm-enroll /dev/disk/by-partuuid/XXXX
+
+If TPM unlock stops working after a firmware update, re-enroll with:
+  hyperwebster-luks-tpm-enroll --pcrs 7+11 /dev/disk/by-partuuid/XXXX
+
+Diagnose first: hyperwebster-luks-tpm-status [luks-device]
 EOF
 }
 
@@ -27,6 +32,11 @@ need_root() {
 
 tpm_present() {
   [[ -e /dev/tpmrm0 || -e /dev/tpm0 ]]
+}
+
+tpm_usable() {
+  command -v systemd-cryptenroll >/dev/null 2>&1 \
+    && systemd-cryptenroll --tpm2-device=list 2>/dev/null | grep -qvE '^(none|)$'
 }
 
 rebuild_initramfs() {
@@ -41,6 +51,26 @@ rebuild_initramfs() {
   if command -v limine-update >/dev/null 2>&1; then
     limine-update 2>/dev/null || echo "NOTE: limine-update failed — UKI may be stale until next kernel update" >&2
   fi
+}
+
+diagnose_failure() {
+  local dev="$1"
+  echo "Diagnostics:" >&2
+  if ! tpm_present; then
+    echo "  - No /dev/tpmrm0 or /dev/tpm0 (enable TPM/PTT in firmware)" >&2
+  elif ! tpm_usable; then
+    echo "  - TPM present but systemd-cryptenroll cannot use it (driver/firmware?)" >&2
+  fi
+  if command -v systemd-cryptenroll >/dev/null 2>&1; then
+    if list_out=$(systemd-cryptenroll --list "$dev" 2>/dev/null) && grep -qi tpm2 <<<"$list_out"; then
+      echo "  - A TPM2 token already exists — enrollment may have failed due to PCR mismatch" >&2
+      echo "    Try: hyperwebster-luks-tpm-enroll --pcrs 7+11 $dev" >&2
+    fi
+  fi
+  if [[ -f /etc/mkinitcpio.conf ]] && ! grep -qE 'sd-encrypt' /etc/mkinitcpio.conf /etc/mkinitcpio.conf.d/* 2>/dev/null; then
+    echo "  - sd-encrypt hook missing from mkinitcpio — run install-luks-tpm-unlock.sh" >&2
+  fi
+  echo "  - Full checklist: hyperwebster-luks-tpm-status $dev" >&2
 }
 
 DRYRUN=0
@@ -64,6 +94,7 @@ need_root
 
 if ! tpm_present; then
   echo "No TPM device (/dev/tpmrm0 or /dev/tpm0) — skipping TPM enrollment."
+  echo "Passphrase unlock is unchanged. Enable TPM in firmware, then re-run this command."
   exit 0
 fi
 
@@ -104,11 +135,12 @@ elif [[ "$PCRS" == "7" ]]; then
   PCRS="7+11"
 else
   echo "TPM enrollment failed — LUKS passphrase unlock is unchanged." >&2
+  diagnose_failure "$DEVICE"
   exit 1
 fi
 
 echo "TPM2 token enrolled (PCRs: $PCRS). Passphrase unlock remains available as fallback."
-echo "Verify tokens: systemd-cryptenroll --list $DEVICE"
+echo "Verify: hyperwebster-luks-tpm-status $DEVICE"
 echo "If boot stops auto-unlocking after a firmware/Secure Boot change, re-enroll:"
-echo "  sudo hyperwebster-luks-tpm-enroll --pcrs $PCRS $DEVICE"
+echo "  sudo hyperwebster-luks-tpm-enroll --pcrs 7+11 $DEVICE"
 rebuild_initramfs
