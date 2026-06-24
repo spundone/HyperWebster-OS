@@ -24,14 +24,17 @@ install -m 0755 "$SRC/obs-extras.sh" "$SHARE/obs-extras.sh"
 install -m 0644 "$SRC/AdditionsPage.qml" "$SHARE/AdditionsPage.qml"
 install -m 0755 "$SRC/patch-additions-page.sh" "$SHARE/patch-additions-page.sh"
 
-# 3. QML registration — skipped when the ISO builder already branded nosignal-shell.
+# 3. QML registration — skipped when the ISO builder already branded nosignal-shell,
+# but the pacman hook is always installed so a later shell upgrade re-applies the page.
 if [ -n "${HYPERWEBSTER_SKIP_SHELL_PATCH:-}" ]; then
   echo ":: skipping Additions QML patch (HYPERWEBSTER_SKIP_SHELL_PATCH — fork ships the page)"
 else
   sudo sh "$SHARE/patch-additions-page.sh"
-  HOOK=/etc/pacman.d/hooks/hyperwebster-additions-page.hook
-  sudo mkdir -p /etc/pacman.d/hooks
-  sudo tee "$HOOK" > /dev/null <<EOF
+fi
+
+HOOK=/etc/pacman.d/hooks/hyperwebster-additions-page.hook
+sudo mkdir -p /etc/pacman.d/hooks
+sudo tee "$HOOK" > /dev/null <<EOF
 [Trigger]
 Operation = Install
 Operation = Upgrade
@@ -45,8 +48,7 @@ Description = Re-applying HyperWebster Additions settings page...
 When = PostTransaction
 Exec = /bin/sh $SHARE/patch-additions-page.sh
 EOF
-  echo ":: pacman hook installed -> $HOOK"
-fi
+echo ":: pacman hook installed -> $HOOK"
 
 # 5. Seed the status cache so the page has data on first open.
 "$BIN/hyperwebster-additions" status >/dev/null 2>&1 || true

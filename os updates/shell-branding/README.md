@@ -13,7 +13,14 @@ hyperwebster-update --no-packages --no-snapshot
 Or manually:
 
 ```sh
-sh ~/.local/share/hyperwebster/shell-branding/install-shell-branding.sh
+sudo sh ~/.local/share/hyperwebster/shell-branding/install-shell-branding.sh
 ```
 
 Restart the shell (`Ctrl+Super+Alt+R`) after patching.
+
+## Pacman hook
+
+`install-shell-branding.sh` writes `/etc/pacman.d/hooks/hyperwebster-shell-branding.hook`
+so branding is re-applied after every `nosignal-shell`, `caelestia-shell`, or
+`hyperwebster-shell` upgrade. Updates, Additions, and Wi-Fi recovery have their
+own hooks in the respective layer components.

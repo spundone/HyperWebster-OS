@@ -30,6 +30,7 @@ Operation = Upgrade
 Type = Package
 Target = hyperwebster-shell
 Target = caelestia-shell
+Target = nosignal-shell
 
 [Action]
 Description = Re-applying HyperWebster Wi-Fi wrong-password recovery patch...

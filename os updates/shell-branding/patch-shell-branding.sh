@@ -16,7 +16,9 @@ patch_file() {
   f="$1"
   [ -f "$f" ] || return 0
   if grep -q 'hyperwebster/additions-status.json' "$f" 2>/dev/null \
-     || grep -q 'text: "HyperWebster"' "$f" 2>/dev/null; then
+     || grep -q 'text: "HyperWebster"' "$f" 2>/dev/null \
+     || grep -q 'hyperwebster-sudo-toggle' "$f" 2>/dev/null \
+     || grep -q 'hyperwebster-cachy-repo' "$f" 2>/dev/null; then
     return 0
   fi
   cp -n "$f" "$f.pre-hyperwebster-branding" 2>/dev/null || true

@@ -1976,6 +1976,15 @@ echo "==> Applying shell branding (About / Updates / Additions CLIs)..."
 arch-chroot /mnt sh "$USER_HOME/.local/share/hyperwebster/shell-branding/install-shell-branding.sh" \
   || echo "    (shell-branding patch failed — run hyperwebster-update after boot)"
 
+# --- Pacman hooks: nosignal-shell upgrades overwrite /etc/xdg — re-apply HyperWebster patches.
+echo "==> Installing Updates / Additions / Wi-Fi shell pacman hooks..."
+arch-chroot /mnt runuser -u "$USERNAME" -- env HOME="$USER_HOME" \
+  sh "$USER_HOME/.local/share/hyperwebster/updates-panel/install-updates-panel.sh" \
+  || echo "    (updates-panel install failed — run hyperwebster-update after boot)"
+arch-chroot /mnt runuser -u "$USERNAME" -- env HOME="$USER_HOME" \
+  sh "$USER_HOME/.local/share/hyperwebster/wifi-password-retry/install-wifi-password-retry.sh" \
+  || echo "    (wifi-password-retry install failed — run hyperwebster-update after boot)"
+
 # --- change 31 (kernel-reboot-notify, finding F5): a pacman PostTransaction
 # hook that prints a "reboot required" reminder (and "boot the UKI entry") in
 # the pacman/yay output whenever a kernel image changes, so out-of-band

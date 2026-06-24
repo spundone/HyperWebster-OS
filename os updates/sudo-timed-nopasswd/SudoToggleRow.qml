@@ -22,10 +22,13 @@ ToggleRow {
         : qsTr("Run sudo without a password for 15 minutes, then it reverts")
 
     onToggled: {
-        if (checked)
+        if (checked) {
             enableProc.running = true;   // needs a password -> floating terminal
-        else
+            focusTimer.ticks = 0;
+            focusTimer.restart();        // then pull keyboard focus to the prompt
+        } else {
             disableProc.running = true;  // no password inside the active window
+        }
         reconcile.restart();
     }
 
@@ -46,11 +49,32 @@ ToggleRow {
     // --- actions --------------------------------------------------------------
     Process {
         id: enableProc
-        command: ["kitty", "--class", "TUI.float", "-e", "sudo", "hyperwebster-sudo-toggle", "enable"]
+        // Dedicated window class (hyperwebster-sudo) so the shipped hypr windowrules
+        // (float/center/pin/stayfocused) force this prompt to GRAB keyboard focus.
+        command: ["kitty", "--class", "hyperwebster-sudo", "-e", "hyperwebster-sudo-toggle", "enable-tui"]
     }
     Process {
         id: disableProc
         command: ["sudo", "-n", "hyperwebster-sudo-toggle", "disable"]
+    }
+    Process {
+        id: focusProc
+        command: ["hyprctl", "dispatch", "focuswindow", "class:^(hyperwebster-sudo)$"]
+    }
+    Timer {
+        id: focusTimer
+        interval: 400
+        repeat: true
+        triggeredOnStart: false
+        property int ticks: 0
+        onTriggered: {
+            focusProc.running = true;
+            ticks += 1;
+            if (ticks >= 3) {
+                ticks = 0;
+                stop();
+            }
+        }
     }
 
     // --- polling --------------------------------------------------------------
