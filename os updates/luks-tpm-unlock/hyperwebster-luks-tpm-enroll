@@ -1,0 +1,84 @@
+#!/bin/bash
+# hyperwebster-luks-tpm-enroll — bind a LUKS2 volume to TPM2 (PCR policy) for
+# passphrase-free cold boot when the TPM is available. Passphrase remains a
+# fallback if TPM unlock fails or PCRs change (firmware/Secure Boot updates).
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: hyperwebster-luks-tpm-enroll [options] <luks-device>
+
+Options:
+  --passphrase-file PATH   unlock key file (default: prompt)
+  --pcrs LIST              TPM PCRs (default: 7 — Secure Boot state)
+  --dry-run                print actions only
+
+Example (fresh install chroot):
+  echo -n "$LUKS_PW" | hyperwebster-luks-tpm-enroll /dev/nvme0n1p2
+
+Example (running system, root):
+  hyperwebster-luks-tpm-enroll /dev/disk/by-partuuid/XXXX
+EOF
+}
+
+need_root() {
+  [[ $EUID -eq 0 ]] || { echo "Error: must run as root" >&2; exit 1; }
+}
+
+tpm_present() {
+  [[ -e /dev/tpmrm0 || -e /dev/tpm0 ]]
+}
+
+DRYRUN=0
+PASS_FILE=""
+PCRS="7"
+DEVICE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --passphrase-file) PASS_FILE="$2"; shift 2 ;;
+    --pcrs) PCRS="$2"; shift 2 ;;
+    --dry-run) DRYRUN=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    -*) echo "Unknown option: $1" >&2; usage; exit 1 ;;
+    *) DEVICE="$1"; shift ;;
+  esac
+done
+
+[[ -n "$DEVICE" ]] || { usage; exit 1; }
+need_root
+
+if ! tpm_present; then
+  echo "No TPM device (/dev/tpmrm0 or /dev/tpm0) — skipping TPM enrollment."
+  exit 0
+fi
+
+if ! command -v systemd-cryptenroll >/dev/null 2>&1; then
+  echo "Error: systemd-cryptenroll not found (install systemd)." >&2
+  exit 1
+fi
+
+# Resolve symlinks for clearer logs.
+DEVICE=$(readlink -f "$DEVICE" 2>/dev/null || echo "$DEVICE")
+
+if [[ $DRYRUN -eq 1 ]]; then
+  echo "+ systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=$PCRS $DEVICE"
+  exit 0
+fi
+
+ARGS=(--tpm2-device=auto --tpm2-pcrs="$PCRS" "$DEVICE")
+if [[ -n "$PASS_FILE" ]]; then
+  ARGS=(--unlock-key-file="$PASS_FILE" "${ARGS[@]}")
+else
+  ARGS=(--unlock-passphrase "${ARGS[@]}")
+fi
+
+echo "Enrolling $DEVICE with TPM2 (PCRs: $PCRS)…"
+if systemd-cryptenroll "${ARGS[@]}"; then
+  echo "TPM2 token enrolled. Passphrase unlock remains available as fallback."
+  echo "If boot stops auto-unlocking after a firmware/Secure Boot change, run:"
+  echo "  sudo hyperwebster-luks-tpm-enroll --pcrs $PCRS $DEVICE"
+else
+  echo "TPM enrollment failed — LUKS passphrase unlock is unchanged." >&2
+  exit 1
+fi
