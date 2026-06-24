@@ -55,7 +55,7 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for hardware guidance and
 On an **Arch Linux** host with internet:
 
 ```bash
-sudo pacman -S --needed git libisoburn squashfs-tools coreutils devtools pacman-contrib reflector
+sudo pacman -S --needed git libisoburn squashfs-tools coreutils devtools pacman-contrib reflector util-linux
 git clone https://github.com/spundone/HyperWebster-OS.git
 cd HyperWebster-OS
 curl -LO https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
@@ -63,6 +63,56 @@ curl -LO https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
 ```
 
 Output: `hyperwebster-arch-YYYYMMDD.iso` (~4 GB). Cached payload in `./offline/`.
+
+**Cross-platform entry point:** `./build.sh` detects your host and either runs
+`hyperwebster.sh` natively (Arch) or inside an Arch container (macOS, Ubuntu, etc.).
+
+### Building on macOS / non-Arch Linux
+
+The ISO builder needs Arch tooling (`pacman`, `devtools`/`mkarchroot`, `xorriso`,
+squashfs). Native macOS builds are not supported; use **Docker Desktop** (or Podman)
+to run an Arch container with the repo bind-mounted.
+
+**Requirements**
+
+- Docker Desktop for Mac (or Podman on Linux) with ~30 GB free disk
+- Stock Arch ISO in the repo root (`archlinux-*.iso`, ~1.3 GB download)
+- Stable internet for the first build (AUR + package downloads)
+
+**Step by step (macOS)**
+
+1. Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/).
+2. Clone the repo and download a stock Arch ISO:
+
+   ```bash
+   git clone https://github.com/spundone/HyperWebster-OS.git
+   cd HyperWebster-OS
+   git checkout feature/cross-platform-build   # until merged to main
+   curl -LO https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
+   ```
+
+3. Run the wrapper (builds the Arch image on first run, then builds the ISO):
+
+   ```bash
+   chmod +x build.sh scripts/build-in-container.sh
+   ./build.sh
+   ```
+
+4. Output appears in the repo root: `hyperwebster-arch-YYYYMMDD.iso`.
+   Subsequent builds reuse `offline/` (delete it to force a full refresh).
+
+**Alternatives**
+
+- **VS Code / Cursor devcontainer:** open the repo and “Reopen in Container”
+  (`.devcontainer/devcontainer.json`), then run `./hyperwebster.sh` in the
+  integrated terminal.
+- **Arch VM (UTM, QEMU, libvirt):** clone the repo into a shared folder on an
+  Arch guest and run `./hyperwebster.sh` natively — same as bare-metal Arch.
+- **Force container on Arch:** `HYPERWEBSTER_FORCE_CONTAINER=1 ./build.sh`
+
+**Useful env vars** (native or container): `HYPERWEBSTER_ARCH_ISO`,
+`HYPERWEBSTER_MIRRORLIST`, `HYPERWEBSTER_REFRESH_MIRRORS=1`, `SSH_PUBKEY`
+(dev builds only). See `hyperwebster.sh` header comments.
 
 The offline repo includes `linux-cachyos`, `cachyos-kernel-manager`, `tailscale`,
 and CachyOS trust packages (downloaded from [CachyOS mirrors](https://mirror.cachyos.org)

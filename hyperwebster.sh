@@ -41,14 +41,28 @@
 #
 # Dependencies (build host): xorriso, squashfs-tools, git, sha512sum, sudo,
 # devtools (mkarchroot/makechrootpkg), pacman-contrib (paccache).
+#
+# Cross-platform / container build env vars (see also ./build.sh and README):
+#   HYPERWEBSTER_ARCH_ISO   — path to stock archlinux-*.iso (default: repo dir)
+#   HYPERWEBSTER_BUILD_UID  — final ISO owner uid (set by build-in-container.sh)
+#   HYPERWEBSTER_BUILD_GID  — final ISO owner gid
+#   HYPERWEBSTER_BUILD_USER — invoking username for chown fallback
+#   HYPERWEBSTER_USE_SUDO=1 — force sudo even when already root
+#   HYPERWEBSTER_MIRRORLIST — custom pacman mirrorlist for build downloads
+#   HYPERWEBSTER_REFRESH_MIRRORS=1 — re-rank mirrors before download
 
 set -euo pipefail
+
+# Container / root build: skip sudo when already root (Docker, devcontainer).
+if [ "$(id -u)" -eq 0 ] && [ "${HYPERWEBSTER_USE_SUDO:-0}" != "1" ]; then
+  sudo() { "$@"; }
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORK="$SCRIPT_DIR/work"
 OFFLINE="$SCRIPT_DIR/offline"
-INVOKING_USER="${SUDO_USER:-$(id -un)}"
-INVOKING_GROUP="$(id -gn "$INVOKING_USER")"
+INVOKING_USER="${SUDO_USER:-${HYPERWEBSTER_BUILD_USER:-$(id -un)}}"
+INVOKING_GROUP="$(id -gn "$INVOKING_USER" 2>/dev/null || echo root)"
 OUT_ISO="$SCRIPT_DIR/hyperwebster-arch-$(date +%Y%m%d).iso"
 
 # ---------------------------------------------------------------- pins ------
@@ -2552,15 +2566,23 @@ CHROOTPAC
 # ===========================================================================
 
 # ---- locate stock ISO ----------------------------------------------------
-shopt -s nullglob
-CANDIDATES=("$SCRIPT_DIR"/archlinux-*.iso)
-shopt -u nullglob
 STOCK_ISO=""
-for iso in "${CANDIDATES[@]}"; do
-  [[ "$(basename "$iso")" == *HyperWebster* ]] && continue
-  STOCK_ISO="$iso"
-  break
-done
+if [ -n "${HYPERWEBSTER_ARCH_ISO:-}" ]; then
+  if [ ! -f "$HYPERWEBSTER_ARCH_ISO" ]; then
+    echo "ERROR: HYPERWEBSTER_ARCH_ISO=$HYPERWEBSTER_ARCH_ISO not found" >&2
+    exit 1
+  fi
+  STOCK_ISO="$HYPERWEBSTER_ARCH_ISO"
+else
+  shopt -s nullglob
+  CANDIDATES=("$SCRIPT_DIR"/archlinux-*.iso)
+  shopt -u nullglob
+  for iso in "${CANDIDATES[@]}"; do
+    [[ "$(basename "$iso")" == *HyperWebster* ]] && continue
+    STOCK_ISO="$iso"
+    break
+  done
+fi
 
 if [ -z "$STOCK_ISO" ]; then
   echo "ERROR: No stock Arch ISO found in $SCRIPT_DIR" >&2
@@ -2727,7 +2749,11 @@ xorriso \
   -end 2>&1 | tail -5
 
 # ---- cleanup ------------------------------------------------------------
-sudo chown "$INVOKING_USER:$INVOKING_GROUP" "$OUT_ISO"
+if [ -n "${HYPERWEBSTER_BUILD_UID:-}" ] && [ -n "${HYPERWEBSTER_BUILD_GID:-}" ]; then
+  chown "$HYPERWEBSTER_BUILD_UID:$HYPERWEBSTER_BUILD_GID" "$OUT_ISO"
+else
+  sudo chown "$INVOKING_USER:$INVOKING_GROUP" "$OUT_ISO"
+fi
 sudo rm -rf "$WORK"
 
 echo

@@ -2,6 +2,10 @@
 work/
 *.iso
 build*.log
+.mirrorlist
+
+# Docker (local tags only; image layers live in Docker's store)
+.docker/
 
 # Editor / OS cruft
 *.swp
