@@ -102,7 +102,7 @@ FLATHUB_REPO_URL="https://dl.flathub.org/repo/flathub.flatpakrepo"
 BASE_PKGS=(
   base linux linux-cachyos linux-cachyos-headers linux-firmware
   cachyos-keyring cachyos-mirrorlist cachyos-v3-mirrorlist cachyos-v4-mirrorlist
-  intel-ucode amd-ucode cryptsetup
+  intel-ucode amd-ucode cryptsetup tpm2-tss
   networkmanager openssh sudo git curl wget vim less base-devel
   limine efibootmgr zram-generator
   btrfs-progs snapper snap-pac
@@ -160,7 +160,11 @@ BASE_PKGS=(
   # GUI Wi-Fi fallback (non-CLI escape hatch beside the bar's Wi-Fi panel) +
   # GL/Vulkan info tools so `prime-run glxinfo`/`vulkaninfo` work for verifying
   # hybrid-GPU offload (hardware-test gap, 2026-06-20)
-  nm-connection-editor mesa-utils vulkan-tools
+  nm-connection-editor mesa-utils vulkan-tools wlr-randr
+  # mesh VPN (daemon enabled at install; user runs `sudo tailscale up` to auth)
+  tailscale
+  # CachyOS kernel variant picker (GUI) — pairs with linux-cachyos OOB default
+  cachyos-kernel-manager
 )
 
 # Every GPU driver variant goes into the offline repo; the installer detects
@@ -566,8 +570,20 @@ if [ "$USE_LUKS" -eq 0 ]; then
   done
   LUKS_PW="$LUKS_PW1"
   cecho "Root partition will be LUKS2-encrypted." "$NSI_DIM" "$NSI_R"
+  LUKS_TPM=1
+  if [ -e /dev/tpmrm0 ] || [ -e /dev/tpm0 ]; then
+    echo
+    tui_menu "Enroll TPM2 for passphrase-free unlock at boot?" \
+      "Yes — TPM2 auto-unlock (passphrase stays as fallback)" \
+      "No — passphrase only"
+    LUKS_TPM=$MENU_CHOICE
+    [ "$LUKS_TPM" -eq 0 ] && cecho "TPM2 will be enrolled after install." "$NSI_DIM" "$NSI_R"
+  else
+    cecho "No TPM detected — passphrase-only LUKS." "$NSI_DIM" "$NSI_R"
+  fi
 else
   cecho "Root partition will NOT be encrypted." "$NSI_DIM" "$NSI_R"
+  LUKS_TPM=1
 fi
 
 if [[ "$DISK" =~ nvme|mmcblk ]]; then
@@ -802,13 +818,18 @@ arch-chroot /mnt plymouth-set-default-theme hyperwebster \
   || arch-chroot /mnt plymouth-set-default-theme spinner || true
 
 # LUKS: initramfs must unlock the encrypted root before btrfs mounts.
+# sd-encrypt (systemd in initramfs) supports TPM2 tokens from systemd-cryptenroll.
 if [ "$USE_LUKS" -eq 0 ]; then
-  if ! grep -qE '^HOOKS=.*\bencrypt\b' /mnt/etc/mkinitcpio.conf; then
-    sed -i '/^HOOKS=/ s/\bfilesystems\b/encrypt filesystems/' /mnt/etc/mkinitcpio.conf
+  if ! grep -qE '^HOOKS=.*\bsd-encrypt\b' /mnt/etc/mkinitcpio.conf; then
+    if grep -qE '^HOOKS=.*\bencrypt\b' /mnt/etc/mkinitcpio.conf; then
+      sed -i '/^HOOKS=/ s/\bencrypt\b/sd-encrypt/' /mnt/etc/mkinitcpio.conf
+    else
+      sed -i '/^HOOKS=/ s/\bfilesystems\b/sd-encrypt filesystems/' /mnt/etc/mkinitcpio.conf
+    fi
   fi
   echo "$LUKS_NAME PARTUUID=$LUKS_PARTUUID none luks" >> /mnt/etc/crypttab
   chmod 600 /mnt/etc/crypttab
-  echo "    LUKS2 configured (encrypt hook + /etc/crypttab)."
+  echo "    LUKS2 configured (sd-encrypt hook + /etc/crypttab)."
 fi
 
 # ------------------------------------------------------------- NVIDIA KMS ----
@@ -916,11 +937,8 @@ else
   ROOT_PARTUUID=$(blkid -s PARTUUID -o value "$ROOT_PART")
   KERNEL_OPTS="root=PARTUUID=$ROOT_PARTUUID rw rootflags=subvol=@"
 fi
-# Root is the btrfs @ subvolume — Limine/kernel needs rootflags to mount it.
-# The quiet/splash flags give a clean boot: Plymouth shows the HyperWebster splash
-# (HyperWebster / Starman wordmark on black) and the kernel/systemd "loading" text is suppressed,
-# so the boot goes Limine -> HyperWebster splash -> SDDM greeter with no scroll.
-KERNEL_OPTS="root=PARTUUID=$ROOT_PARTUUID rw rootflags=subvol=@"
+# Root is the btrfs @ subvolume — append quiet boot flags without clobbering LUKS
+# cryptdevice= when encryption is enabled (line above sets the full cmdline).
 KERNEL_OPTS="$KERNEL_OPTS quiet splash loglevel=3 systemd.show_status=false rd.udev.log_level=3 vt.global_cursor_default=0"
 # Disable zswap: the swap device is zram (already compressed RAM), so zswap in
 # front of it would double-compress pages (zswap -> zram) and waste CPU.
@@ -1362,6 +1380,18 @@ cat > "$M_HOME/.config/caelestia/shell.json" <<'HYPERWEBSTER_SHELL'
   },
   "dashboard": { "showPerformance": false, "showWeather": true },
   "background": { "visualiser": { "enabled": false } },
+  "launcher": {
+    "maxShown": 8,
+    "vimKeybinds": false,
+    "showOnHover": false,
+    "useFuzzy": {
+      "apps": true,
+      "actions": true,
+      "schemes": false,
+      "variants": false,
+      "wallpapers": false
+    }
+  },
   "bar": {
     "entries": [
       { "id": "logo", "enabled": true },
@@ -1831,6 +1861,22 @@ echo "==> Installing CachyOS repo + kernel switch toggle..."
 arch-chroot /mnt env HYPERWEBSTER_SKIP_SHELL_PATCH=1 sh "$USER_HOME/.local/share/hyperwebster/cachyos-repo-switch/install-cachyos-repo-switch.sh" \
   || echo "    (cachyos-repo-switch install failed — CLI/toggle may be absent)"
 
+# --- LUKS TPM2 auto-unlock helper (passphrase remains fallback).
+echo "==> Installing LUKS TPM enrollment helper..."
+arch-chroot /mnt sh "$USER_HOME/.local/share/hyperwebster/luks-tpm-unlock/install-luks-tpm-unlock.sh" \
+  || echo "    (luks-tpm-unlock install failed)"
+
+# --- Chimera / Deckify gaming helpers (opt-in install via hyperwebster-deckify-install).
+echo "==> Installing Chimera/Deckify gaming helpers..."
+arch-chroot /mnt sh "$USER_HOME/.local/share/hyperwebster/chimera-deckify-gaming/install-chimera-deckify-gaming.sh" \
+  || echo "    (chimera-deckify-gaming install failed)"
+
+# --- Tailscale: enable daemon (user runs `sudo tailscale up` to authenticate).
+echo "==> Enabling Tailscale daemon..."
+arch-chroot /mnt systemctl enable tailscaled.service 2>/dev/null \
+  && echo "    tailscaled enabled (connect with: sudo tailscale up)" \
+  || echo "    (tailscaled enable skipped — package missing?)"
+
 # --- change 4: Flathub remote for Shelly's flatpak pages. The vendored
 # .flatpakrepo embeds the GPG key, so this is an offline-safe config write.
 # Staged in /root, NOT /tmp: arch-chroot mounts a fresh tmpfs over the
@@ -1924,6 +1970,36 @@ SDDMTHEME
 chmod 644 /mnt/etc/sddm.conf.d/20-sddm-theme.conf
 
 arch-chroot /mnt chown -R "$USERNAME:$USERNAME" "$USER_HOME"
+
+# --- Per-user layer: TV profile, Raycast launcher merge, blur toggle CLI.
+echo "==> Installing TV display profile + launcher polish..."
+arch-chroot /mnt runuser -u "$USERNAME" -- \
+  env HOME="$USER_HOME" XDG_CONFIG_HOME="$USER_HOME/.config" \
+  sh "$USER_HOME/.local/share/hyperwebster/tcl-t89c-display/install-tcl-t89c-display.sh" \
+  || echo "    (tcl-t89c-display skipped)"
+arch-chroot /mnt runuser -u "$USERNAME" -- \
+  env HOME="$USER_HOME" XDG_CONFIG_HOME="$USER_HOME/.config" \
+  sh "$USER_HOME/.local/share/hyperwebster/launcher-raycast/install-launcher-raycast.sh" \
+  || echo "    (launcher-raycast skipped)"
+arch-chroot /mnt runuser -u "$USERNAME" -- \
+  env HOME="$USER_HOME" \
+  sh "$USER_HOME/.local/share/hyperwebster/blur-toggle/install-blur-toggle.sh" \
+  || echo "    (blur-toggle skipped)"
+
+# --- LUKS TPM2 enrollment (when user opted in and TPM is present).
+if [ "$USE_LUKS" -eq 0 ] && [ "${LUKS_TPM:-1}" -eq 0 ]; then
+  echo "==> Enrolling LUKS volume with TPM2..."
+  TPM_PW=$(mktemp /tmp/hyperwebster-luks-pw.XXXXXX)
+  echo -n "$LUKS_PW" > "$TPM_PW"
+  chmod 600 "$TPM_PW"
+  if arch-chroot /mnt hyperwebster-luks-tpm-enroll --passphrase-file "$TPM_PW" --pcrs 7 "$ROOT_PART"; then
+    echo "    TPM2 token enrolled (passphrase remains fallback)."
+    arch-chroot /mnt mkinitcpio -P 2>/dev/null || true
+  else
+    echo "    TPM enrollment failed — passphrase-only unlock unchanged."
+  fi
+  rm -f "$TPM_PW"
+fi
 
 # --- colour scheme + wallpaper -------------------------------------------------
 # The OS theme: set the default Moebius wallpaper (foam-sea.png, change 18 —
