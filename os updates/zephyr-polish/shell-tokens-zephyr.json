@@ -1,0 +1,16 @@
+{
+  "appearance": {
+    "animDurations": {
+      "small": 100,
+      "normal": 170,
+      "large": 280,
+      "extraLarge": 400,
+      "expressiveFastSpatial": 170,
+      "expressiveDefaultSpatial": 280,
+      "expressiveSlowSpatial": 400,
+      "expressiveFastEffects": 90,
+      "expressiveDefaultEffects": 140,
+      "expressiveSlowEffects": 200
+    }
+  }
+}

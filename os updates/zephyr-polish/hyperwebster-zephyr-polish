@@ -1,0 +1,77 @@
+#!/bin/bash
+# hyperwebster-zephyr-polish - optional zephyr-inspired motion (default off).
+set -euo pipefail
+
+LAYER="${HOME}/.local/share/hyperwebster/zephyr-polish"
+HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
+SHELLTOKENS="${HOME}/.config/caelestia/shell-tokens.json"
+HYPERSMOOTH="${HOME}/.local/share/hyperwebster/hypersmooth-display/shell-tokens.fragment.json"
+STATE="${HOME}/.local/state/hyperwebster/zephyr-polish-enabled"
+MARK_BEGIN='# >>> hyperwebster-zephyr-polish >>>'
+MARK_END='# <<< hyperwebster-zephyr-polish <<<'
+
+usage() {
+  echo "Usage: hyperwebster-zephyr-polish {enable|disable|status|toggle}" >&2
+}
+
+merge_tokens() {
+  local mode="$1"
+  command -v jq >/dev/null 2>&1 || return 0
+  [ -f "$SHELLTOKENS" ] || return 0
+  local frag
+  if [ "$mode" = enable ]; then
+    frag="$LAYER/shell-tokens-zephyr.json"
+  else
+    frag="$HYPERSMOOTH"
+  fi
+  [ -f "$frag" ] || return 0
+  local tmp
+  tmp=$(mktemp)
+  jq -s '.[0] * .[1]' "$SHELLTOKENS" "$frag" > "$tmp" && mv "$tmp" "$SHELLTOKENS"
+}
+
+set_hypr() {
+  local on="$1"
+  [ -f "$HYPRUSER" ] || return 0
+  if [ "$on" = 1 ]; then
+    grep -qF "$MARK_BEGIN" "$HYPRUSER" && return 0
+    cat >> "$HYPRUSER" <<EOF
+
+$MARK_BEGIN
+source = $LAYER/hypr-zephyr.conf
+$MARK_END
+EOF
+  else
+    sed -i "/$MARK_BEGIN/,/$MARK_END/d" "$HYPRUSER" 2>/dev/null || true
+  fi
+}
+
+apply() {
+  local on="$1"
+  mkdir -p "$(dirname "$STATE")"
+  echo "$on" > "$STATE"
+  set_hypr "$on"
+  if [ "$on" = 1 ]; then
+    merge_tokens enable
+    echo "Zephyr polish enabled (overshoot motion)."
+  else
+    merge_tokens disable
+    echo "Zephyr polish disabled (hypersmooth defaults restored)."
+  fi
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+}
+
+case "${1:-}" in
+  enable) apply 1 ;;
+  disable) apply 0 ;;
+  toggle)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then apply 0; else apply 1; fi
+    ;;
+  status)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then echo enabled; exit 0; fi
+    echo disabled; exit 1
+    ;;
+  *) usage; exit 1 ;;
+esac

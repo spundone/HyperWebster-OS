@@ -1,0 +1,59 @@
+#!/bin/bash
+# hyperwebster-maint - HyperWebster maintenance / distro tools menu.
+set -euo pipefail
+
+pick() {
+  if command -v fuzzel >/dev/null 2>&1; then
+    fuzzel --dmenu --prompt "HyperWebster › " "$@"
+  elif command -v rofi >/dev/null 2>&1; then
+    rofi -dmenu -p "HyperWebster"
+  else
+    echo "fuzzel or rofi required for hyperwebster-maint" >&2
+    exit 1
+  fi
+}
+
+menu="System monitor (btop)
+System monitor (shell panel)
+Btrfs snapshots
+Monitor profiles (hyprmoncfg)
+CachyOS kernel manager
+System update (hyperwebster-update)
+Zephyr motion polish (toggle)
+Frosted glass (blur toggle)
+Settings (caelestia nexus)"
+
+choice=$(printf '%s\n' "$menu" | pick) || exit 0
+
+case "$choice" in
+  "System monitor (btop)")
+    exec "${TERMINAL:-kitty}" -e btop
+    ;;
+  "System monitor (shell panel)")
+    exec caelestia toggle sysmon
+    ;;
+  "Btrfs snapshots")
+    exec hyperwebster-snapshots
+    ;;
+  "Monitor profiles (hyprmoncfg)")
+    exec "${TERMINAL:-kitty}" -e hyprmoncfg
+    ;;
+  "CachyOS kernel manager")
+    if command -v cachyos-kernel-manager >/dev/null 2>&1; then
+      exec cachyos-kernel-manager
+    fi
+    notify-send "Maintenance" "cachyos-kernel-manager not installed." 2>/dev/null || true
+    ;;
+  "System update (hyperwebster-update)")
+    exec "${TERMINAL:-kitty}" -e hyperwebster-update
+    ;;
+  "Zephyr motion polish (toggle)")
+    exec hyperwebster-zephyr-polish toggle
+    ;;
+  "Frosted glass (blur toggle)")
+    exec hyperwebster-blur-toggle toggle
+    ;;
+  "Settings (caelestia nexus)")
+    exec caelestia nexus
+    ;;
+esac
