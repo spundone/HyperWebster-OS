@@ -1776,6 +1776,12 @@ install -m 755 "$LAYER/gaming-enablement/omarchy-pkg-add" \
 ln -sf "$USER_HOME/.local/share/hyperwebster/hyperwebster-update/bin/hyperwebster-update" \
   "$M_HOME/.local/bin/hyperwebster-update"
 
+# --- nosignal-update compat aliases (stale QML / scripts may still call nosignal-*).
+echo "==> Installing nosignal-update compat aliases..."
+arch-chroot /mnt runuser -u "$USERNAME" -- env HOME="$USER_HOME" \
+  sh "$USER_HOME/.local/share/hyperwebster/update-alias/install-update-alias.sh" \
+  || echo "    (update-alias install failed — run hyperwebster-update after boot)"
+
 # --- change 27 (xdg-terminal-exec-handler, finding F2): app2unit hardcodes its
 # terminal handler to `xdg-terminal-exec`, which HyperWebster never shipped, so any
 # Terminal=true desktop entry (and app2unit -T) failed with a critical

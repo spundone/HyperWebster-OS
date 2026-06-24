@@ -69,6 +69,7 @@ done
 [ -d "$SRC/zephyr-polish" ] && cp -a "$SRC/zephyr-polish" "$DEST/"
 [ -d "$SRC/distro-tools" ] && cp -a "$SRC/distro-tools" "$DEST/"
 [ -d "$SRC/shell-branding" ] && cp -a "$SRC/shell-branding" "$DEST/"
+[ -d "$SRC/update-alias" ] && cp -a "$SRC/update-alias" "$DEST/"
 
 # The update system itself.
 cp -a "$SRC/hyperwebster-update" "$DEST/"

@@ -16,7 +16,10 @@ REG="$NEXUS/PageCompRegistry.qml"
 
 [ -f "$REG" ] || { echo "caelestia-shell not found at $NEXUS — nothing to patch"; exit 0; }
 
+# Always overlay HyperWebster QML — nosignal-shell upgrades ship upstream
+# UpdatesPage.qml with nosignal-update even when the registry still references it.
 install -m 0644 "$SELF_DIR/UpdatesPage.qml" "$NEXUS/pages/UpdatesPage.qml"
+echo ":: installed $NEXUS/pages/UpdatesPage.qml"
 
 if grep -q 'UpdatesPage' "$REG"; then
   echo ":: registry already patched"
