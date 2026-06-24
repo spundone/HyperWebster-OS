@@ -1,0 +1,13 @@
+[Unit]
+Description=HyperWebster automatic data-drive mounts
+Documentation=file:///usr/local/share/hyperwebster/drive-automount/README.md
+After=local-fs.target
+Before=remote-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/hyperwebster-drive-automount
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,86 @@
+#!/bin/bash
+# hyperwebster-drive-automount — mount non-system data drives at boot.
+# Regenerates /etc/fstab.d/99-hyperwebster-automount.conf and mounts entries.
+# Skips root, boot/EFI, LUKS containers, swap, and optical/loop devices.
+set -euo pipefail
+
+FSTAB_FRAGMENT=/etc/fstab.d/99-hyperwebster-automount.conf
+MOUNT_ROOT=/mnt
+ALLOW_RE='^(ext4|btrfs|xfs|vfat|exfat|ntfs|ntfs3|f2fs)$'
+
+sanitize_name() {
+  local label="$1" uuid="$2"
+  local name
+  if [ -n "$label" ]; then
+    name=$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed 's/^-//;s/-$//')
+  fi
+  [ -n "$name" ] || name="disk-${uuid:0:8}"
+  printf '%s' "$name"
+}
+
+declare -A SKIP_DEVS=()
+
+add_skip_tree() {
+  local src="$1" name pk
+  [ -z "$src" ] && return 0
+  src="${src%%\[*}"
+  SKIP_DEVS["$src"]=1
+  name=$(lsblk -no NAME "$src" 2>/dev/null | head -1) || return 0
+  [ -n "$name" ] && SKIP_DEVS["/dev/$name"]=1
+  pk=$(lsblk -no PKNAME "$src" 2>/dev/null | head -1) || true
+  [ -n "$pk" ] && SKIP_DEVS["/dev/$pk"]=1
+}
+
+while read -r src; do
+  add_skip_tree "$src"
+done < <(findmnt -rn -o SOURCE / /boot /home /.snapshots /var/log 2>/dev/null || true)
+
+tmp=$(mktemp)
+{
+  echo "# HyperWebster drive automount — managed by hyperwebster-drive-automount.service"
+  echo "# Data partitions mount under ${MOUNT_ROOT}/<label> with nofail."
+} > "$tmp"
+
+while read -r name fstype label uuid mountpoint parttype; do
+  [ -n "$fstype" ] || continue
+  [[ "$fstype" =~ $ALLOW_RE ]] || continue
+  [ "$fstype" = "swap" ] && continue
+
+  dev="/dev/$name"
+  [ -n "${SKIP_DEVS[$dev]:-}" ] && continue
+  [ -n "$mountpoint" ] && continue
+
+  # Skip EFI system partitions (vfat marked as ESP).
+  if [ "$fstype" = "vfat" ] && [[ "${parttype:-}" == *"esp"* || "${parttype:-}" == *"EFI"* ]]; then
+    continue
+  fi
+  # Skip tiny vfat slices that are likely EFI leftovers.
+  if [ "$fstype" = "vfat" ]; then
+  size=$(lsblk -b -dn -o SIZE "$dev" 2>/dev/null || echo 0)
+    [ "${size:-0}" -lt 536870912 ] && continue
+  fi
+
+  target_name=$(sanitize_name "$label" "$uuid")
+  target="${MOUNT_ROOT}/${target_name}"
+  mkdir -p "$target"
+  echo "UUID=$uuid $target $fstype nofail,x-systemd.device-timeout=5,x-gvfs-show 0 0" >> "$tmp"
+done < <(lsblk -f -n -o NAME,FSTYPE,LABEL,UUID,MOUNTPOINT,PARTTYPE)
+
+install -Dm0644 "$tmp" "$FSTAB_FRAGMENT"
+rm -f "$tmp"
+
+systemctl daemon-reload 2>/dev/null || true
+
+while read -r line; do
+  [[ "$line" =~ ^UUID= ]] || continue
+  uuid=${line#UUID=}; uuid=${uuid%% *}
+  mp=$(awk '{print $2}' <<<"$line")
+  fst=$(awk '{print $3}' <<<"$line")
+  opts=$(awk '{print $4}' <<<"$line")
+  findmnt -rn "$mp" >/dev/null 2>&1 && continue
+  mountpoint -q "$mp" 2>/dev/null && continue
+  mkdir -p "$mp"
+  mount -t "$fst" -o "$opts" "UUID=$uuid" "$mp" 2>/dev/null || true
+done < "$FSTAB_FRAGMENT"
+
+echo "hyperwebster-drive-automount: synced $(grep -c '^UUID=' "$FSTAB_FRAGMENT" 2>/dev/null || echo 0) data mount(s)"
