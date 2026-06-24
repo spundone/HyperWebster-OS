@@ -1,0 +1,37 @@
+# Build artifacts
+work/
+*.iso
+build*.log
+
+# Editor / OS cruft
+*.swp
+.DS_Store
+.cursor/
+
+# Offline payload cache (multi-GB: built AUR pkgs + repo mirror + chroot)
+offline/
+
+# VM test rig (QEMU certification harness) — maintainer-only dev tooling,
+# kept LOCAL (scripts + disks/firmware/screenshots/logs all stay off the repo).
+vm/
+
+# squashfs debug extracts
+sq/
+*.sfs
+
+# Integration inbox from live test boxes — content is fully folded into
+# "os updates/" + hyperwebster.sh; kept locally for reference only
+# (-done = archived rounds; hypros-* = pre-rename rounds 2+3)
+hyperwebster-handoff/
+hyperwebster-handoff-done/
+hypros-handoff/
+hypros-handoff-done/
+
+# Dev-internal docs — kept LOCAL only, never in the public repo:
+# the dev status log, hardware-test briefs, QA/builder handoff, and the
+# internal phase/design docs (infra hostnames, dev-machine specs, process).
+NOTES.md
+ONBOX-BRIEF-*.md
+dev-docs/
+docs/PHASE2-DESIGN.md
+docs/PHASE3-OFFLINE.md
