@@ -1,12 +1,9 @@
-// CachyRepoToggleRow.qml (HyperWebster) — Settings -> Services toggle to enable /
-// disable the CachyOS pacman repositories. Auto-detects the best x86-64 microarch
-// tier the CPU supports (v4 > v3). Live state polls `hyperwebster-cachy-repo status`
-// (no root). enable/disable run in a floating terminal so the pacman/download
-// output stays visible; the grant is passwordless via sudo -n
-// (/etc/sudoers.d/02-hyperwebster-cachy). enable adds repos, converts userspace to
-// the optimized builds (pacman -Suu, pacman pinned stock), and installs the
-// linux-cachyos kernel; disable reverts to stock and removes the cachy kernel
-// (keeping stock `linux` bootable). A reboot switches the running kernel.
+// CachyRepoToggleRow.qml (HyperWebster) — Settings -> Services toggle to revert
+// to stock Arch kernel/repos or re-enable CachyOS optimized builds. Fresh installs
+// ship linux-cachyos + CachyOS repos OOB; this toggle is mainly for reverting.
+// Auto-detects the best x86-64 microarch tier (v4 > v3). Live state polls
+// `hyperwebster-cachy-repo status` (no root). enable/disable run in a floating
+// terminal so pacman output stays visible; passwordless via sudo -n.
 //
 // Untracked file under modules/nexus/common — auto-discovered as the type
 // `CachyRepoToggleRow` via `import qs.modules.nexus.common`. Survives caelestia
@@ -20,10 +17,10 @@ ToggleRow {
 
     property bool repoOn: false   // NB: not `enabled` (reserved Item property)
 
-    text: qsTr("CachyOS repositories")
+    text: qsTr("CachyOS kernel & repos")
     subtext: repoOn
-        ? qsTr("On — CachyOS optimized builds + linux-cachyos kernel (reboot to run it)")
-        : qsTr("Switch to CachyOS optimized builds + linux-cachyos kernel (reboot after)")
+        ? qsTr("On — linux-cachyos + optimized repos (toggle off to revert to stock)")
+        : qsTr("Off — stock Arch kernel and repos (toggle on to re-enable CachyOS)")
 
     onToggled: {
         if (checked)

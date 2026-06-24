@@ -105,17 +105,103 @@ need_root() {
 
 # Fetch + extract the upstream repo tarball (for the maintained .awk stanza
 # files + current keyring/mirrorlist package versions). Echoes the dir.
+# HYPERWEBSTER_CACHY_TARBALL (local path) is used by the offline installer so
+# bootstrap never needs the network.
 fetch_upstream() {
   local d; d=$(mktemp -d /tmp/hyperwebster-cachy.XXXXXX) || return 1
   if [[ $DRYRUN -eq 1 ]]; then echo "$d"; return 0; fi
-  curl -fsSL "$CACHY_TARBALL" | tar -xJ -C "$d" || return 1
+  if [[ -n "${HYPERWEBSTER_CACHY_TARBALL:-}" && -f "${HYPERWEBSTER_CACHY_TARBALL}" ]]; then
+    tar -xJf "${HYPERWEBSTER_CACHY_TARBALL}" -C "$d" || return 1
+  else
+    curl -fsSL "$CACHY_TARBALL" | tar -xJ -C "$d" || return 1
+  fi
   echo "$d"
+}
+
+# Shared setup: trust key, install mirrorlists (if missing), add repo stanzas,
+# set tier Architecture, pacman -Sy. Caller supplies the detected tier (v3/v4).
+bootstrap_repos() {
+  local tier="$1"
+  local up src awkf arch
+  if is_enabled; then
+    echo "CachyOS repos already present."
+    ensure_ignore_pacman
+    return 0
+  fi
+  echo "Detected microarchitecture tier: x86-64-$tier"
+  up=$(fetch_upstream) || { echo "Error: could not load CachyOS repo tarball." >&2; exit 4; }
+  trap 'rm -rf "$up"' EXIT
+  src="$up/cachyos-repo"
+
+  if ! pacman-key -l "$CACHY_KEY" >/dev/null 2>&1; then
+    if pacman -Qq cachyos-keyring >/dev/null 2>&1; then
+      run pacman-key --populate cachyos 2>/dev/null || true
+    fi
+    if ! pacman-key -l "$CACHY_KEY" >/dev/null 2>&1; then
+      run pacman-key --recv-keys "$CACHY_KEY" --keyserver "$KEYSERVER"
+    fi
+    run pacman-key --lsign-key "$CACHY_KEY"
+  fi
+
+  if ! pacman -Qq cachyos-keyring >/dev/null 2>&1; then
+    pkgs=()
+    if [[ $DRYRUN -eq 1 ]]; then
+      pkgs=(cachyos-keyring-XX cachyos-mirrorlist-XX cachyos-v3-mirrorlist-XX cachyos-v4-mirrorlist-XX)
+    else
+      mapfile -t pkgs < <(grep -oE '[a-z0-9.+_-]+\.pkg\.tar\.zst' "$src/cachyos-repo.sh" \
+                          | grep -vE '^pacman-' | sort -u)
+    fi
+    urls=(); for p in "${pkgs[@]}"; do urls+=("$MIRROR/$p"); done
+    run pacman -U --noconfirm "${urls[@]}"
+  fi
+
+  case "$tier" in
+    v4) awkf="install-v4-repo.awk" ;;
+    v3) awkf="install-repo.awk" ;;
+    *) echo "Error: invalid tier '$tier' (want v3 or v4)." >&2; exit 2 ;;
+  esac
+  run cp -a "$PACCONF" "$PACBAK"
+  run gawk -i inplace -f "$src/$awkf" "$PACCONF"
+
+  case "$tier" in
+    v4) arch="x86_64 x86_64_v3 x86_64_v4" ;;
+    v3) arch="x86_64 x86_64_v3" ;;
+  esac
+  run sed -i "s/^Architecture = .*/Architecture = $arch/" "$PACCONF"
+  if [[ "${HYPERWEBSTER_OFFLINE:-}" == 1 ]]; then
+    echo "+ (offline install — skip pacman -Sy; first online -Syu syncs dbs)"
+  else
+    run pacman -Sy
+  fi
+
+  if [[ $DRYRUN -eq 0 ]] && ! is_enabled; then
+    echo "Error: CachyOS repos not present in $PACCONF after setup." >&2
+    exit 3
+  fi
+  ensure_ignore_pacman
+  echo "CachyOS repos added (x86-64-$tier)."
 }
 
 case "$CMD" in
   detect) detect_tier ;;
 
   status) if is_enabled; then echo enabled; exit 0; else echo disabled; exit 1; fi ;;
+
+  bootstrap)
+    # Offline-safe install-time path: add repos + pin stock pacman only. The
+    # linux-cachyos kernel is installed separately (pacstrap). Userspace -Suu
+    # conversion waits for `enable` once online (or the Settings toggle).
+    need_root
+    tier="${2:-$(detect_tier)}"
+    if [[ "$tier" == none ]]; then
+      echo "CPU supports neither x86-64-v3 nor v4 — skipping CachyOS repo bootstrap."
+      exit 0
+    fi
+    bootstrap_repos "$tier"
+    echo "CachyOS repos bootstrapped (kernel already installed). Once online, run"
+    echo "  hyperwebster-cachy-repo enable   (or flip the Settings toggle ON)"
+    echo "to convert userspace packages to CachyOS optimized builds."
+    ;;
 
   enable)
     need_root
@@ -126,52 +212,7 @@ case "$CMD" in
         echo "       unavailable. Nothing changed." >&2
         exit 2
       fi
-      echo "Detected microarchitecture tier: x86-64-$tier"
-      up=$(fetch_upstream) || { echo "Error: could not fetch CachyOS repo tarball (network?)." >&2; exit 4; }
-      trap 'rm -rf "$up"' EXIT
-      src="$up/cachyos-repo"
-
-      # 1) trust the CachyOS signing key
-      run pacman-key --recv-keys "$CACHY_KEY" --keyserver "$KEYSERVER"
-      run pacman-key --lsign-key "$CACHY_KEY"
-
-      # 2) install keyring + mirrorlists (versions tracked from upstream script;
-      #    deliberately EXCLUDE the upstream 'pacman-*' replacement — keep stock pacman)
-      pkgs=()
-      if [[ $DRYRUN -eq 1 ]]; then
-        pkgs=(cachyos-keyring-XX cachyos-mirrorlist-XX cachyos-v3-mirrorlist-XX cachyos-v4-mirrorlist-XX)
-      else
-        mapfile -t pkgs < <(grep -oE '[a-z0-9.+_-]+\.pkg\.tar\.zst' "$src/cachyos-repo.sh" \
-                            | grep -vE '^pacman-' | sort -u)
-      fi
-      urls=(); for p in "${pkgs[@]}"; do urls+=("$MIRROR/$p"); done
-      run pacman -U --noconfirm "${urls[@]}"
-
-      # 3) add the repo stanzas via upstream's maintained awk (tier-appropriate).
-      case "$tier" in
-        v4) awkf="install-v4-repo.awk" ;;
-        v3) awkf="install-repo.awk" ;;
-      esac
-      run cp -a "$PACCONF" "$PACBAK"
-      run gawk -i inplace -f "$src/$awkf" "$PACCONF"
-
-      # The upstream awk sets `Architecture = auto`, which STOCK pacman reads as
-      # just x86_64 — so it would REJECT every x86-64-v3/v4 package ("does not
-      # have a valid architecture") and the conversion would silently do nothing.
-      # (CachyOS's own pacman build reads `auto` as v3/v4; we keep stock pacman.)
-      # So set the tier arch EXPLICITLY.
-      case "$tier" in
-        v4) arch="x86_64 x86_64_v3 x86_64_v4" ;;
-        v3) arch="x86_64 x86_64_v3" ;;
-      esac
-      run sed -i "s/^Architecture = .*/Architecture = $arch/" "$PACCONF"
-      run pacman -Sy
-
-      if [[ $DRYRUN -eq 0 ]] && ! is_enabled; then
-        echo "Error: CachyOS repos not present in $PACCONF after setup." >&2
-        exit 3
-      fi
-      echo "CachyOS repos added (x86-64-$tier)."
+      bootstrap_repos "$tier"
     else
       echo "CachyOS repos already present — upgrading to optimized builds…"
     fi
@@ -300,7 +341,7 @@ case "$CMD" in
     ;;
 
   *)
-    echo "Usage: $0 {detect|status|enable|disable} [--dry-run]" >&2
+    echo "Usage: $0 {detect|status|bootstrap|enable|disable} [tier] [--dry-run]" >&2
     exit 1
     ;;
 esac

@@ -11,8 +11,8 @@
 #   * builds the caelestia AUR packages (shell/CLI/meta + quickshell-git and
 #     friends) in a devtools clean chroot on the build host,
 #   * downloads the complete pacstrap dependency tree (including every GPU
-#     driver variant and the prebuilt Limine snapshot tools from the omarchy
-#     repo) into a local pacman repo,
+#     driver variant, the CachyOS linux-cachyos kernel + trust packages, and
+#     the prebuilt Limine snapshot tools from the omarchy repo) into a local
 #   * vendors the caelestia dotfiles + quickshell-overview as pinned tarballs,
 # and places all of it on the ISO9660 (outside the squashfs, visible to the
 # live environment at /run/archiso/bootmnt/hyperwebster). The installer pacstraps
@@ -100,7 +100,9 @@ FLATHUB_REPO_URL="https://dl.flathub.org/repo/flathub.flatpakrepo"
 # written to the ISO as /hyperwebster/base-packages.list and read back by the
 # installer (so the download closure and the installed set can never drift).
 BASE_PKGS=(
-  base linux linux-firmware intel-ucode amd-ucode cryptsetup
+  base linux linux-cachyos linux-cachyos-headers linux-firmware
+  cachyos-keyring cachyos-mirrorlist cachyos-v3-mirrorlist cachyos-v4-mirrorlist
+  intel-ucode amd-ucode cryptsetup
   networkmanager openssh sudo git curl wget vim less base-devel
   limine efibootmgr zram-generator
   btrfs-progs snapper snap-pac
@@ -177,6 +179,10 @@ GPU_ALL_PKGS=(
 
 # Prebuilt binaries from the omarchy repo (skips their GraalVM AUR build).
 LIMINE_TOOLS=(limine-snapper-sync limine-mkinitcpio-hook)
+
+# CachyOS kernel + trust/mirror packages — vendored into the offline repo at
+# ISO build time (see build_offline_payload). linux stays as a Limine fallback.
+CACHYOS_TARBALL_URL="https://mirror.cachyos.org/cachyos-repo.tar.xz"
 
 # AUR packages built in the clean chroot, in dependency order (each build can
 # resolve the previously built ones through the local bootstrap repo).
@@ -644,8 +650,9 @@ mount "$EFI_PART" /mnt/boot
 # Hardware-detect the GPU(s) and pick driver packages, borrowing CachyOS chwd's
 # method: scan PCI display-class controllers (class 0300/0302/0380) and map the
 # vendor id (10de NVIDIA / 1002 AMD / 8086 Intel) to a driver set — plus the VM
-# vendors so Hyprland comes up in a guest. Done natively (no chwd binary, no
-# CachyOS repos / lib32 / cachyos-kernel deps) so the ISO stays vanilla Arch.
+# vendors so Hyprland comes up in a guest. Done natively (no chwd binary).
+# The default kernel is linux-cachyos (bundled offline); stock linux remains as
+# a Limine fallback entry. CachyOS repo stanzas are bootstrapped at install.
 # Multiple GPUs union their package sets (e.g. an Intel/AMD iGPU + NVIDIA dGPU).
 # ALL variants below are present in the offline repo (see GPU_ALL_PKGS in the
 # builder — keep the two in sync).
@@ -690,8 +697,9 @@ fi
 GPU_PKGS=(mesa vulkan-icd-loader)
 GPU_SUMMARY=()
 if [ "$GPU_NVIDIA" = 1 ]; then
-  # Open-kernel-module NVIDIA (Turing/RTX+; the current default). DKMS so it
-  # tracks the stock 'linux' kernel; linux-headers builds it during pacstrap.
+  # Open-kernel-module NVIDIA (Turing/RTX+; the current default). DKMS builds
+  # against every installed kernel (linux + linux-cachyos); headers for both
+  # ship in the base set.
   GPU_PKGS+=(nvidia-open-dkms nvidia-utils egl-wayland libva-nvidia-driver nvidia-settings linux-headers)
   GPU_SUMMARY+=("NVIDIA (nvidia-open-dkms + Wayland KMS)")
 fi
@@ -969,6 +977,14 @@ interface_branding: HyperWebster
 
 /HyperWebster (fallback kernel)
     protocol: linux
+    path: boot():/vmlinuz-linux-cachyos
+    cmdline: $KERNEL_OPTS
+    module_path: boot():/intel-ucode.img
+    module_path: boot():/amd-ucode.img
+    module_path: boot():/initramfs-linux-cachyos.img
+
+/HyperWebster (stock kernel fallback)
+    protocol: linux
     path: boot():/vmlinuz-linux
     cmdline: $KERNEL_OPTS
     module_path: boot():/intel-ucode.img
@@ -1137,6 +1153,31 @@ OMARCHY_REPO
 # the install is offline; the user's first `pacman -Syu` pulls the db.
 echo "==> Enabling [multilib] repo in the installed system..."
 sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /mnt/etc/pacman.conf
+
+# ------------------------------------------------ CachyOS kernel (default OOB) -
+# linux-cachyos is pacstrapped from the offline repo; stock linux stays as a
+# fallback Limine entry. Bootstrap the CachyOS pacman repos now (vendored
+# tarball — no network) so the installed system updates from CachyOS mirrors
+# once online. Userspace -Suu conversion is deferred to `enable` / the toggle.
+echo "==> Bootstrapping CachyOS repos (default linux-cachyos kernel)..."
+install -m 755 "$HYPERWEBSTER_PAYLOAD/vendor/hyperwebster-cachy-repo" /mnt/usr/local/bin/hyperwebster-cachy-repo
+CACHY_TIER=none
+if h=$(/lib/ld-linux-x86-64.so.2 --help 2>/dev/null); then
+  if grep -q "x86-64-v4 (supported" <<<"$h"; then CACHY_TIER=v4
+  elif grep -q "x86-64-v3 (supported" <<<"$h"; then CACHY_TIER=v3; fi
+fi
+if [ "$CACHY_TIER" != none ] && [ -f "$HYPERWEBSTER_PAYLOAD/vendor/cachyos-repo.tar.xz" ]; then
+  cp "$HYPERWEBSTER_PAYLOAD/vendor/cachyos-repo.tar.xz" /mnt/root/cachyos-repo.tar.xz
+  if arch-chroot /mnt env HYPERWEBSTER_OFFLINE=1 HYPERWEBSTER_CACHY_TARBALL=/root/cachyos-repo.tar.xz \
+      /usr/local/bin/hyperwebster-cachy-repo bootstrap "$CACHY_TIER"; then
+    echo "    CachyOS repos bootstrapped (x86-64-$CACHY_TIER)."
+  else
+    echo "    WARNING: CachyOS repo bootstrap failed — Settings toggle can enable later."
+  fi
+  rm -f /mnt/root/cachyos-repo.tar.xz
+else
+  echo "    (CPU below x86-64-v3 or vendored tarball missing — stock kernel only)"
+fi
 
 # ---------------------------------------------------------- zram swap --------
 # A desktop with NO swap OOM-kills heavy workloads; zram gives compressed
@@ -1781,16 +1822,11 @@ echo "==> Installing time-boxed passwordless-sudo toggle..."
 arch-chroot /mnt env HYPERWEBSTER_SKIP_SHELL_PATCH=1 sh "$USER_HOME/.local/share/hyperwebster/sudo-timed-nopasswd/install-sudo-timed-nopasswd.sh" \
   || echo "    (sudo-timed-nopasswd install failed — CLI/toggle may be absent)"
 
-# --- change 37 (cachyos-repo-switch): a Settings -> Services toggle (+ CLI) that
-# switches the system to/from CachyOS optimized builds + the linux-cachyos kernel,
-# passwordless and auto-detecting the best x86-64 tier (v4 > v3). Installs the CLI
-# + the visudo-validated sudoers drop-in + the panel toggle; does NOT enable the
-# CachyOS repos (a deliberate user action — heavy, networked, reboots the kernel).
-# CachyRepoToggleRow + its ServicesPage insert are BAKED INTO the pinned
-# hyperwebster-shell fork (Phase 2), so HYPERWEBSTER_SKIP_SHELL_PATCH skips the redundant
-# QML patch. The CLI + sudoers install here. (gawk/curl/kitty/limine already in
-# the base closure; the helper live-fetches the CachyOS keyring/mirrorlist/awk at
-# enable time — enabling CachyOS is online by nature.)
+# --- change 37 (cachyos-repo-switch): Settings -> Services toggle (+ CLI) to
+# revert to stock Arch kernel/repos or re-enable CachyOS. Fresh installs already
+# ship linux-cachyos + bootstrapped CachyOS repos (see bootstrap block above).
+# Installs the CLI + visudo-validated sudoers + panel toggle. CachyRepoToggleRow
+# is baked into the pinned hyperwebster-shell fork (HYPERWEBSTER_SKIP_SHELL_PATCH).
 echo "==> Installing CachyOS repo + kernel switch toggle..."
 arch-chroot /mnt env HYPERWEBSTER_SKIP_SHELL_PATCH=1 sh "$USER_HOME/.local/share/hyperwebster/cachyos-repo-switch/install-cachyos-repo-switch.sh" \
   || echo "    (cachyos-repo-switch install failed — CLI/toggle may be absent)"
@@ -2061,6 +2097,16 @@ build_offline_payload() {
   install -m 644 "$SCRIPT_DIR/assets/fastfetch-config.jsonc" \
                  "$SCRIPT_DIR/assets/fastfetch-logo.txt" "$OFFLINE/iso/vendor/"
 
+  # CachyOS repo tarball + bootstrap CLI (offline install uses these; enable/disable
+  # still live-fetch when no local copy is present).
+  install -m 755 "$SCRIPT_DIR/os updates/cachyos-repo-switch/hyperwebster-cachy-repo" \
+    "$OFFLINE/iso/vendor/hyperwebster-cachy-repo"
+  if [ ! -f "$OFFLINE/iso/vendor/cachyos-repo.tar.xz" ]; then
+    echo "==> Vendoring CachyOS repo tarball (keyring/mirrorlist .awk stanzas)..."
+    curl -fSL --proto '=https' --tlsv1.2 -o "$OFFLINE/iso/vendor/cachyos-repo.tar.xz" \
+      "$CACHYOS_TARBALL_URL"
+  fi
+
   # ---- bootstrap repo db (so the build chroot can reference it from day 0) -
   if [ ! -e "$OFFLINE/iso/repo/hyperwebster.db" ]; then
     tar -czf "$OFFLINE/iso/repo/hyperwebster.db.tar.gz" --files-from /dev/null
@@ -2200,6 +2246,10 @@ Server = https://geo.mirror.pkgbuild.com/\$repo/os/\$arch
 [omarchy]
 SigLevel = Optional TrustAll
 Server = https://pkgs.omarchy.org/edge/\$arch
+
+[cachyos]
+SigLevel = Optional TrustAll
+Server = https://mirror.cachyos.org/repo/x86_64/cachyos
 DLPAC
   sudo rm -rf "$OFFLINE/dl-db"   # populated by root (sudo pacman -Syw)
   mkdir -p "$OFFLINE/dl-db"

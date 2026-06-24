@@ -2,12 +2,12 @@
 # install-cachyos-repo-switch.sh — idempotent. REQUIRES ROOT.
 #
 # Installs the CachyOS repo + kernel switch feature:
-#   1. /usr/local/bin/hyperwebster-cachy-repo          (detect/status/enable/disable CLI)
+#   1. /usr/local/bin/hyperwebster-cachy-repo          (detect/status/bootstrap/enable/disable CLI)
 #   2. /etc/sudoers.d/02-hyperwebster-cachy            (sudoless grant, validated first)
 #   3. patches caelestia ServicesPage to show the toggle (via patch-servicespage.sh)
 #
-# Does NOT enable the CachyOS repos — that's a deliberate user action via the
-# toggle (it is heavy, networked and reboots the kernel).
+# Fresh HyperWebster installs already ship linux-cachyos + bootstrapped CachyOS
+# repos. The toggle reverts to stock (disable) or re-enables + runs userspace -Suu.
 set -eu
 
 SELF_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -55,4 +55,4 @@ elif [ -x "$SELF_DIR/patch-servicespage.sh" ]; then
     sh "$SELF_DIR/patch-servicespage.sh" || echo "WARNING: ServicesPage patch failed (CLI still usable from a terminal)" >&2
 fi
 
-echo ":: done. Toggle it in Settings -> Services, or: sudo hyperwebster-cachy-repo enable"
+echo ":: done. Toggle in Settings -> Services to revert to stock or re-enable CachyOS."
