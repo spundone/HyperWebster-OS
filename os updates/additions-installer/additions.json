@@ -10,6 +10,14 @@
       "install": "set -e; [ -d \"$HOME/deckshift/.git\" ] || git clone https://git.no-signal.uk/hyperwebster/deckshift.git \"$HOME/deckshift\"; cd \"$HOME/deckshift\"; chmod +x deckshift.sh; ./deckshift.sh; sh \"$HOME/.local/share/hyperwebster/deckshift-login/install-deckshift-login.sh\""
     },
     {
+      "id": "deckify",
+      "name": "Deckify / Chimera Gaming",
+      "desc": "ChimeraOS gamescope session — Starman boot path (Super+Shift+S)",
+      "icon": "stadia_controller",
+      "check": "test -x /usr/local/bin/hyperwebster-deckify-install && /usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1",
+      "install": "hyperwebster-deckify-install; sh \"$HOME/.local/share/hyperwebster/deckshift-login/install-deckshift-login.sh\""
+    },
+    {
       "id": "spotify",
       "name": "Spotify",
       "desc": "Music streaming client",
@@ -92,10 +100,10 @@
     {
       "id": "tailscale",
       "name": "Tailscale",
-      "desc": "Mesh VPN to connect your devices",
+      "desc": "Mesh VPN — preinstalled; connect with sudo tailscale up",
       "icon": "vpn_lock",
-      "check": "pacman -Q tailscale",
-      "install": "sudo pacman -S --needed --noconfirm tailscale; sudo systemctl enable --now tailscaled; echo 'Tailscale installed. Connect with: sudo tailscale up'"
+      "check": "systemctl is-enabled tailscaled.service >/dev/null 2>&1",
+      "install": "sudo systemctl enable --now tailscaled; echo 'Tailscale is preinstalled. Connect with: sudo tailscale up'; echo 'Optional: sudo tailscale up --ssh for Tailscale SSH'; echo 'MagicDNS works when enabled in the Tailscale admin console.'"
     },
     {
       "id": "pinta",

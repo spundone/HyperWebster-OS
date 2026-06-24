@@ -1,0 +1,64 @@
+#!/bin/bash
+# hyperwebster-deckify-install — ChimeraOS gamescope session stack (AUR PKGBUILDs
+# maintained by the ChimeraOS community). Installs gamescope-session-steam and
+# session-switch helpers compatible with deckshift-login overlays.
+set -euo pipefail
+
+HELPER="${HOME}/.local/bin/omarchy-pkg-add"
+SESSION_HELPER="/usr/local/bin/hyperwebster-gaming-session"
+LAYER="${HOME}/.local/share/hyperwebster"
+
+echo "==> HyperWebster Deckify / Chimera gaming install"
+
+# multilib + Omarchy shims (idempotent).
+if [ -x "$LAYER/gaming-enablement/install-gaming-enablement.sh" ]; then
+  sh "$LAYER/gaming-enablement/install-gaming-enablement.sh"
+fi
+
+if ! command -v yay >/dev/null 2>&1; then
+  echo "Error: yay is required (ships with HyperWebster)." >&2
+  exit 1
+fi
+
+PKG_ADD="${HELPER:-yay}"
+echo "==> Installing Chimera gamescope session packages (AUR)…"
+$PKG_ADD -S --needed --noconfirm \
+  gamescope-session-git \
+  gamescope-session-steam-git \
+  gamescope mangohud
+
+# Session switch scripts (Deckify-compatible interface).
+echo "==> Installing session switch helpers…"
+sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/switch-to-gaming" /usr/local/bin/switch-to-gaming
+sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/switch-to-desktop" /usr/local/bin/switch-to-desktop
+sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/gaming-session-switch" /usr/local/bin/gaming-session-switch
+sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/os-session-select" /usr/lib/os-session-select
+sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/hyperwebster-gaming-session" /usr/local/bin/hyperwebster-gaming-session
+
+# Password-at-boot overlay (reuses deckshift-login gate).
+if [ -x "$LAYER/deckshift-login/install-deckshift-login.sh" ]; then
+  # Relax deckshift-login's hard DeckShift check by pre-installing switch-to-gaming.
+  sh "$LAYER/deckshift-login/install-deckshift-login.sh" || true
+fi
+
+# sudoers: passwordless session switch (Deckify pattern).
+if [ ! -f /etc/sudoers.d/hyperwebster-gaming-session ]; then
+  TMP=$(mktemp)
+  cat > "$TMP" <<'SUDO'
+# HyperWebster — gamescope session switching without a password prompt.
+%wheel ALL=(ALL) NOPASSWD: /usr/local/bin/gaming-session-switch
+SUDO
+  if sudo visudo -cf "$TMP" >/dev/null 2>&1; then
+    sudo install -m0440 "$TMP" /etc/sudoers.d/hyperwebster-gaming-session
+    echo "==> sudoers rule installed"
+  else
+    echo "WARNING: sudoers validation failed — session switch will prompt for sudo" >&2
+  fi
+  rm -f "$TMP"
+fi
+
+echo
+echo "Deckify / Chimera gaming stack installed."
+echo "  Super+Shift+S  — switch to gamescope Steam session"
+echo "  Limine Starman entry — boots straight into gaming when TPM/LUKS allow"
+echo "  Reboot and pick Starman (Gaming / Steam) for controller-friendly boot"

@@ -31,7 +31,13 @@ if [[ -z "$USER_NAME" ]]; then
 fi
 
 case "${1:-}" in
-  gaming)  SESSION="gamescope-session-steam-nm" ;;
+  gaming)
+    if SESSION=$(/usr/local/bin/hyperwebster-gaming-session 2>/dev/null); then
+      :
+    else
+      SESSION="gamescope-session-steam-nm"
+    fi
+    ;;
   desktop) SESSION="hyprland-uwsm" ;;
   *)
     echo "Usage: $0 {gaming|desktop}" >&2

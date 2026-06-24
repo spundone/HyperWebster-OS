@@ -1,0 +1,64 @@
+#!/bin/bash
+# switch-to-desktop — deckshift-login overlay of DeckShift's original.
+#
+# WHY THIS OVERLAY EXISTS: the original pkilled gamescope and slept BEFORE its
+# final `systemctl restart sddm`. Killing gamescope ends the login session, and
+# logind then kills the session's processes — including this very script (it
+# is launched by the in-session keybind monitor) — so the restart never ran.
+# Stock DeckShift got away with that because its PERMANENT Relogin=true
+# autologin re-logged the user in anyway; with deckshift-login's one-shot
+# autologin it left the SDDM greeter instead.
+#
+# Fix, copied from the os-session-select path that already works: do the
+# cleanup, arm the one-shot switch, shut Steam down, then queue the SDDM
+# restart as a detached root job (nohup + disown). The restart job runs inside
+# PID 1, so it completes even though stopping SDDM kills this script and the
+# rest of the gaming session — no manual pkill of gamescope needed.
+if [[ ! -f /tmp/.gaming-session-active ]]; then
+  exit 0
+fi
+rm -f /tmp/.gaming-session-active
+
+# SYNCHRONOUS POWER RESTORE — done first because the trap-based restore in
+# gamescope-session-nm-wrapper can be SIGKILL'd by `systemctl restart sddm`
+# before it completes, leaving CPU governor / power profile stuck at
+# "performance". (Verbatim from DeckShift's original.)
+SAVED_STATE_FILE="$HOME/.cache/deckshift/saved-state"
+if [[ -f "$SAVED_STATE_FILE" ]]; then
+  # shellcheck disable=SC1090
+  source "$SAVED_STATE_FILE"
+  for gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+    echo "${PRE_GAMING_CPU_GOVERNOR:-powersave}" > "$gov" 2>/dev/null
+  done
+  if command -v powerprofilesctl &>/dev/null && [[ -n "${PRE_GAMING_POWER_PROFILE:-}" ]]; then
+    sudo -n powerprofilesctl set "$PRE_GAMING_POWER_PROFILE" 2>/dev/null || \
+      powerprofilesctl set "$PRE_GAMING_POWER_PROFILE" 2>/dev/null
+  fi
+  rm -f "$SAVED_STATE_FILE"
+fi
+
+# Unmask suspend targets + daemon-reload (verbatim from DeckShift's original).
+sudo -n systemctl unmask sleep.target suspend.target hibernate.target hybrid-sleep.target 2>/dev/null
+sudo -n systemctl unmask --runtime sleep.target suspend.target hibernate.target hybrid-sleep.target 2>/dev/null
+sudo -n systemctl daemon-reload 2>/dev/null
+
+# Arm the one-shot autologin back to the desktop BEFORE anything can kill us.
+sudo -n /usr/local/bin/gaming-session-switch desktop 2>/dev/null || true
+
+# Re-enable Bluetooth (verbatim from DeckShift's original).
+sudo -n /usr/bin/rfkill unblock bluetooth 2>/dev/null || true
+sudo -n /usr/bin/systemctl start bluetooth.service 2>/dev/null || true
+
+# Portal-recovery marker for the next Hyprland startup (from the original;
+# moved earlier so it is written even if session teardown kills this script).
+touch /tmp/.deckshift-just-returned 2>/dev/null || true
+
+# Give Steam a clean shutdown, then hand over to the SDDM restart. Stopping
+# sddm.service tears down the whole gaming session (gamescope included) — the
+# same mechanism the working Steam "Exit to Desktop" path relies on.
+timeout 5 steam -shutdown 2>/dev/null || true
+sleep 1
+sudo -n chvt 2 2>/dev/null || true
+nohup sudo -n systemctl restart sddm &>/dev/null &
+disown
+exit 0

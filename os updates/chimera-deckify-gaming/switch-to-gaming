@@ -1,0 +1,5 @@
+#!/bin/bash
+# switch-to-gaming — queue SDDM restart into gamescope session.
+set -euo pipefail
+sudo -n /usr/local/bin/gaming-session-switch gaming
+nohup sudo -n systemctl restart sddm >/dev/null 2>&1 &

@@ -11,7 +11,16 @@ while normal boots still show the SDDM greeter.
 
 ## Prerequisites
 
-DeckShift must be installed once (ships gaming session + switch scripts):
+A gamescope session must be installed once:
+
+**Deckify / Chimera (recommended):**
+
+```sh
+hyperwebster-deckify-install
+sh ~/.local/share/hyperwebster/deckshift-login/install-deckshift-login.sh
+```
+
+**Or DeckShift:**
 
 ```sh
 sh ~/deckshift/deckshift.sh

@@ -19,8 +19,14 @@ HYPRUSER="$HOME/.config/caelestia/hypr-user.conf"
 MARK='deckshift gaming keys'
 
 # 0. DeckShift must already be installed.
-if [ ! -x /usr/local/bin/switch-to-gaming ] || [ ! -f /usr/share/wayland-sessions/gamescope-session-steam-nm.desktop ]; then
-  echo "ERROR: DeckShift is not installed (run deckshift.sh first, then re-run this)."
+if [ ! -x /usr/local/bin/switch-to-gaming ]; then
+  echo "ERROR: gaming switch scripts missing (run deckshift.sh or hyperwebster-deckify-install first)."
+  exit 1
+fi
+if ! /usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1 \
+   && [ ! -f /usr/share/wayland-sessions/gamescope-session-steam-nm.desktop ] \
+   && [ ! -f /usr/share/wayland-sessions/gamescope-session-steam.desktop ]; then
+  echo "ERROR: no gamescope session installed (run deckshift.sh or hyperwebster-deckify-install first)."
   exit 1
 fi
 

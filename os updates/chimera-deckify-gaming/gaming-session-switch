@@ -1,0 +1,40 @@
+#!/bin/bash
+# gaming-session-switch — HyperWebster session helper (Chimera / Deckify / DeckShift).
+set -u
+
+CONF="/etc/sddm.conf.d/zz-gaming-session.conf"
+MARKER="/run/deckshift-session-switch"
+
+if [[ $EUID -ne 0 ]]; then
+  echo "Error: must run as root (callers use: sudo -n $0 ...)" >&2
+  exit 1
+fi
+
+USER_NAME="${SUDO_USER:-}"
+if [[ -z "$USER_NAME" ]]; then
+  USER_NAME=$(loginctl list-sessions --no-legend 2>/dev/null | awk '$3 != "sddm" && $3 != "" { print $3; exit }')
+fi
+[[ -n "$USER_NAME" ]] || { echo "Error: cannot determine the user to autologin" >&2; exit 1; }
+
+case "${1:-}" in
+  gaming)
+    SESSION=$(/usr/local/bin/hyperwebster-gaming-session 2>/dev/null) || {
+      echo "Error: no gamescope session installed (run hyperwebster-deckify-install or DeckShift)" >&2
+      exit 1
+    }
+    ;;
+  desktop) SESSION="hyprland-uwsm" ;;
+  *)
+    echo "Usage: $0 {gaming|desktop}" >&2
+    exit 1
+    ;;
+esac
+
+cat > "$CONF" << EOF
+[Autologin]
+User=${USER_NAME}
+Session=${SESSION}
+Relogin=false
+EOF
+touch "$MARKER"
+echo "Session set to: $1 mode ($SESSION, one-shot autologin armed)"

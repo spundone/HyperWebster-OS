@@ -1,0 +1,13 @@
+#!/bin/bash
+# hyperwebster-gaming-session — resolve the installed Chimera/Deckify/DeckShift
+# gamescope Wayland session desktop name.
+set -euo pipefail
+
+for s in gamescope-session-steam-nm gamescope-session-steam gamescope-session-steam-plus; do
+  if compgen -G "/usr/share/wayland-sessions/${s}.desktop" >/dev/null \
+     || compgen -G "/usr/share/xsessions/${s}.desktop" >/dev/null; then
+    echo "$s"
+    exit 0
+  fi
+done
+exit 1

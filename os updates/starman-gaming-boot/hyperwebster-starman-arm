@@ -8,12 +8,21 @@ grep -q 'hyperwebster\.starman=1' /proc/cmdline || exit 0
 
 CONF="/etc/sddm.conf.d/zz-gaming-session.conf"
 MARKER="/run/deckshift-session-switch"
-SESSION="gamescope-session-steam-nm"
 
-# DeckShift (or a compatible gamescope session) must be installed.
-if ! compgen -G "/usr/share/wayland-sessions/${SESSION}.desktop" >/dev/null \
-   && ! compgen -G "/usr/share/xsessions/${SESSION}.desktop" >/dev/null; then
-  echo "hyperwebster-starman: gaming session $SESSION not installed — skipping" >&2
+# DeckShift, Deckify/Chimera, or any compatible gamescope session.
+if SESSION=$(/usr/local/bin/hyperwebster-gaming-session 2>/dev/null); then
+  :
+elif compgen -G "/usr/share/wayland-sessions/gamescope-session-steam-nm.desktop" >/dev/null \
+     || compgen -G "/usr/share/wayland-sessions/gamescope-session-steam.desktop" >/dev/null; then
+  for s in gamescope-session-steam-nm gamescope-session-steam gamescope-session-steam-plus; do
+    if compgen -G "/usr/share/wayland-sessions/${s}.desktop" >/dev/null \
+       || compgen -G "/usr/share/xsessions/${s}.desktop" >/dev/null; then
+      SESSION="$s"
+      break
+    fi
+  done
+else
+  echo "hyperwebster-starman: no gamescope gaming session installed — skipping" >&2
   exit 0
 fi
 
