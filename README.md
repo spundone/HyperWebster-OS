@@ -18,7 +18,7 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for the target machine profile and
 - **Hyprland + caelestia shell** (Quickshell), restyled with a restrained flat
   look by default; optional frosted glass via `hyperwebster-blur-toggle enable`.
 - **LUKS2 disk encryption** with optional **TPM2 auto-unlock** at install
-  (passphrase remains fallback). Plymouth may show briefly before SDDM.
+  (passphrase sealed in TPM; remains fallback). Plymouth may show briefly before SDDM.
 - **Themed SDDM login** that mirrors the desktop palette; auto-syncs when you
   switch light/dark mode.
 - **Limine boot menu** with UKI snapshots **plus a Starman (Gaming / Steam)**

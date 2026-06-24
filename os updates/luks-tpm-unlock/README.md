@@ -13,7 +13,8 @@ enroll TPM2 when `/dev/tpmrm0` or `/dev/tpm0` is present. Enrollment uses PCR
 
 `mkinitcpio` uses the **`sd-encrypt`** hook (systemd in initramfs) instead of
 the legacy `encrypt` hook so `systemd-cryptsetup` can read TPM tokens from the
-LUKS2 header.
+LUKS2 header. Limine kernel cmdline uses **`rd.luks.name=LUKS-UUID=mappername`**
+(not legacy `cryptdevice=`) with `root=UUID=…` for the btrfs `@` subvolume.
 
 ## Manual enrollment (post-install)
 
@@ -21,11 +22,12 @@ LUKS2 header.
 sudo hyperwebster-luks-tpm-enroll /dev/disk/by-partuuid/YOUR-LUKS-PARTUUID
 ```
 
-Rebuild initramfs after hook migration:
+Initramfs rebuild runs automatically after enrollment.
 
-```sh
-sudo mkinitcpio -P
-```
+## Boot flow
+
+Limine → UKI initramfs (`sd-encrypt`) → TPM unlock (or Plymouth passphrase) →
+btrfs `@` → Plymouth splash → SDDM.
 
 ## Hardware testing
 

@@ -78,6 +78,10 @@ if systemd-cryptenroll "${ARGS[@]}"; then
   echo "TPM2 token enrolled. Passphrase unlock remains available as fallback."
   echo "If boot stops auto-unlocking after a firmware/Secure Boot change, run:"
   echo "  sudo hyperwebster-luks-tpm-enroll --pcrs $PCRS $DEVICE"
+  if command -v mkinitcpio >/dev/null 2>&1; then
+    echo "Rebuilding initramfs (sd-encrypt / UKI)…"
+    /usr/bin/mkinitcpio -P 2>/dev/null || mkinitcpio -P || true
+  fi
 else
   echo "TPM enrollment failed — LUKS passphrase unlock is unchanged." >&2
   exit 1

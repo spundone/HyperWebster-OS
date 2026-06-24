@@ -64,16 +64,28 @@ The installer offers **LUKS2** on the root partition (EFI stays unencrypted).
 ### TPM2 auto-unlock (controller-friendly boot)
 
 When a TPM is present (`/dev/tpmrm0`), the installer asks whether to enroll
-**TPM2** via `systemd-cryptenroll` (PCR 7 — Secure Boot state). Cold boot then
-unlocks without typing the passphrase when PCRs match.
+**TPM2** via `systemd-cryptenroll` (PCR 7 — Secure Boot state). The LUKS
+passphrase is sealed in the TPM; cold boot unlocks without typing when PCRs
+match.
 
 The install passphrase remains a **fallback** if TPM unlock fails (firmware
 update, PCR drift, cleared TPM). Re-enroll:
 
 ```sh
 sudo hyperwebster-luks-tpm-enroll /dev/disk/by-partuuid/YOUR-LUKS-PARTUUID
-sudo mkinitcpio -P
 ```
+
+(`hyperwebster-luks-tpm-enroll` rebuilds the initramfs automatically.)
+
+#### Boot flow (LUKS + TPM)
+
+1. **Limine** loads the UKI (kernel + initramfs).
+2. **initramfs / sd-encrypt** — `systemd-cryptsetup` reads `/etc/crypttab` and
+   the `rd.luks.name=` kernel parameter, tries the TPM2 token first, then falls
+   back to a Plymouth passphrase prompt if needed.
+3. **btrfs** — root mounts `@` via `root=UUID=… rootflags=subvol=@`.
+4. **Plymouth** — HyperWebster splash until the desktop session starts.
+5. **SDDM** — login greeter (or Starman one-shot autologin when armed).
 
 **Needs real hardware testing** — verify TPM PCR policy on your motherboard and
 that Plymouth/SDDM still flow cleanly after auto-unlock.

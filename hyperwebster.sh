@@ -562,7 +562,7 @@ USE_LUKS=$MENU_CHOICE
 LUKS_PW=""
 if [ "$USE_LUKS" -eq 0 ]; then
   while true; do
-    csecret LUKS_PW1 "LUKS passphrase (required at every boot): "
+    csecret LUKS_PW1 "LUKS passphrase (fallback when TPM unlock fails): "
     csecret LUKS_PW2 "Confirm LUKS passphrase: "
     if [ -z "$LUKS_PW1" ]; then cecho "Empty — try again."; continue; fi
     if [ "$LUKS_PW1" != "$LUKS_PW2" ]; then cecho "Mismatch — try again."; continue; fi
@@ -631,12 +631,14 @@ mkfs.fat -F32 -n EFI "$EFI_PART"
 LUKS_NAME="hyperwebster-root"
 BTRFS_DEV="$ROOT_PART"
 LUKS_PARTUUID=""
+LUKS_UUID=""
 if [ "$USE_LUKS" -eq 0 ]; then
   echo "==> Encrypting $ROOT_PART with LUKS2..."
   echo -n "$LUKS_PW" | cryptsetup luksFormat "$ROOT_PART" --type luks2 --batch-mode
   echo -n "$LUKS_PW" | cryptsetup open "$ROOT_PART" "$LUKS_NAME"
   BTRFS_DEV="/dev/mapper/$LUKS_NAME"
   LUKS_PARTUUID=$(blkid -s PARTUUID -o value "$ROOT_PART")
+  LUKS_UUID=$(cryptsetup luksUUID "$ROOT_PART")
 fi
 mkfs.btrfs -f -L ROOT "$BTRFS_DEV"
 
@@ -932,13 +934,14 @@ nsi_phase "Installing the bootloader"
 echo "==> Installing Limine bootloader (UEFI)..."
 if [ "$USE_LUKS" -eq 0 ]; then
   BTRFS_UUID=$(blkid -s UUID -o value "$BTRFS_DEV")
-  KERNEL_OPTS="cryptdevice=PARTUUID=$LUKS_PARTUUID:$LUKS_NAME root=UUID=$BTRFS_UUID rw rootflags=subvol=@"
+  # sd-encrypt uses rd.luks.* (LUKS superblock UUID), not legacy cryptdevice=.
+  KERNEL_OPTS="rd.luks.name=$LUKS_UUID=$LUKS_NAME root=UUID=$BTRFS_UUID rw rootflags=subvol=@"
 else
   ROOT_PARTUUID=$(blkid -s PARTUUID -o value "$ROOT_PART")
   KERNEL_OPTS="root=PARTUUID=$ROOT_PARTUUID rw rootflags=subvol=@"
 fi
 # Root is the btrfs @ subvolume — append quiet boot flags without clobbering LUKS
-# cryptdevice= when encryption is enabled (line above sets the full cmdline).
+# rd.luks.name= when encryption is enabled (line above sets the full cmdline).
 KERNEL_OPTS="$KERNEL_OPTS quiet splash loglevel=3 systemd.show_status=false rd.udev.log_level=3 vt.global_cursor_default=0"
 # Disable zswap: the swap device is zram (already compressed RAM), so zswap in
 # front of it would double-compress pages (zswap -> zram) and waste CPU.
@@ -1063,7 +1066,7 @@ if umount /mnt/.snapshots \
    && arch-chroot /mnt snapper --no-dbus -c root create-config / \
    && arch-chroot /mnt btrfs subvolume delete /.snapshots \
    && mkdir /mnt/.snapshots \
-   && mount -o "$BTRFS_OPTS,subvol=@snapshots" "$ROOT_PART" /mnt/.snapshots \
+   && mount -o "$BTRFS_OPTS,subvol=@snapshots" "$BTRFS_DEV" /mnt/.snapshots \
    && chmod 750 /mnt/.snapshots; then
   # Root-only, keep 5, no timeline (pre/post pacman snapshots via snap-pac).
   arch-chroot /mnt snapper --no-dbus -c root set-config NUMBER_LIMIT=5 NUMBER_LIMIT_IMPORTANT=5 TIMELINE_CREATE=no || true
@@ -1989,12 +1992,14 @@ arch-chroot /mnt runuser -u "$USERNAME" -- \
 # --- LUKS TPM2 enrollment (when user opted in and TPM is present).
 if [ "$USE_LUKS" -eq 0 ] && [ "${LUKS_TPM:-1}" -eq 0 ]; then
   echo "==> Enrolling LUKS volume with TPM2..."
-  TPM_PW=$(mktemp /tmp/hyperwebster-luks-pw.XXXXXX)
+  # Stage in /root, NOT /tmp: arch-chroot mounts a fresh tmpfs over the target /tmp.
+  TPM_PW="/mnt/root/hyperwebster-luks-pw"
   echo -n "$LUKS_PW" > "$TPM_PW"
   chmod 600 "$TPM_PW"
-  if arch-chroot /mnt hyperwebster-luks-tpm-enroll --passphrase-file "$TPM_PW" --pcrs 7 "$ROOT_PART"; then
+  LUKS_DEV="/dev/disk/by-partuuid/$LUKS_PARTUUID"
+  if arch-chroot /mnt hyperwebster-luks-tpm-enroll \
+       --passphrase-file /root/hyperwebster-luks-pw --pcrs 7 "$LUKS_DEV"; then
     echo "    TPM2 token enrolled (passphrase remains fallback)."
-    arch-chroot /mnt mkinitcpio -P 2>/dev/null || true
   else
     echo "    TPM enrollment failed — passphrase-only unlock unchanged."
   fi
