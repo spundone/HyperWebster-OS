@@ -105,7 +105,7 @@ BASE_PKGS=(
   intel-ucode amd-ucode cryptsetup tpm2-tss
   networkmanager openssh sudo git curl wget vim less base-devel
   limine efibootmgr zram-generator
-  btrfs-progs snapper snap-pac
+  btrfs-progs btrfsmaintenance snapper snap-pac btrfs-assistant-git
   pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber
   polkit hyprpolkitagent qt5-wayland qt6-wayland xdg-user-dirs xdg-utils
   hyprland uwsm xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
@@ -198,7 +198,7 @@ AUR_BUILD_ORDER=(
   quickshell-git caelestia-cli nosignal-shell
   # HyperWebster layer round — independent of the caelestia chain (yay-bin and
   # shelly-bin repackage release binaries; hyprmoncfg ships a Go release)
-  yay-bin shelly-bin hyprmoncfg
+  yay-bin shelly-bin hyprmoncfg btrfs-assistant-git
 )
 
 # Clean up the work dir on any exit (success, error, or Ctrl-C). 2>/dev/null
@@ -376,7 +376,7 @@ done
 printf '\n'
 BPAD=$(nsi_pad 46)
 printf '%s%s%s\n'   "$BPAD" "$NSI_GB" "┌────────────────────────────────────────────┐"
-printf '%s%s%s\n'   "$BPAD" "$NSI_GB" "│           HyperWebster · Starman OS          │"
+printf '%s%s%s\n'   "$BPAD" "$NSI_GB" "│        HyperWebster · hyperarch · Starman    │"
 printf '%s%s%s\n'   "$BPAD" "$NSI_GB" "└────────────────────────────────────────────┘"
 printf '%s'         "$NSI_R"
 cecho "Arch · Hyprland · Caelestia · gaming desktop — offline installer" "$NSI_DIM" "$NSI_R"
@@ -442,8 +442,8 @@ OFFLINECONF
 
 # ---------------------------------------------------------------- prompts ----
 while true; do
-  cread HOSTNAME "Hostname [hyperwebster]: "
-  HOSTNAME="${HOSTNAME:-hyperwebster}"
+  cread HOSTNAME "Hostname [hyperarch]: "
+  HOSTNAME="${HOSTNAME:-hyperarch}"
   [[ "$HOSTNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$ ]] && break
   cecho "Invalid (RFC 1123: letters/digits/hyphen, no leading hyphen, max 63 chars)."
 done
@@ -993,9 +993,9 @@ cp /mnt/usr/share/limine/BOOTX64.EFI /mnt/boot/EFI/BOOT/BOOTX64.EFI
 cat > /mnt/boot/limine.conf <<LIMINE
 timeout: 10
 default_entry: 1
-interface_branding: HyperWebster
+interface_branding: HyperWebster · hyperarch
 
-/HyperWebster (Arch Linux)
+/HyperWebster · hyperarch (Arch Linux)
     protocol: efi
     path: boot():/EFI/Linux/hyperwebster_linux.efi
     cmdline: $KERNEL_OPTS
@@ -1078,7 +1078,12 @@ if umount /mnt/.snapshots \
    && mount -o "$BTRFS_OPTS,subvol=@snapshots" "$BTRFS_DEV" /mnt/.snapshots \
    && chmod 750 /mnt/.snapshots; then
   # Root-only, keep 5, no timeline (pre/post pacman snapshots via snap-pac).
-  arch-chroot /mnt snapper --no-dbus -c root set-config NUMBER_LIMIT=5 NUMBER_LIMIT_IMPORTANT=5 TIMELINE_CREATE=no || true
+  arch-chroot /mnt snapper --no-dbus -c root set-config \
+    NUMBER_LIMIT=5 NUMBER_LIMIT_IMPORTANT=5 \
+    TIMELINE_CREATE=yes TIMELINE_CLEANUP=yes \
+    TIMELINE_LIMIT_HOURLY=10 TIMELINE_LIMIT_DAILY=7 \
+    TIMELINE_LIMIT_WEEKLY=0 TIMELINE_LIMIT_MONTHLY=0 TIMELINE_LIMIT_YEARLY=0 || true
+  arch-chroot /mnt systemctl enable snapper-timeline.timer snapper-cleanup.timer 2>/dev/null || true
   arch-chroot /mnt btrfs quota disable / 2>/dev/null || true   # qgroup accounting is a perf drag
   arch-chroot /mnt systemctl enable limine-snapper-sync.service || true
   SNAPSHOTS_OK=1
@@ -1354,7 +1359,7 @@ cat > "$M_HOME/.config/caelestia/shell-tokens.json" <<'HYPERWEBSTER_TOKENS'
     "spacing": { "extraSmall": 3, "small": 6, "medium": 9, "large": 13, "largeIncreased": 16, "extraLarge": 22, "extraLargeIncreased": 26, "extraExtraLarge": 38 },
     "padding": { "extraSmall": 3, "small": 6, "medium": 9, "large": 13, "largeIncreased": 16, "extraLarge": 22, "extraLargeIncreased": 26, "extraExtraLarge": 38 },
     "fontSize": { "small": 10, "smaller": 11, "normal": 12, "larger": 14, "large": 16, "extraLarge": 24 },
-    "animDurations": { "small": 120, "normal": 200, "large": 320, "extraLarge": 450, "expressiveFastSpatial": 200, "expressiveDefaultSpatial": 300, "expressiveSlowSpatial": 400, "expressiveFastEffects": 100, "expressiveDefaultEffects": 150, "expressiveSlowEffects": 220 }
+    "animDurations": { "small": 80, "normal": 130, "large": 210, "extraLarge": 300, "expressiveFastSpatial": 130, "expressiveDefaultSpatial": 200, "expressiveSlowSpatial": 280, "expressiveFastEffects": 70, "expressiveDefaultEffects": 110, "expressiveSlowEffects": 160 }
   }
 }
 HYPERWEBSTER_TOKENS
@@ -1642,6 +1647,9 @@ install -m 755 "$LAYER/hyperwebster-keybinds" "$LAYER/hyperwebster-keybinds-gen"
   "$LAYER/additions-installer/hyperwebster-additions" \
   "$LAYER/app-theme-awareness/hyperwebster-app-theme-sync" \
   "$LAYER/kernel-reboot-notify/hyperwebster-reboot-check" \
+  "$LAYER/btrfs-snapshot-manager/hyperwebster-snapshots" \
+  "$LAYER/zephyr-polish/hyperwebster-zephyr-polish" \
+  "$LAYER/distro-tools/hyperwebster-maint" \
   "$M_HOME/.local/bin/"
 # Omarchy CLI shims (change 15) — let Omarchy-targeted gaming installers
 # (DeckShift) run on HyperWebster: omarchy-pkg-add -> yay, steam installer, NVIDIA
@@ -2015,6 +2023,28 @@ arch-chroot /mnt runuser -u "$USERNAME" -- \
   env HOME="$USER_HOME" \
   sh "$USER_HOME/.local/share/hyperwebster/blur-toggle/install-blur-toggle.sh" \
   || echo "    (blur-toggle skipped)"
+
+# --- hypersmooth, zephyr polish, btrfs snapshots, maintenance menu.
+echo "==> Installing hypersmooth + snapshot + maintenance tools..."
+arch-chroot /mnt runuser -u "$USERNAME" -- \
+  env HOME="$USER_HOME" XDG_CONFIG_HOME="$USER_HOME/.config" \
+  sh "$USER_HOME/.local/share/hyperwebster/hypersmooth-display/install-hypersmooth-display.sh" \
+  || echo "    (hypersmooth-display skipped)"
+arch-chroot /mnt runuser -u "$USERNAME" -- \
+  env HOME="$USER_HOME" \
+  sh "$USER_HOME/.local/share/hyperwebster/zephyr-polish/install-zephyr-polish.sh" \
+  || echo "    (zephyr-polish skipped)"
+arch-chroot /mnt runuser -u "$USERNAME" -- \
+  env HOME="$USER_HOME" XDG_CONFIG_HOME="$USER_HOME/.config" \
+  sh "$USER_HOME/.local/share/hyperwebster/distro-tools/install-distro-tools.sh" \
+  || echo "    (distro-tools skipped)"
+arch-chroot /mnt runuser -u "$USERNAME" -- \
+  env HOME="$USER_HOME" XDG_CONFIG_HOME="$USER_HOME/.config" \
+  sh "$USER_HOME/.local/share/hyperwebster/btrfs-snapshot-manager/install-btrfs-snapshot-manager.sh" \
+  || echo "    (btrfs-snapshot-manager user step skipped)"
+arch-chroot /mnt \
+  sh "$USER_HOME/.local/share/hyperwebster/btrfs-snapshot-manager/install-btrfs-snapshot-manager.sh" \
+  || echo "    (btrfs-snapshot-manager root step skipped)"
 
 # --- LUKS TPM2 enrollment (when user opted in and TPM is present).
 if [ "$USE_LUKS" -eq 0 ] && [ "${LUKS_TPM:-1}" -eq 0 ]; then

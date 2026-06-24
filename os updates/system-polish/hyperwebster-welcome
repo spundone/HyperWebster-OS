@@ -5,10 +5,12 @@ STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/hyperwebster/welcomed"
 [ -e "$STAMP" ] && exit 0
 mkdir -p "$(dirname "$STAMP")"
 sleep 8   # let the shell finish starting so the notification isn't lost
-notify-send -t 30000 -i help-about-symbolic "Welcome to HyperWebster" \
+notify-send -t 30000 -i help-about-symbolic "Welcome to HyperWebster · hyperarch" \
 "Super+K — all keybindings (searchable)
 Super+Space — launch apps
 Super+I — install software (Shelly)
+Super+Ctrl+Shift+M — maintenance menu
+Super+Ctrl+Shift+B — btrfs snapshots
 Super+Ctrl+H — monitor setup
 Super+Ctrl+S — share files on LAN (omarchy-send)
 Firewall: ufw is on — sudo ufw status"

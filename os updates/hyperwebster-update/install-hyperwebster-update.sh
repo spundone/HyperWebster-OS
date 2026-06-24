@@ -64,6 +64,10 @@ done
 [ -d "$SRC/cachyos-repo-switch" ] && cp -a "$SRC/cachyos-repo-switch" "$DEST/"
 [ -d "$SRC/theme-polish" ] && cp -a "$SRC/theme-polish" "$DEST/"
 [ -d "$SRC/drive-automount" ] && cp -a "$SRC/drive-automount" "$DEST/"
+[ -d "$SRC/btrfs-snapshot-manager" ] && cp -a "$SRC/btrfs-snapshot-manager" "$DEST/"
+[ -d "$SRC/hypersmooth-display" ] && cp -a "$SRC/hypersmooth-display" "$DEST/"
+[ -d "$SRC/zephyr-polish" ] && cp -a "$SRC/zephyr-polish" "$DEST/"
+[ -d "$SRC/distro-tools" ] && cp -a "$SRC/distro-tools" "$DEST/"
 
 # The update system itself.
 cp -a "$SRC/hyperwebster-update" "$DEST/"

@@ -34,7 +34,11 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for hardware guidance and
   media transcode (`Super+Ctrl+Period`), OCR capture (`Super+Ctrl+Print`),
   night light toggle (`Super+Ctrl+N`), Omarchy bash setup + `[omarchy]` repo.
 - **Software story**: `yay` (AUR), **Shelly** on `Super+I`, flatpak preconfigured.
-- **Btrfs + bootable snapshots** via snapper/snap-pac; roll back from Limine.
+- **Btrfs + bootable snapshots** via snapper/snap-pac; **btrfs-assistant** GUI +
+  timeline snapshots; roll back from Limine.
+- **120/144 Hz hypersmooth UI** - VFR + tuned Hyprland/shell animation durations OOB.
+- **Optional zephyr motion** - `hyperwebster-zephyr-polish enable` for overshoot flair.
+- **Maintenance menu** - `Super+Ctrl+Shift+M` (`hyperwebster-maint`).
 - **`hyperwebster-update`** - snapshot → upgrade → layer migrations.
 - **Gaming (opt-in)**: Deckify/Chimera (`hyperwebster-deckify-install`) or DeckShift;
   `Super+Shift+S` or Limine Starman for Steam Big Picture.
@@ -60,7 +64,7 @@ at build time). Delete `./offline/` to force a full refresh after upstream bumps
 ## Install
 
 1. Write the ISO to USB (`dd` or Ventoy). **UEFI only.**
-2. Boot and follow the offline installer: hostname, user, password, region,
+2. Boot and follow the offline installer: hostname (default `hyperarch`), user, password, region,
    **LUKS encryption** (recommended), **TPM2 auto-unlock** (when TPM present),
    target disk.
 3. Layout: 1 GiB EFI + LUKS/btrfs with `@`/`@home`/`@snapshots`/`@log` + Limine.
@@ -88,6 +92,9 @@ and `~/.local/share/hyperwebster/`. Delete a file to revert one change.
 
 ```sh
 hyperwebster-blur-toggle enable      # frosted glass (optional)
+hyperwebster-zephyr-polish enable    # optional zephyr overshoot motion
+hyperwebster-maint                   # maintenance menu (or Super+Ctrl+Shift+M)
+hyperwebster-snapshots               # btrfs / snapper shortcuts
 hyperwebster-launcher-raycast        # refresh Raycast-like launcher settings
 hyprmoncfg apply tv-gaming-4k        # 4K HDR TV display profile
 hyperwebster-transcode               # resize media for sharing (Omarchy-style)
@@ -139,7 +146,7 @@ Features worth validating on your hardware:
 
 See [docs/CREDITS.md](docs/CREDITS.md) for the full list. Key upstream projects:
 NoSignal OS, Arch Linux, Hyprland, caelestia, Quickshell, SDDM, Limine, Omarchy,
-ChimeraOS, Deckify, DeckShift, CachyOS, Tailscale.
+ChimeraOS, Deckify, DeckShift, CachyOS, zephyr, Tailscale.
 
 ## License
 

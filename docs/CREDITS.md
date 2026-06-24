@@ -27,6 +27,9 @@ them. Please support the originals; each remains under its own licence.
 - **[Limine](https://github.com/limine-bootloader/limine)** - UEFI bootloader.
 - **[snapper](https://github.com/openSUSE/snapper)** + **snap-pac** - btrfs
   snapshots on package transactions.
+- **[btrfs-assistant](https://github.com/Antynea/btrfs-assistant)** - GUI snapshot
+  manager (CachyOS packaging inspiration).
+- **btrfsmaintenance** - periodic btrfs scrub timers.
 - **[Omarchy](https://omarchy.org)** - keybinding layout inspiration,
   prebuilt `[omarchy]` repo for Limine snapshot tooling, bash shell setup,
   and utility workflows (share, transcode, OCR) adapted in `omarchy-extras`.
@@ -61,6 +64,11 @@ them. Please support the originals; each remains under its own licence.
 
 - **[Tailscale](https://tailscale.com)** - mesh VPN (preinstalled; user authenticates
   with `tailscale up`).
+
+## Desktop polish
+
+- **[zephyr](https://github.com/flickowoa/zephyr)** - optional Hyprland overshoot
+  animation inspiration (`zephyr-polish` layer).
 
 ## Themes, icons & fonts
 

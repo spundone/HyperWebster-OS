@@ -37,6 +37,19 @@ inside the full-screen gamescope session. Env hints live in
 Desktop Wayland HDR on amdgpu is still maturing on some builds; gamescope is the
 primary gaming path for HDR output.
 
+### High-refresh displays (120/144 Hz)
+
+HyperWebster enables **variable frame rate** (`misc:vfr`) and scales caelestia
+shell animation durations for snappier motion on high-refresh panels. The
+`hypersmooth-display` layer ships OOB; optional zephyr overshoot motion is
+available via `hyperwebster-zephyr-polish enable`.
+
+### Btrfs snapshots
+
+**btrfs-assistant** (GUI) and **snapper** timeline timers ship out of the box.
+`Super+Ctrl+Shift+B` opens snapshot shortcuts; Limine still lists bootable
+rollback entries after pacman transactions.
+
 ### AMD GPU notes
 
 - RDNA 2+ support tracks Arch `mesa` and the installed kernel (`linux-cachyos` by

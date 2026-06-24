@@ -1,6 +1,6 @@
 # HyperWebster - Keybinding Map
 
-> **System:** Arch Linux (rolling), hostname `hyperwebster`, Wayland compositor **Hyprland**.
+> **System:** Arch Linux (rolling), hostname `hyperarch` (default), Wayland compositor **Hyprland**.
 > **Base:** [Caelestia](https://github.com/caelestia-dots) dotfiles + shell (QuickShell).
 > **HyperWebster layer:** styling flattened, stock apps rebound, overview added, and
 > **the key layout follows Omarchy's defaults** (see
@@ -209,6 +209,15 @@ Edit the keymap here and the help updates itself.
 | `Super+Ctrl+Period` | Transcode picture/video for sharing (fuzzel menus) |
 
 CLI: `omarchy-send`, `hyperwebster-transcode`, bash aliases `img2jpg` / `transcode-video-1080p` (via `omarchy-transcode` shim).
+
+## 12c. Maintenance & snapshots (HyperWebster)
+
+| Keys | Action |
+|------|--------|
+| `Super+Ctrl+Shift+M` | Maintenance menu (`hyperwebster-maint`) |
+| `Super+Ctrl+Shift+B` | Btrfs / Snapper shortcuts (`hyperwebster-snapshots`) |
+
+CLI: `hyperwebster-maint`, `btrfs-assistant`, `hyperwebster-zephyr-polish {enable|disable}`.
 
 ## 13. Power
 
