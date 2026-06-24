@@ -1,4 +1,4 @@
-# luks-tpm-unlock — TPM2 auto-unlock for LUKS2
+# luks-tpm-unlock - TPM2 auto-unlock for LUKS2
 
 Enrolls the root LUKS2 volume with **TPM2** via `systemd-cryptenroll` so cold
 boot unlocks without a passphrase when the TPM PCR policy matches. The install

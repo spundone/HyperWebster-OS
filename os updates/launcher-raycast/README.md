@@ -1,4 +1,4 @@
-# launcher-raycast — Raycast-like search overlay
+# launcher-raycast - Raycast-like search overlay
 
 Merges keyboard-first launcher defaults into `~/.config/caelestia/shell.json`:
 

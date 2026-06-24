@@ -58,7 +58,7 @@ done
 [ -d "$SRC/luks-tpm-unlock" ] && cp -a "$SRC/luks-tpm-unlock" "$DEST/"
 [ -d "$SRC/chimera-deckify-gaming" ] && cp -a "$SRC/chimera-deckify-gaming" "$DEST/"
 [ -d "$SRC/cachyos-kernel-manager" ] && cp -a "$SRC/cachyos-kernel-manager" "$DEST/"
-[ -d "$SRC/tcl-t89c-display" ] && cp -a "$SRC/tcl-t89c-display" "$DEST/"
+[ -d "$SRC/tv-gaming-display" ] && cp -a "$SRC/tv-gaming-display" "$DEST/"
 [ -d "$SRC/launcher-raycast" ] && cp -a "$SRC/launcher-raycast" "$DEST/"
 [ -d "$SRC/blur-toggle" ] && cp -a "$SRC/blur-toggle" "$DEST/"
 [ -d "$SRC/cachyos-repo-switch" ] && cp -a "$SRC/cachyos-repo-switch" "$DEST/"

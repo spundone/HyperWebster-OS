@@ -1,13 +1,12 @@
 # HyperWebster OS
 
-A **personal** Arch Linux desktop ISO builder — forked from
+An Arch Linux desktop ISO builder - forked from
 [NoSignal OS](https://github.com/28allday/NoSignal-OS) and continuing the
-**hyperarch** lineage as **HyperWebster · Starman OS**. Tuned for a dedicated
-gaming workstation (AMD Ryzen 7 5700X3D + Radeon RX 9070 + TCL T89C TV) as
-primary display; one script turns a stock Arch ISO into a fully offline
-Hyprland + caelestia installer.
+**hyperarch** lineage as **HyperWebster · Starman OS**. Tuned for gaming desktops
+and living-room TV setups (4K HDR, VRR, AMD or NVIDIA GPUs). One script turns a
+stock Arch ISO into a fully offline Hyprland + caelestia installer.
 
-See [docs/HARDWARE.md](docs/HARDWARE.md) for the target machine profile and
+See [docs/HARDWARE.md](docs/HARDWARE.md) for hardware guidance and
 [docs/CREDITS.md](docs/CREDITS.md) for full upstream attribution.
 
 > HyperWebster is the *ISO builder*. It bundles and installs the upstream caelestia
@@ -22,21 +21,21 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for the target machine profile and
 - **Themed SDDM login** that mirrors the desktop palette; auto-syncs when you
   switch light/dark mode.
 - **Limine boot menu** with UKI snapshots **plus a Starman (Gaming / Steam)**
-  entry — boots into gamescope Steam when Deckify/Chimera or DeckShift is installed.
-- **CachyOS `linux-cachyos` kernel** + **`cachyos-kernel-manager`** — default OOB;
+  entry - boots into gamescope Steam when Deckify/Chimera or DeckShift is installed.
+- **CachyOS `linux-cachyos` kernel** + **`cachyos-kernel-manager`** - default OOB;
   CachyOS pacman repos bootstrapped at install; stock `linux` kept as Limine fallback.
-- **TCL T89C TV profile** — `hyprmoncfg apply tcl-t89c-tv` for 4K144 HDR VRR.
+- **4K HDR TV profile** - `hyprmoncfg apply tv-gaming-4k` for 4K144 HDR VRR.
 - **Tailscale** preinstalled (`sudo tailscale up` to connect).
-- **Raycast-like launcher** — fuzzy search on Super+Space.
-- **Data drive automount** — non-system disks premount under `/mnt/<label>` at boot.
-- **Omarchy-style keybindings** — `Super+K` cheatsheet, `Super+Space` launcher,
+- **Raycast-like launcher** - fuzzy search on Super+Space.
+- **Data drive automount** - non-system disks premount under `/mnt/<label>` at boot.
+- **Omarchy-style keybindings** - `Super+K` cheatsheet, `Super+Space` launcher,
   `Super+D` dashboard, `Super+Grave` workspace overview.
-- **Omarchy-inspired utilities** — `omarchy-send` LAN sharing (`Super+Ctrl+S`),
+- **Omarchy-inspired utilities** - `omarchy-send` LAN sharing (`Super+Ctrl+S`),
   media transcode (`Super+Ctrl+Period`), OCR capture (`Super+Ctrl+Print`),
   night light toggle (`Super+Ctrl+N`), Omarchy bash setup + `[omarchy]` repo.
 - **Software story**: `yay` (AUR), **Shelly** on `Super+I`, flatpak preconfigured.
 - **Btrfs + bootable snapshots** via snapper/snap-pac; roll back from Limine.
-- **`hyperwebster-update`** — snapshot → upgrade → layer migrations.
+- **`hyperwebster-update`** - snapshot → upgrade → layer migrations.
 - **Gaming (opt-in)**: Deckify/Chimera (`hyperwebster-deckify-install`) or DeckShift;
   `Super+Shift+S` or Limine Starman for Steam Big Picture.
 
@@ -79,7 +78,7 @@ at build time). Delete `./offline/` to force a full refresh after upstream bumps
 | NVIDIA (`10de`) | `nvidia-open-dkms` stack + Wayland KMS |
 | Intel (`8086`) | `mesa vulkan-intel intel-media-driver` |
 
-The primary gaming box uses **AMD RX 9070** — installer selects the AMD row.
+The installer scans PCI vendor IDs and installs the matching driver stack automatically.
 
 ## Customising the desktop
 
@@ -90,7 +89,7 @@ and `~/.local/share/hyperwebster/`. Delete a file to revert one change.
 ```sh
 hyperwebster-blur-toggle enable      # frosted glass (optional)
 hyperwebster-launcher-raycast        # refresh Raycast-like launcher settings
-hyprmoncfg apply tcl-t89c-tv         # TV display profile
+hyprmoncfg apply tv-gaming-4k        # 4K HDR TV display profile
 hyperwebster-transcode               # resize media for sharing (Omarchy-style)
 omarchy-send                         # LAN file transfer TUI
 ```
@@ -121,12 +120,12 @@ On-box AI guide: `~/.claude/skills/hyperwebster/SKILL.md` and
 
 ## Hardware testing notes
 
-Features that need validation on the target box:
+Features worth validating on your hardware:
 
 | Feature | What to verify |
 |---------|----------------|
 | TPM2 LUKS unlock | Cold boot without passphrase; fallback after BIOS change |
-| TCL T89C HDR/VRR | `hyprctl monitors`; gamescope session on real TV |
+| 4K HDR / VRR TV | `hyprctl monitors`; gamescope session on your display |
 | Starman boot | Limine entry → gamescope Steam without SDDM password |
 
 ## Notes
@@ -134,7 +133,7 @@ Features that need validation on the target box:
 - **UEFI only.** No BIOS/MBR.
 - **LUKS2** encrypts the root partition; back up your passphrase even with TPM enrolled.
 - NVIDIA open modules target Turing+ (RTX 20-series and newer).
-- Package snapshot is from build day — run `sudo pacman -Syu` once online.
+- Package snapshot is from build day - run `sudo pacman -Syu` once online.
 
 ## Credits
 
@@ -144,4 +143,4 @@ ChimeraOS, Deckify, DeckShift, CachyOS, Tailscale.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).

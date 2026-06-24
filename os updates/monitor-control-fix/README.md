@@ -1,4 +1,4 @@
-# monitor-control-fix — make saved hyprmoncfg profiles actually apply
+# monitor-control-fix - make saved hyprmoncfg profiles actually apply
 
 Bug fix for monitor-control (hyprmoncfg). Saving a monitor profile in the
 `Super+Ctrl+H` TUI had **no effect**: `~/.config/hypr/monitors.conf` stayed
@@ -7,7 +7,7 @@ empty and the layout/scale never changed.
 ## Root cause
 
 `hyprmoncfg` writes `monitors.conf` only if it can confirm that file is
-`source`d — and it checks **only the single file passed as `--hypr-config`**
+`source`d - and it checks **only the single file passed as `--hypr-config`**
 (default `hyprland.conf`). On caelestia the source line lives in
 `hypr-user.conf`, and `hyprland.conf` includes it **indirectly**:
 
@@ -31,15 +31,15 @@ Point hyprmoncfg's verification at `hypr-user.conf` (which sources
 `monitors.conf` directly), with an **absolute** `--monitors-conf` (otherwise it
 resolves relative to the `--hypr-config` directory). Applied in two places:
 
-- **Daemon** — systemd user drop-in `hyprmoncfgd.service.d/override.conf`
+- **Daemon** - systemd user drop-in `hyprmoncfgd.service.d/override.conf`
   re-runs `hyprmoncfgd` with the two flags (using the `%h` home specifier).
   The drop-in also gates startup with an `ExecStartPre` loop: at login the
-  daemon raced Hyprland's startup — `hyprctl
+  daemon raced Hyprland's startup - `hyprctl
   instances -j` is momentarily invalid JSON, the first profile apply failed
   and flashed an error notification (the daemon's own 5s retry then
   succeeded). The gate waits (≤30s) for the instances JSON to parse before
   the daemon starts, so no failed first attempt and no notification.
-- **TUI** — `Super+Ctrl+H` rebound to `hyprmoncfg --hypr-config … --monitors-conf …`.
+- **TUI** - `Super+Ctrl+H` rebound to `hyprmoncfg --hypr-config … --monitors-conf …`.
 
 No package change; no edits to the forbidden caelestia clone files.
 
@@ -54,7 +54,7 @@ No package change; no edits to the forbidden caelestia clone files.
 sh install-monitor-control-fix.sh
 ```
 
-## Builder notes — fold into monitor-control
+## Builder notes - fold into monitor-control
 
 Cleanest is to **bake the two flags into monitor-control directly** rather than ship a
 separate fix:

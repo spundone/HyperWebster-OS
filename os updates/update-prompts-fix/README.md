@@ -1,4 +1,4 @@
-# update-prompts-fix — hyperwebster-update no longer "gets stuck" at yay menus
+# update-prompts-fix - hyperwebster-update no longer "gets stuck" at yay menus
 
 `hyperwebster-update` could appear to hang at yay's interactive menus.
 
@@ -13,7 +13,7 @@ Mid-`hyperwebster-update`, after the package list, the run appears to hang at:
 ```
 
 This is yay's interactive **upgrade menu** waiting for input (Enter
-continues), but a bare `==>` after a wall of output reads as a hang —
+continues), but a bare `==>` after a wall of output reads as a hang -
 the user already answered the only prompt they expected
 (`Update HyperWebster now? [y/N]`). Yay shows further menus when AUR packages
 build (clean-build, diff), each another apparent stall.
@@ -36,7 +36,7 @@ are pre-answered with `None`. Untouched: pacman's own
 stays), `-y/--noconfirm` behaviour, and paru (no such menus).
 
 For the builder this is a one-hunk edit to the layer source of
-`hyperwebster-update` — fold it in directly; the patch script exists so the
+`hyperwebster-update` - fold it in directly; the patch script exists so the
 migration can fix already-installed boxes.
 
 ## Test

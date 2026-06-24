@@ -1,4 +1,4 @@
-# HyperWebster — update mechanism (`hyperwebster-update`)
+# HyperWebster - update mechanism (`hyperwebster-update`)
 
 HyperWebster had no update path. This adds one, modeled on Omarchy's `omarchy-update`
 but adapted to the fact that **there is no central HyperWebster git repo**.
@@ -7,11 +7,11 @@ but adapted to the fact that **there is no central HyperWebster git repo**.
 
 | Concern | How it's handled |
 |---------|------------------|
-| Official + AUR packages | `hyperwebster-update` runs `pacman -Syu` via an AUR helper (bootstraps **yay** if none is installed — the base currently ships none) |
+| Official + AUR packages | `hyperwebster-update` runs `pacman -Syu` via an AUR helper (bootstraps **yay** if none is installed - the base currently ships none) |
 | Safety | Takes a **snapper** snapshot first (btrfs is present) |
-| The HyperWebster layer (overrides/scripts) | Re-applied idempotently by **forward-only migrations** — each migration just calls a component's installer |
+| The HyperWebster layer (overrides/scripts) | Re-applied idempotently by **forward-only migrations** - each migration just calls a component's installer |
 | Caelestia dotfiles | Opt-in `--caelestia` (its repo has an upstream remote); off by default to avoid clobbering local overrides |
-| **New layer changes** | Delivered in a **new ISO** (rebuilt from these notes) — there is no live fetch channel. A running box stays current on packages and re-applies the layer; it gets *new* layer features by reinstalling. |
+| **New layer changes** | Delivered in a **new ISO** (rebuilt from these notes) - there is no live fetch channel. A running box stays current on packages and re-applies the layer; it gets *new* layer features by reinstalling. |
 
 ## Layout
 

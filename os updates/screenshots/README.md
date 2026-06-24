@@ -1,18 +1,18 @@
-# screenshots — Print = region capture, everything saved to Pictures
+# screenshots - Print = region capture, everything saved to Pictures
 
 | Key | Action |
 |-----|--------|
 | `Print` | Select a region (crosshair) → clipboard **and** `~/Pictures/Screenshots` |
 | `Shift+Print` | Whole screen → clipboard **and** `~/Pictures/Screenshots` |
-| `Super+Shift+S` | Region with freeze + annotate (caelestia/swappy) — now saves to Pictures too |
-| `Super+Shift+Alt+S` | Region annotate (caelestia/swappy) — saves to Pictures too |
+| `Super+Shift+S` | Region with freeze + annotate (caelestia/swappy) - now saves to Pictures too |
+| `Super+Shift+Alt+S` | Region annotate (caelestia/swappy) - saves to Pictures too |
 
 ## What & why
 
 `hyperwebster-screenshot` (a small grim/slurp wrapper) is the single quick-capture
 path: it **always** writes a PNG to `~/Pictures/Screenshots` *and* copies the
 image to the clipboard, then notifies. caelestia's own region/freeze binds pipe
-into `swappy`, which had no save dir configured — so this also writes a swappy
+into `swappy`, which had no save dir configured - so this also writes a swappy
 config pointing `save_dir` at `~/Pictures/Screenshots`. Net result: every
 screenshot path lands in Pictures.
 
@@ -20,7 +20,7 @@ screenshot path lands in Pictures.
 crosshair selection you wanted); full screen moves to `Shift+Print`.
 (`Super+Print` is left as the HyperWebster color picker, `hyprpicker -a`.)
 
-**No package delta** — `grim`, `slurp`, `swappy`, `wl-clipboard`, `libnotify`
+**No package delta** - `grim`, `slurp`, `swappy`, `wl-clipboard`, `libnotify`
 are all in the base image.
 
 ## Files

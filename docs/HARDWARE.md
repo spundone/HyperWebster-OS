@@ -1,48 +1,48 @@
-# HyperWebster hardware profile
+# HyperWebster hardware guide
 
-HyperWebster OS is a **personal** Arch desktop flavor, tuned for a dedicated
-gaming workstation rather than a generic live image.
+HyperWebster OS is an Arch-based desktop flavor tuned for **gaming desktops and
+living-room TV setups** rather than a generic minimal live image.
 
-## Primary target machine
+## Recommended hardware profile
 
-| Component | Hardware | Driver stack |
-|-----------|----------|--------------|
-| CPU | AMD Ryzen 7 5700X3D | `linux-cachyos` (x86-64-v3 tier) — default OOB |
-| GPU | AMD Radeon RX 9070 (RDNA 4) | `mesa`, `vulkan-radeon`, kernel `amdgpu` |
-| Display | TCL T89C TV (4K @ 144 Hz, HDR, VRR) | `hyprmoncfg` profile `tcl-t89c-tv` |
+| Component | Typical setup | Driver / tooling |
+|-----------|---------------|------------------|
+| CPU | Modern x86-64 (Zen 2+, Intel 10th gen+) | `linux-cachyos` (CachyOS tier auto-detected) |
+| GPU | AMD RDNA 2+ or NVIDIA Turing+ | `mesa` + vendor Vulkan; PCI scan at install |
+| Display | 4K HDR TV or monitor (VRR optional) | `hyprmoncfg` profile `tv-gaming-4k` |
 | Storage | NVMe (LUKS2 + btrfs) | TPM2 auto-unlock optional at install |
 | Boot | UEFI + Limine | UKI snapshots; **Starman Gaming** entry |
 | Remote | Tailscale (preinstalled) | `sudo tailscale up` after install |
 
-The installer detects AMD GPUs via PCI vendor `1002` and installs
-`mesa` + `vulkan-radeon`. Desktop sessions use the amdgpu kernel driver with
-Wayland/Hyprland — no NVIDIA hybrid logic applies on this box.
+The installer detects GPUs via PCI vendor ID (`1002` AMD, `10de` NVIDIA,
+`8086` Intel) and installs the matching Mesa/Vulkan stack. Desktop sessions use
+the amdgpu or nvidia kernel driver with Wayland/Hyprland.
 
-### TCL T89C TV (4K144 HDR VRR)
+### 4K HDR TV (VRR)
 
-HyperWebster ships a **hyprmoncfg** profile for the primary TV:
+HyperWebster ships a **hyprmoncfg** profile for 4K high-refresh HDR TVs:
 
 ```sh
-hyprmoncfg apply tcl-t89c-tv
+hyprmoncfg apply tv-gaming-4k
 ```
 
-Edit `~/.config/hyprmoncfg/profiles/tcl-t89c-tv` if your HDMI port name differs
+Edit `~/.config/hyprmoncfg/profiles/tv-gaming-4k` if your HDMI port name differs
 (`hyprctl monitors`). The profile sets `3840x2160@144` with `vrr` and `hdr`
-when Hyprland/amdgpu support them on your build.
+when Hyprland and your GPU driver support them.
 
 **Gamescope / Steam session** (Deckify or DeckShift): HDR and VRR are handled
 inside the full-screen gamescope session. Env hints live in
 `chimera-deckify-gaming/gamescope-hdr.env` (`ENABLE_HDR_WSI`, etc.).
 
-**Needs real hardware validation** on the TCL T89C — desktop Wayland HDR on
-amdgpu is still maturing; gamescope is the primary gaming path.
+Desktop Wayland HDR on amdgpu is still maturing on some builds; gamescope is the
+primary gaming path for HDR output.
 
-### RX 9070 notes
+### AMD GPU notes
 
-- RDNA 4 support tracks Arch `mesa` and the installed kernel (`linux-cachyos` by
+- RDNA 2+ support tracks Arch `mesa` and the installed kernel (`linux-cachyos` by
   default). After install, keep the system updated (`hyperwebster-update` or
   `sudo pacman -Syu`).
-- CachyOS optimized userspace builds are available once online — flip Settings →
+- CachyOS optimized userspace builds are available once online - flip Settings →
   Services → **CachyOS kernel & repos** ON (or `sudo hyperwebster-cachy-repo enable`)
   to run the full `-Suu` conversion; the kernel is already installed.
 - **`cachyos-kernel-manager`** is preinstalled for swapping kernel variants
@@ -50,10 +50,10 @@ amdgpu is still maturing; gamescope is the primary gaming path.
 - ROCm is **not** pre-installed; add it manually only if you need compute
   workloads outside gaming.
 
-### Ryzen 5700X3D notes
+### CPU notes
 
-- Zen 3 → **x86-64-v3** CachyOS repo tier (auto-detected at install).
-- 3D V-Cache benefits most games without special tuning.
+- Zen 2 / Intel 10th gen and newer map to the appropriate **x86-64-v3/v4** CachyOS
+  repo tier (auto-detected at install).
 - `zram` swap is enabled by default; no dedicated swap partition.
 - Power profiles are available from the quick settings panel.
 
@@ -64,7 +64,7 @@ The installer offers **LUKS2** on the root partition (EFI stays unencrypted).
 ### TPM2 auto-unlock (controller-friendly boot)
 
 When a TPM is present (`/dev/tpmrm0`), the installer asks whether to enroll
-**TPM2** via `systemd-cryptenroll` (PCR 7 — Secure Boot state). The LUKS
+**TPM2** via `systemd-cryptenroll` (PCR 7 - Secure Boot state). The LUKS
 passphrase is sealed in the TPM; cold boot unlocks without typing when PCRs
 match.
 
@@ -80,22 +80,22 @@ sudo hyperwebster-luks-tpm-enroll /dev/disk/by-partuuid/YOUR-LUKS-PARTUUID
 #### Boot flow (LUKS + TPM)
 
 1. **Limine** loads the UKI (kernel + initramfs).
-2. **initramfs / sd-encrypt** — `systemd-cryptsetup` reads `/etc/crypttab` and
+2. **initramfs / sd-encrypt** - `systemd-cryptsetup` reads `/etc/crypttab` and
    the `rd.luks.name=` kernel parameter, tries the TPM2 token first, then falls
    back to a Plymouth passphrase prompt if needed.
-3. **btrfs** — root mounts `@` via `root=UUID=… rootflags=subvol=@`.
-4. **Plymouth** — HyperWebster splash until the desktop session starts.
-5. **SDDM** — login greeter (or Starman one-shot autologin when armed).
+3. **btrfs** - root mounts `@` via `root=UUID=… rootflags=subvol=@`.
+4. **Plymouth** - HyperWebster splash until the desktop session starts.
+5. **SDDM** - login greeter (or Starman one-shot autologin when armed).
 
-**Needs real hardware testing** — verify TPM PCR policy on your motherboard and
-that Plymouth/SDDM still flow cleanly after auto-unlock.
+Verify TPM PCR policy on your motherboard and that Plymouth/SDDM still flow
+cleanly after auto-unlock.
 
 ## Gaming boot (Starman)
 
 Limine ships a **Starman (Gaming / Steam)** entry that adds
 `hyperwebster.starman=1` to the kernel command line. When a gamescope session
 is installed (Deckify/Chimera or DeckShift), this arms one-shot SDDM autologin
-into Steam Big Picture — same flow as `Super+Shift+S`, but chosen from the boot
+into Steam Big Picture - same flow as `Super+Shift+S`, but chosen from the boot
 menu.
 
 ### Gaming stacks (pick one)

@@ -1,7 +1,7 @@
-# HyperWebster — Omarchy default keybindings
+# HyperWebster - Omarchy default keybindings
 
 Remaps the HyperWebster/Caelestia keybindings to match **Omarchy's defaults**
-(basecamp/omarchy — current Lua-based config:
+(basecamp/omarchy - current Lua-based config:
 `default/hypr/bindings/{tiling-v2,utilities,media,clipboard}.lua` +
 `config/hypr/bindings.lua`).
 
@@ -40,7 +40,7 @@ overwritten). Installer: `install-omarchy-keys.sh` (idempotent).
 | Ungroup window | `Super+Alt+G` | `Super+U` |
 | Cycle in group | `Super+Alt+Tab` / `+Shift` | `Alt+Tab` / `Shift+Alt+Tab` |
 | Cycle windows | `Alt+Tab` / `Shift+Alt+Tab` | (was group cycling) |
-| Go to workspace 1–10 | `Super+1…0` | unchanged |
+| Go to workspace 1-10 | `Super+1…0` | unchanged |
 | Move window to workspace | `Super+Shift+1…0` (keycodes) | `Super+Alt+1…0` (kept as alias) |
 | Next / prev workspace | `Super+Tab` / `Super+Shift+Tab` | `Ctrl+Super+→/←` (kept) |
 | Former workspace | `Super+Ctrl+Tab` | (new) |
@@ -65,13 +65,13 @@ overwritten). Installer: `install-omarchy-keys.sh` (idempotent).
 ## Deliberate deviations / not ported
 
 - **Universal copy/paste/cut** (Omarchy `Super+C/V/X` → synthesized
-  Ctrl+Insert etc.): skipped — needs Omarchy's send_shortcut stuck-key
+  Ctrl+Insert etc.): skipped - needs Omarchy's send_shortcut stuck-key
   workaround, and `Super+V` stays the clipboard manager here.
-- **Workspace move silently** (`Super+Shift+Alt+#`): skipped — Caelestia's
+- **Workspace move silently** (`Super+Shift+Alt+#`): skipped - Caelestia's
   `wsaction` group logic has no silent variant.
 - `Ctrl+Super+←/→` stays prev/next workspace (Caelestia) rather than Omarchy's
   grouped-window focus; `Ctrl+Alt+Tab` still changes the active group member.
-- Omarchy resize keys (`Super+code:20/21` x-axis) skipped — Caelestia's
+- Omarchy resize keys (`Super+code:20/21` x-axis) skipped - Caelestia's
   `Super+Minus/Equal` (±width) and `Super+Shift+Minus/Equal` (±height) kept.
 - Group lock (`Super+Shift+Comma`) dropped (key now = clear notifications).
 - Mute alias `Super+Shift+M` dropped (key now = music); `XF86AudioMute` works.

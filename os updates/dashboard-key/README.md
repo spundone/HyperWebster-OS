@@ -1,4 +1,4 @@
-# dashboard-key — Super+D opens the dashboard / calendar
+# dashboard-key - Super+D opens the dashboard / calendar
 
 caelestia's calendar lives in its **dashboard**, which by default opens only by
 **hovering the top screen edge** (`Config.dashboard.showOnHover` +
@@ -13,7 +13,7 @@ keybind.
 `Super+D` was caelestia's `$kbCommunication` (communication scratchpad
 workspace). To avoid losing it, it moves to `Super+Shift+D`. The dashboard is
 toggled via the drawer IPC (`qs -c caelestia ipc call drawers toggle
-dashboard`) — no shell edits, no package, works offline.
+dashboard`) - no shell edits, no package, works offline.
 
 ## Files
 
@@ -25,7 +25,7 @@ dashboard`) — no shell edits, no package, works offline.
 sh install-dashboard-key.sh
 ```
 
-## Builder notes — fold into omarchy-keys
+## Builder notes - fold into omarchy-keys
 
 Add to `omarchy-keys/omarchy-keys-user.conf`:
 ```

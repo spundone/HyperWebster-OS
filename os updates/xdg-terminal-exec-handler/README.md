@@ -4,11 +4,11 @@
 A critical desktop notification at/after login:
 
 ```
-app2unit: Error — Executable not found: 'xdg-terminal-exec'
+app2unit: Error - Executable not found: 'xdg-terminal-exec'
 ```
 
-Launching any `Terminal=true` `.desktop` entry through `app2unit` — or
-`app2unit -T` — silently fails. `app2unit` is the launcher behind many HyperWebster
+Launching any `Terminal=true` `.desktop` entry through `app2unit` - or
+`app2unit -T` - silently fails. `app2unit` is the launcher behind many HyperWebster
 binds (terminal, browser, editor, file explorer, pavucontrol…) and the
 Caelestia launcher's app-open path, so this is user-visible.
 
@@ -44,9 +44,9 @@ Two layers:
    system bin, it removes the shim so it no longer shadows it.
 
 ## Files
-- `xdg-terminal-exec` — the shim.
-- `install-xdg-terminal-exec-handler.sh` — idempotent installer.
-- `migrations/1781427600-xdg-terminal-exec-handler.sh` — delegates to it.
+- `xdg-terminal-exec` - the shim.
+- `install-xdg-terminal-exec-handler.sh` - idempotent installer.
+- `migrations/1781427600-xdg-terminal-exec-handler.sh` - delegates to it.
 
 ## Verify
 ```
@@ -56,5 +56,5 @@ app2unit -T -- true        # exits 0, no "unavailable" error
 ## Notes / limitation
 The shim passes args straight through to the terminal; it does not parse
 `xdg-terminal-exec`-specific options (`--app-id=` etc.). For full fidelity ship
-the real package — the shim is the offline stop-gap. No secrets, no per-user
+the real package - the shim is the offline stop-gap. No secrets, no per-user
 identity; honours `$TERMINAL`.

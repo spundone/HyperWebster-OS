@@ -2005,8 +2005,8 @@ arch-chroot /mnt chown -R "$USERNAME:$USERNAME" "$USER_HOME"
 echo "==> Installing TV display profile + launcher polish..."
 arch-chroot /mnt runuser -u "$USERNAME" -- \
   env HOME="$USER_HOME" XDG_CONFIG_HOME="$USER_HOME/.config" \
-  sh "$USER_HOME/.local/share/hyperwebster/tcl-t89c-display/install-tcl-t89c-display.sh" \
-  || echo "    (tcl-t89c-display skipped)"
+  sh "$USER_HOME/.local/share/hyperwebster/tv-gaming-display/install-tv-gaming-display.sh" \
+  || echo "    (tv-gaming-display skipped)"
 arch-chroot /mnt runuser -u "$USERNAME" -- \
   env HOME="$USER_HOME" XDG_CONFIG_HOME="$USER_HOME/.config" \
   sh "$USER_HOME/.local/share/hyperwebster/launcher-raycast/install-launcher-raycast.sh" \

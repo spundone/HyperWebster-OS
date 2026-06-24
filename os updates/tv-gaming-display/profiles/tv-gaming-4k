@@ -1,4 +1,4 @@
-# TCL T89C — 4K @ 144 Hz, HDR, VRR (FreeSync)
-# Apply with: hyprmoncfg apply tcl-t89c-tv
+# 4K HDR TV - 3840x2160 @ 144 Hz, VRR (FreeSync)
+# Apply with: hyprmoncfg apply tv-gaming-4k
 # Edit the HDMI/DP output name to match `hyprctl monitors` on your box.
 monitor=HDMI-A-1,3840x2160@144,auto,1,vrr,2,hdr

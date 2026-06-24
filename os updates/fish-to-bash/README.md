@@ -1,8 +1,8 @@
-# HyperWebster — fish → bash migration (Omarchy bash setup)
+# HyperWebster - fish → bash migration (Omarchy bash setup)
 
 Switches this Caelestia/HyperWebster box from the fish shell to **bash, configured to
 match [Omarchy](https://github.com/basecamp/omarchy)**. Self-contained so it
-survives a wipe — copy this folder back with the rest of Downloads and run the
+survives a wipe - copy this folder back with the rest of Downloads and run the
 installer.
 
 ## Install
@@ -58,4 +58,4 @@ definitions, so missing tools are harmless until you actually call them.
 ## Requirements
 
 `bash`, and ideally `starship`, `zoxide`, `eza`, `fzf`, `bat` for the full
-Omarchy experience (all guarded — bash works without them).
+Omarchy experience (all guarded - bash works without them).

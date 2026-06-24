@@ -12,14 +12,14 @@ qs[…]:  pam_faillock(passwd:auth): Consecutive login failures for user q accou
 ```
 (`qs` = Quickshell = the Caelestia shell hosting the lock.)
 
-## Root cause (lock-out mechanism — high confidence)
+## Root cause (lock-out mechanism - high confidence)
 - The lock authenticates via `PamContext { config: "passwd" }`
   (`modules/lock/Pam.qml:14`) → the **`passwd` PAM service**.
 - On this build `/etc/pam.d/passwd` was extended to `auth include system-auth`,
   and **system-auth runs `pam_faillock`**.
 - Failed unlocks are counted by faillock; past the threshold it **temporarily
-  locks the account**, after which *every* attempt — including the correct
-  password — is refused until the `/run/faillock` tally clears (reboot, or
+  locks the account**, after which *every* attempt - including the correct
+  password - is refused until the `/run/faillock` tally clears (reboot, or
   `faillock --reset`). That is exactly the reboot-to-recover the user hit.
 
 ## The initial failure trigger
@@ -43,8 +43,8 @@ account such that the correct password is refused.
 `modules/lock/Pam.qml` lives under `/etc/xdg/quickshell/caelestia`, which is
 re-applied by a pacman hook after every `caelestia-shell` upgrade. The `config:`
 repoint must therefore be added to HyperWebster's **quickshell-patch + pacman-hook**
-mechanism — the same one that re-applies the Updates page, Additions page, and
-`NetworkConnection.qml` patches — as a 4th patched file. Do **not** hand-edit it
+mechanism - the same one that re-applies the Updates page, Additions page, and
+`NetworkConnection.qml` patches - as a 4th patched file. Do **not** hand-edit it
 in place (a shell upgrade would revert it). Expected behaviour: lock → wrong
 password ×5 (keeps re-prompting, account stays usable) → correct password
 unlocks; the lock-surface layout is GB.
@@ -55,6 +55,6 @@ session (Ctrl+Alt+F1) and unlock. `Super+Alt+L` recovers a *hung* lock but does
 **not** clear a faillock lock.
 
 ## Files
-- `etc-pam.d-caelestia` — proposed faillock-free PAM service.
-- `install-caelestia-lock-pam.sh` — idempotent installer (root).
-- `migrations/1781431200-caelestia-lock-pam.sh` — delegates to it.
+- `etc-pam.d-caelestia` - proposed faillock-free PAM service.
+- `install-caelestia-lock-pam.sh` - idempotent installer (root).
+- `migrations/1781431200-caelestia-lock-pam.sh` - delegates to it.

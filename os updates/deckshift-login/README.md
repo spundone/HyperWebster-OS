@@ -1,8 +1,8 @@
-# deckshift-login — full-session DeckShift gaming, password at boot
+# deckshift-login - full-session DeckShift gaming, password at boot
 
-Keeps DeckShift's gaming model exactly as designed — a **dedicated, full
+Keeps DeckShift's gaming model exactly as designed - a **dedicated, full
 gamescope session** (`gamescope-session-steam-nm`), switched by rewriting
-SDDM's autologin session and restarting SDDM — but fixes the login behaviour:
+SDDM's autologin session and restarting SDDM - but fixes the login behaviour:
 
 | Event | Stock DeckShift | With this component |
 |-------|-----------------|---------------------|
@@ -15,7 +15,7 @@ SDDM's autologin session and restarting SDDM — but fixes the login behaviour:
 
 Stock DeckShift keeps a **permanent** `[Autologin]` drop-in
 (`/etc/sddm.conf.d/zz-gaming-session.conf`, `Relogin=true`) and its
-`gaming-session-switch` helper just flips the `Session=` line — so the box
+`gaming-session-switch` helper just flips the `Session=` line - so the box
 never shows a password screen again.
 
 This component makes the autologin **one-shot**:
@@ -26,13 +26,13 @@ This component makes the autologin **one-shot**:
   fresh on each switch (`Relogin=false`) **and arms a marker in `/run`**.
 - `sddm-autologin-gate` runs as `ExecStartPre=` on `sddm.service` (systemd
   drop-in): marker present → consume it, keep the autologin for that single
-  restart; marker absent (cold boot, crash, manual restart — `/run` is tmpfs)
+  restart; marker absent (cold boot, crash, manual restart - `/run` is tmpfs)
   → delete the autologin drop-in, password greeter shows.
 
 Also adds the `Super+Shift+S → /usr/local/bin/switch-to-gaming` Hyprland bind:
 DeckShift appends its bind to `~/.config/hypr/bindings.conf`, an **Omarchy**
 path that doesn't exist on caelestia, so on this system DeckShift silently
-skips the keybind — this component adds it to
+skips the keybind - this component adds it to
 `~/.config/caelestia/hypr-user.conf` instead (replacing caelestia's
 `Super+Shift+S` screenshot-freeze; region shots stay on
 Print / Shift+Print / Super+Shift+Alt+S). No exit bind is needed on the
@@ -52,7 +52,7 @@ os-session-select            -> /usr/lib/         (DeckShift's original, restore
 install-deckshift-login.sh      idempotent installer (needs sudo)
 ```
 
-**`deckshift.sh` itself is never modified** — this component only overlays
+**`deckshift.sh` itself is never modified** - this component only overlays
 files that deckshift.sh has already installed (same paths, same interfaces,
 the existing sudoers rules keep applying). That is the contract: the ISO
 mimics Omarchy's SDDM setup, stock DeckShift installs onto it unchanged, and
@@ -60,22 +60,22 @@ this overlay is applied after it.
 
 **Why `switch-to-desktop` is overlaid too**: DeckShift's original pkills gamescope *before* its final
 `systemctl restart sddm`. Killing gamescope ends the login session, and
-logind then kills the session's processes — including the script itself (it
-runs inside the gaming session, launched by the keybind monitor) — so the
+logind then kills the session's processes - including the script itself (it
+runs inside the gaming session, launched by the keybind monitor) - so the
 restart never executes. Stock DeckShift survives this because its permanent
 `Relogin=true` autologin re-logs the user in anyway; with one-shot autologin
 it stranded the user at the greeter. The overlay keeps all of DeckShift's
 cleanup (power-profile restore, suspend unmask, Bluetooth, portal marker,
-Steam shutdown) but queues the SDDM restart as a detached root job — the
+Steam shutdown) but queues the SDDM restart as a detached root job - the
 same pattern DeckShift's own `os-session-select` uses, which is why Steam's
-"Exit to Desktop" worked all along — and lets the service stop tear down
+"Exit to Desktop" worked all along - and lets the service stop tear down
 gamescope.
 
 The installer also **removes the withdrawn nested gaming-mode experiment**
 (`hyperwebster-gaming-mode*` scripts, its launcher entry, and its
 `# >>> gaming-mode (nested) >>>` bind block) if the box ever had it.
 
-## Install (opt-in, post-install — in this order)
+## Install (opt-in, post-install - in this order)
 
 ```sh
 # 1. DeckShift first (gaming session, switch scripts, sudoers, keybind monitor)
@@ -84,7 +84,7 @@ sh ~/deckshift/deckshift.sh
 sh ~/.local/share/hyperwebster/deckshift-login/install-deckshift-login.sh
 ```
 
-**Re-run step 2 after any re-run of `deckshift.sh`** — deckshift.sh restores
+**Re-run step 2 after any re-run of `deckshift.sh`** - deckshift.sh restores
 its permanent-autologin `gaming-session-switch` and recreates the standing
 autologin drop-in.
 
@@ -102,16 +102,16 @@ autologin drop-in.
 ## Known quirks
 
 - SDDM remembers the **last session** per user, so after a reboot from inside
-  Gaming Mode the greeter may preselect "Gaming Mode (ChimeraOS)" — pick
+  Gaming Mode the greeter may preselect "Gaming Mode (ChimeraOS)" - pick
   "Hyprland (uwsm-managed)" from the session menu.
 - The switch necessarily restarts the whole graphical session: open desktop
   apps close when entering Gaming Mode. That is inherent to DeckShift's
   full-session design (and why it works better for games than a nested
   window: gamescope owns the display, HDR/VRR/input pass through cleanly).
 
-## Builder notes — how to put this in the ISO (opt-in, NOT pre-enabled)
+## Builder notes - how to put this in the ISO (opt-in, NOT pre-enabled)
 
-1. **Bake the Omarchy-style SDDM setup — REQUIRED.** DeckShift's
+1. **Bake the Omarchy-style SDDM setup - REQUIRED.** DeckShift's
    switching is built on SDDM; the ISO must boot to an SDDM password greeter
    with `hyprland-uwsm` as the default session and **no autologin baked**.
 2. Copy `deckshift-login/` into the layer (lands at
@@ -120,7 +120,7 @@ autologin drop-in.
    ```sh
    [ -d "$SRC/deckshift-login" ] && cp -a "$SRC/deckshift-login" "$DEST/"
    ```
-3. Ship migration `1781395200-deckshift-login.sh` as-is — it is
+3. Ship migration `1781395200-deckshift-login.sh` as-is - it is
    **conditional**: it only (re-)applies where DeckShift is actually installed
    (`/usr/local/bin/switch-to-gaming` exists), so `hyperwebster-update` keeps
    opted-in boxes patched and is a no-op everywhere else.
@@ -129,7 +129,7 @@ autologin drop-in.
    `hypr-user.conf`, and do **NOT** bake steam/gamescope/DeckShift packages.
    Gaming stays opt-in: the user runs `deckshift.sh` then this installer.
 5. Prerequisites already in the base: `[multilib]` + the `omarchy-*` shims
-   (gaming-enablement) — deckshift.sh depends on both.
+   (gaming-enablement) - deckshift.sh depends on both.
 6. Drop the withdrawn `gaming-mode/` (nested) component entirely if any copy
    is still in the builder tree; this component supersedes it.
 7. Document in `HyperWebster-keybindings.md`: `Super+Shift+S` = Gaming Mode

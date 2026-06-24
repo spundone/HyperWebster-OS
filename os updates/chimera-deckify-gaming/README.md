@@ -1,9 +1,9 @@
-# chimera-deckify-gaming — ChimeraOS gamescope session (Deckify path)
+# chimera-deckify-gaming - ChimeraOS gamescope session (Deckify path)
 
 Installs the **ChimeraOS gamescope session** stack on Arch via the community
 AUR PKGBUILDs (`gamescope-session-git`, `gamescope-session-steam-git`).
 This is the same session family used by [Arch Deckify](https://github.com/unlbslk/arch-deckify)
-and ChimeraOS — not a separate proprietary repo (Chimera ships PKGBUILDs on the
+and ChimeraOS - not a separate proprietary repo (Chimera ships PKGBUILDs on the
 AUR; CachyOS may mirror some packages once online).
 
 ## Quick install
@@ -31,12 +31,12 @@ one-shot SDDM autologin into the detected gamescope session
 | Install | `deckshift.sh` git repo | `hyperwebster-deckify-install` (AUR) |
 | Switching | Same `gaming-session-switch` | Same helper (auto-detects session) |
 
-Do not install both — pick one gaming stack.
+Do not install both - pick one gaming stack.
 
 ## HDR / VRR
 
 `gamescope-hdr.env` ships recommended env vars for amdgpu HDR/VRR on TV
-displays. Pair with the `tcl-t89c-display` hyprmoncfg profile on the desktop.
+displays. Pair with the `tv-gaming-display` hyprmoncfg profile on the desktop.
 
 ## Files
 

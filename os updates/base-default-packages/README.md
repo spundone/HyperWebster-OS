@@ -1,13 +1,13 @@
 # base-default-packages (installed by default, not opt-in)
 
-The install command needs root — run it once.
+The install command needs root - run it once.
 
 Packages that should ship **installed by default** in the base build (distinct
 from the opt-in Settings → Additions). Official repos only; GPU-agnostic.
 
 | Package | Provides | Repo | Why |
 |---------|----------|------|-----|
-| `github-cli` | `gh` | extra | GitHub CLI — default dev tooling (PRs, issues, repo ops, auth) |
+| `github-cli` | `gh` | extra | GitHub CLI - default dev tooling (PRs, issues, repo ops, auth) |
 
 ## Builder integration
 Add the package(s) above to the ISO base package set. `install-base-default-
@@ -20,5 +20,5 @@ sudo pacman -S --needed github-cli
 ```
 
 ## Files
-- `install-base-default-packages.sh` — idempotent installer (root).
-- `migrations/1781452800-base-default-packages.sh` — delegates to it.
+- `install-base-default-packages.sh` - idempotent installer (root).
+- `migrations/1781452800-base-default-packages.sh` - delegates to it.

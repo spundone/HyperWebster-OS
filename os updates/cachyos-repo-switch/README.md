@@ -1,36 +1,36 @@
-# cachyos-repo-switch — CachyOS optimized repos + kernel (sudoless, auto-tier)
+# cachyos-repo-switch - CachyOS optimized repos + kernel (sudoless, auto-tier)
 
-**Default on fresh HyperWebster installs** — `linux-cachyos` + CachyOS pacman repos are
+**Default on fresh HyperWebster installs** - `linux-cachyos` + CachyOS pacman repos are
 bootstrapped at install time (offline-safe). The Settings toggle **reverts to stock**
 or re-enables + runs userspace `-Suu` conversion.
 
-Works **both directions** — OFF → reboot into stock `linux`; ON → reboot into
+Works **both directions** - OFF → reboot into stock `linux`; ON → reboot into
 `linux-cachyos` + optimized userspace.
 
 ## What it is
 One toggle in **Settings → Services** that switches the system **to/from**
-CachyOS-optimized builds **and** the `linux-cachyos` kernel — passwordless,
+CachyOS-optimized builds **and** the `linux-cachyos` kernel - passwordless,
 auto-detecting the best x86-64 tier (v4 > v3), fully unattended (`--noconfirm`).
 Refuses below x86-64-v3.
 
 ## Pieces
-- **`hyperwebster-cachy-repo`** → `/usr/local/bin` — `detect` / `status` /
+- **`hyperwebster-cachy-repo`** → `/usr/local/bin` - `detect` / `status` /
   `bootstrap` / `enable` / `disable` (+ `--dry-run`).
 - **`02-hyperwebster-cachy`** → `/etc/sudoers.d` (0440, `visudo -c`-validated at install)
-  — `%wheel` NOPASSWD, pinned to the four exact subcommands of the fixed helper.
-- **`CachyRepoToggleRow.qml`** → `nexus/common/` — baked into the pinned
+  - `%wheel` NOPASSWD, pinned to the four exact subcommands of the fixed helper.
+- **`CachyRepoToggleRow.qml`** → `nexus/common/` - baked into the pinned
   hyperwebster-shell fork; this copy + `patch-servicespage.sh` are the migration
   path for old stock-caelestia installs.
-- **`patch-servicespage.sh`** — inserts the toggle into `ServicesPage.qml` (only used
+- **`patch-servicespage.sh`** - inserts the toggle into `ServicesPage.qml` (only used
   by the hyperwebster-update migration; the builder skips it via HYPERWEBSTER_SKIP_SHELL_PATCH).
 
 ## Install-time bootstrap (OOB default)
 The ISO builder vendors `cachyos-repo.tar.xz` + `linux-cachyos` into the offline
 repo. The installer pacstraps the kernel, then runs `hyperwebster-cachy-repo bootstrap`
-(offline — no `-Syu`, no userspace conversion). Once online, `enable` or the toggle
+(offline - no `-Syu`, no userspace conversion). Once online, `enable` or the toggle
 ON runs `pacman -Suu` to swap userspace packages to CachyOS optimized builds.
 
-## Two design fixes baked in — DO NOT reintroduce the bugs
+## Two design fixes baked in - DO NOT reintroduce the bugs
 1. **Architecture (critical).** CachyOS v3/v4 packages have arch `x86_64_v3`/`x86_64_v4`.
    Upstream relies on its OWN pacman (reads `Architecture = auto` as "include v3/v4").
    We keep **stock pacman** (reads `auto` as just `x86_64`) → it would arch-reject every
@@ -39,7 +39,7 @@ ON runs `pacman -Suu` to swap userspace packages to CachyOS optimized builds.
    `x86_64 x86_64_v3` for v3); `disable` restores `Architecture = auto`.
 2. **Targeted revert (no whole-base pull).** `disable` reinstalls ONLY packages whose
    local-DB `Packager` is `CachyOS …` (excluding the cachy keyring/mirrorlist pkgs,
-   removed separately) — never the full base. Nothing converted ⇒ nothing to do.
+   removed separately) - never the full base. Nothing converted ⇒ nothing to do.
 
 ## Why stock pacman (and `--ignore pacman`)
 Upstream `cachyos-repo.sh` swaps in a CachyOS `pacman`. We reuse its signed
@@ -64,7 +64,7 @@ removed. The `linux-cachyos` kernel is the exception (removed explicitly, guarde
 
 ## Closure deps
 `curl`, `tar`/`xz`, `gawk` (all via Arch `base`), `kitty`, plus `limine` +
-`limine-mkinitcpio-hook` for the kernel boot entry — all already on the HyperWebster base.
+`limine-mkinitcpio-hook` for the kernel boot entry - all already on the HyperWebster base.
 
 ## Install (root)
 ```

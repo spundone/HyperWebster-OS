@@ -1,4 +1,4 @@
-# omarchy-extras — curated Omarchy utilities for HyperWebster
+# omarchy-extras - curated Omarchy utilities for HyperWebster
 
 Cherry-picked workflow pieces from [Omarchy](https://omarchy.org) that fit
 HyperWebster's caelestia shell without porting Walker, Waybar, or the full

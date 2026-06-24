@@ -1,4 +1,4 @@
-# HyperWebster — Keybinding Map
+# HyperWebster - Keybinding Map
 
 > **System:** Arch Linux (rolling), hostname `hyperwebster`, Wayland compositor **Hyprland**.
 > **Base:** [Caelestia](https://github.com/caelestia-dots) dotfiles + shell (QuickShell).
@@ -23,12 +23,12 @@
 | `Super+/` | Same (alias) |
 | `Super+F1` | Same (alias) |
 
-The cheatsheet is a fuzzel dmenu list — start typing to filter by key or by
+The cheatsheet is a fuzzel dmenu list - start typing to filter by key or by
 category tag (`[Window]`, `[Apps]`, `[Audio]`, …). Selecting a line copies that
 shortcut to the clipboard (if `wl-copy` is present); it never executes anything.
 
 **This very document is the single source of truth.** The on-screen help is
-*generated* from the tables below — `hyperwebster-keybinds` regenerates the list from
+*generated* from the tables below - `hyperwebster-keybinds` regenerates the list from
 this `.md` on every launch, so the cheatsheet can never drift from the doc.
 Edit the keymap here and the help updates itself.
 
@@ -40,7 +40,7 @@ Edit the keymap here and the help updates itself.
 | `Super` (tap & release) | Open app launcher (tapping another key/mouse cancels it) |
 | `Super+Escape` | Session menu (logout / shutdown / reboot) |
 | `Ctrl+Alt+Delete` | Session menu (alias, old key) |
-| `Super+D` | Toggle dashboard — calendar + widgets (was hover-only) |
+| `Super+D` | Toggle dashboard - calendar + widgets (was hover-only) |
 | `Super+Alt+Space` | Open Settings (Caelestia nexus) |
 | `Super+N` | Toggle sidebar |
 | `Super+Ctrl+K` | Show all shell panels |
@@ -62,11 +62,11 @@ Edit the keymap here and the help updates itself.
 
 | Keys | Action |
 |------|--------|
-| `Super+1`…`9`,`0` | Go to workspace 1–10 |
+| `Super+1`…`9`,`0` | Go to workspace 1-10 |
 | `Super+Tab` | Next workspace (Omarchy key) |
 | `Super+Shift+Tab` | Previous workspace (Omarchy key) |
 | `Super+Ctrl+Tab` | Back to former workspace (Omarchy key) |
-| `Ctrl+Super+1`…`9`,`0` | Go to workspace **group** 1–10 |
+| `Ctrl+Super+1`…`9`,`0` | Go to workspace **group** 1-10 |
 | `Ctrl+Super+Left` / `Right` | Previous / next workspace |
 | `Super+Page_Up` / `Page_Down` | Previous / next workspace |
 | `Super` + scroll up/down | Next / previous workspace |
@@ -77,9 +77,9 @@ Edit the keymap here and the help updates itself.
 
 | Keys | Action |
 |------|--------|
-| `Super+Shift+1`…`9`,`0` | Move window to workspace 1–10 (Omarchy key) |
-| `Super+Alt+1`…`9`,`0` | Move window to workspace 1–10 (alias, old key) |
-| `Ctrl+Super+Alt+1`…`9`,`0` | Move window to workspace **group** 1–10 |
+| `Super+Shift+1`…`9`,`0` | Move window to workspace 1-10 (Omarchy key) |
+| `Super+Alt+1`…`9`,`0` | Move window to workspace 1-10 (alias, old key) |
+| `Ctrl+Super+Alt+1`…`9`,`0` | Move window to workspace **group** 1-10 |
 | `Super+Alt+Page_Up` / `Page_Down` | Move window to workspace ±1 |
 | `Super+Alt` + scroll up/down | Move window to workspace ±1 |
 | `Ctrl+Super+Shift+Right` / `Left` | Move window to workspace +1 / −1 |
@@ -107,7 +107,7 @@ Edit the keymap here and the help updates itself.
 | `Super+T` | Toggle floating (Omarchy key) |
 | `Super+J` | Toggle window split (Omarchy key) |
 | `Super+P` | Pseudo window (Omarchy key) |
-| `Super+O` | Pin window — show on all workspaces (Omarchy "pop out") |
+| `Super+O` | Pin window - show on all workspaces (Omarchy "pop out") |
 | `Super+F` | Fullscreen |
 | `Super+Alt+F` | Fullscreen **with borders** |
 | `Super+W` | Close window (Omarchy key) |
@@ -148,11 +148,11 @@ Edit the keymap here and the help updates itself.
 
 | Keys | Action |
 |------|--------|
-| `Super+Ctrl+T` | System monitor — "Activity" (Omarchy key) |
+| `Super+Ctrl+T` | System monitor - "Activity" (Omarchy key) |
 | `Ctrl+Shift+Escape` | System monitor (alias) |
 | `Super+Shift+M` | Music (Omarchy key) |
-| `Super+M` | Music player — CLIAmp, floating (default for audio files) |
-| `Super+Shift+D` | Communication (moved from Super+D — that's the dashboard now) |
+| `Super+M` | Music player - CLIAmp, floating (default for audio files) |
+| `Super+Shift+D` | Communication (moved from Super+D - that's the dashboard now) |
 | `Super+R` | To-do |
 
 ## 9. Screenshots & screen recording
@@ -161,11 +161,11 @@ Edit the keymap here and the help updates itself.
 |------|--------|
 | `Print` | Region capture (crosshair) → clipboard + ~/Pictures/Screenshots |
 | `Shift+Print` | Full screen → clipboard + ~/Pictures/Screenshots |
-| `Super+Shift+S` | Region capture, frozen screen (swappy → ~/Pictures/Screenshots) — becomes **Gaming Mode** after opting in (see §14) |
+| `Super+Shift+S` | Region capture, frozen screen (swappy → ~/Pictures/Screenshots) - becomes **Gaming Mode** after opting in (see §14) |
 | `Super+Shift+Alt+S` | Region capture, live (swappy → ~/Pictures/Screenshots) |
-| `Super+Print` | Color picker — hyprpicker (Omarchy key) |
+| `Super+Print` | Color picker - hyprpicker (Omarchy key) |
 | `Super+Shift+C` | Color picker (alias) |
-| `Super+Ctrl+Print` | OCR — extract text from region → clipboard (Omarchy key) |
+| `Super+Ctrl+Print` | OCR - extract text from region → clipboard (Omarchy key) |
 | `Ctrl+Alt+R` | Record screen (no audio) |
 | `Super+Alt+R` | Record screen **with sound** |
 | `Super+Shift+Alt+R` | Record a region |
@@ -193,19 +193,19 @@ Edit the keymap here and the help updates itself.
 
 | Keys | Action |
 |------|--------|
-| `Super+C` | **Copy** — universal (terminals → Ctrl+Shift+C, GUI → Ctrl+C) |
-| `Super+V` | **Paste** — universal (terminals → Ctrl+Shift+V, GUI → Ctrl+V) |
+| `Super+C` | **Copy** - universal (terminals → Ctrl+Shift+C, GUI → Ctrl+C) |
+| `Super+V` | **Paste** - universal (terminals → Ctrl+Shift+V, GUI → Ctrl+V) |
 | `Super+Ctrl+V` | Clipboard history (Omarchy key) |
-| `Super+Alt+V` | Clipboard history — delete-entry mode |
+| `Super+Alt+V` | Clipboard history - delete-entry mode |
 | `Super+Ctrl+E` | Emoji picker (Omarchy key) |
 | `Super+Period` | Emoji picker (alias) |
-| `Ctrl+Shift+Alt+V` | Alternate paste — types last clip (needs ydotool, NOT installed: dead bind) |
+| `Ctrl+Shift+Alt+V` | Alternate paste - types last clip (needs ydotool, NOT installed: dead bind) |
 
 ## 12b. Share & transcode (Omarchy-inspired)
 
 | Keys | Action |
 |------|--------|
-| `Super+Ctrl+S` | Share files on LAN — opens **omarchy-send** (LocalSend-compatible) |
+| `Super+Ctrl+S` | Share files on LAN - opens **omarchy-send** (LocalSend-compatible) |
 | `Super+Ctrl+Period` | Transcode picture/video for sharing (fuzzel menus) |
 
 CLI: `omarchy-send`, `hyperwebster-transcode`, bash aliases `img2jpg` / `transcode-video-1080p` (via `omarchy-transcode` shim).
@@ -224,13 +224,13 @@ Not active on a fresh install. Opt in on the installed system with
 
 `Super+Shift+S` is bound in the **base** and self-guards: it launches Gaming Mode
 only if DeckShift is installed and **does nothing** otherwise. (It replaces
-caelestia's Super+Shift+S screenshot-freeze for everyone — region shots stay on
+caelestia's Super+Shift+S screenshot-freeze for everyone - region shots stay on
 Print / Shift+Print / Super+Shift+Alt+S.)
 
 | Keys | Action |
 |------|--------|
 | `Super+Shift+S` | Switch to Gaming Mode (full DeckShift gamescope/Steam session via SDDM restart) **if DeckShift is installed**; does nothing otherwise |
-| `Super+Shift+R` | Exit Gaming Mode back to the desktop — works **inside the gaming session only** (or Steam > Power > Exit to Desktop) |
+| `Super+Shift+R` | Exit Gaming Mode back to the desktop - works **inside the gaming session only** (or Steam > Power > Exit to Desktop) |
 
 Cold boots always show the SDDM password greeter; only the desktop↔gaming
 switch itself skips the password (one-shot autologin).
@@ -246,19 +246,19 @@ All paths below; `~/.config/hypr` → symlink → `~/.local/share/caelestia/hypr
 | `~/.config/hypr/hyprland.conf` | Top-level; sources everything in order |
 | `~/.config/hypr/hyprland/keybinds.conf` | **The bind definitions** (uses `$kb*` variables) |
 | `~/.config/hypr/variables.conf` | **Default key + app values** (`$kbCloseWindow = Super, Q`, etc.) |
-| `~/.config/caelestia/hypr-vars.conf` | **HyperWebster overrides** — app rebinds + flattened styling + **Omarchy `$kb*` remaps** |
-| `~/.config/caelestia/hypr-user.conf` | **HyperWebster overrides** — overview (Super+Grave), help binds, **Omarchy unbinds/extra binds**, `kb_layout = gb`, window rules |
-| `~/.local/bin/hyperwebster-keybinds-gen` | **Generator** — parses this `.md` → display-ready cheatsheet lines (single source of truth) |
-| `~/.local/bin/hyperwebster-keybinds` | **HyperWebster help launcher** — regenerates from this doc each run, shows the fuzzel dmenu |
+| `~/.config/caelestia/hypr-vars.conf` | **HyperWebster overrides** - app rebinds + flattened styling + **Omarchy `$kb*` remaps** |
+| `~/.config/caelestia/hypr-user.conf` | **HyperWebster overrides** - overview (Super+Grave), help binds, **Omarchy unbinds/extra binds**, `kb_layout = gb`, window rules |
+| `~/.local/bin/hyperwebster-keybinds-gen` | **Generator** - parses this `.md` → display-ready cheatsheet lines (single source of truth) |
+| `~/.local/bin/hyperwebster-keybinds` | **HyperWebster help launcher** - regenerates from this doc each run, shows the fuzzel dmenu |
 | `~/.local/share/hyperwebster/keybinds.list` | Generated cache (auto-rebuilt; used as fallback if the doc is missing) |
 
-**How the override layering works** (load order matters — later wins):
+**How the override layering works** (load order matters - later wins):
 `variables.conf` sets stock defaults → `hyprland.conf` sources `hypr-vars.conf`
 *before* `keybinds.conf` (so `$kb*` remaps take effect) and `hypr-user.conf`
 *after everything* (so its `unbind`/`bind` lines win).
 
 **HyperWebster deltas vs. stock Caelestia:**
-- **Key layout remapped to Omarchy defaults** — full mapping table
+- **Key layout remapped to Omarchy defaults** - full mapping table
   and deliberate deviations in `omarchy-keys/README.md`.
 - Apps: terminal `foot→kitty`, browser `zen-browser→chromium`,
   editor `codium→gnome-text-editor`, file manager `thunar→nautilus`.
@@ -286,7 +286,7 @@ feature is packaged there and reinstalled with one command per component:
 | `hyperwebster-keybinds` | `~/.local/bin/` (the cheatsheet launcher) |
 | `HyperWebster-keybindings.md` (this file) | `~/.local/share/hyperwebster/` (canonical source of truth) |
 | `hyprland-keybinds-help.conf` | appended to `~/.config/caelestia/hypr-user.conf` (Super+/ + F1 binds) |
-| `install-keybinds-help.sh` | the installer — run it after rebuild |
+| `install-keybinds-help.sh` | the installer - run it after rebuild |
 | `omarchy-keys/` | the Omarchy remap (vars + user conf + installer) |
 
 ```sh
@@ -297,7 +297,7 @@ sh ~/Downloads/omarchy-keys/install-omarchy-keys.sh
 Installers are idempotent (safe to re-run) and reload Hyprland if it's
 running. **No PATH dependency:** binds use the absolute path
 `~/.local/bin/hyperwebster-keybinds`, and that script locates its generator next to
-itself — so it works even if `~/.local/bin` isn't on the session `PATH`.
+itself - so it works even if `~/.local/bin` isn't on the session `PATH`.
 No keymap data lives in the scripts; editing this doc is all that's needed to
 change the on-screen help. Deps: `awk`, `fuzzel`, optional `wl-copy`.
 

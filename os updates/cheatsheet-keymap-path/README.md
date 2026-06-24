@@ -12,7 +12,7 @@ $1 arg  →  $HYPERWEBSTER_KEYMAP_MD  →  $HOME/Downloads/HyperWebster-keybindi
 ```
 
 `~/Downloads` is checked **before** the canonical layer copy. Today that copy is
-absent so it falls through and works — but any stale `HyperWebster-keybindings.md`
+absent so it falls through and works - but any stale `HyperWebster-keybindings.md`
 left in `~/Downloads` (a common scratch location) would **silently shadow** the
 real keymap, so the cheatsheet would show wrong/old keys. The `hyperwebster-keybinds`
 header comment also still says the doc lives in `~/Downloads`.
@@ -40,5 +40,5 @@ hyperwebster-keybinds-gen | head -3        # still generates the keymap
 ```
 
 ## Files
-- `fix-cheatsheet-keymap-path.sh` — idempotent patcher.
-- `migrations/1781445600-cheatsheet-keymap-path.sh` — delegates to it.
+- `fix-cheatsheet-keymap-path.sh` - idempotent patcher.
+- `migrations/1781445600-cheatsheet-keymap-path.sh` - delegates to it.

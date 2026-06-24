@@ -1,14 +1,14 @@
-# tcl-t89c-display — TCL T89C TV (4K 144 Hz HDR VRR)
+# tv-gaming-display - 4K HDR TV profile (144 Hz VRR)
 
-Ships a **hyprmoncfg** profile for the primary gaming TV and Hyprland environment
+Ships a **hyprmoncfg** profile for 4K high-refresh HDR TVs and Hyprland environment
 hints for amdgpu HDR/VRR on Wayland.
 
 ## Apply the profile
 
 ```sh
-hyprmoncfg apply tcl-t89c-tv
+hyprmoncfg apply tv-gaming-4k
 # or edit output name first:
-nano ~/.config/hyprmoncfg/profiles/tcl-t89c-tv
+nano ~/.config/hyprmoncfg/profiles/tv-gaming-4k
 ```
 
 Find your connector name with `hyprctl monitors` (often `HDMI-A-1` or `HDMI-A-2`).
@@ -16,8 +16,8 @@ Find your connector name with `hyprctl monitors` (often `HDMI-A-1` or `HDMI-A-2`
 ## Gaming session (gamescope)
 
 HDR/VRR in full-screen gaming is handled by **gamescope** inside the Chimera
-session. See `chimera-deckify-gaming/gamescope-hdr.env`. Real hardware validation
-on the TCL T89C is required — amdgpu HDR on Wayland is still maturing.
+session. See `chimera-deckify-gaming/gamescope-hdr.env`. Validate HDR and VRR
+on your display - amdgpu HDR on Wayland is still maturing on some builds.
 
 ## Hardware testing checklist
 

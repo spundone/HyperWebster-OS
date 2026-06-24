@@ -1,4 +1,4 @@
-# wifi-password-retry — recover from a wrong Wi-Fi password
+# wifi-password-retry - recover from a wrong Wi-Fi password
 
 Fixes a stock-Caelestia bug; worth upstreaming.
 
@@ -10,7 +10,7 @@ in the UI:
 1. The password dialog saves the NetworkManager profile (with the bad
    PSK) immediately, and only deletes it if the dialog stays open long
    enough for its ~10-poll failure monitor to fire. Close the popout
-   while it hangs on "Connecting…" — which is what everyone does — and
+   while it hangs on "Connecting…" - which is what everyone does - and
    the wrong-PSK profile survives.
 2. Every later click on that network hits the saved-profile fast path in
    `utils/NetworkConnection.qml`, which activates the profile with a
@@ -38,13 +38,13 @@ if (hasSavedProfile) {
 null callback with one that, on `needsPassword`:
 
 - stops the pending-connection timers (same cleanup the else-branch does),
-- `Nmcli.forgetNetwork(ssid)` — drops the bad profile,
+- `Nmcli.forgetNetwork(ssid)` - drops the bad profile,
 - reopens the password dialog (session path for the control center,
   `onPasswordNeeded` callback path for the bar popout).
 
 Fixing this one spot also makes failure mode 1 self-healing: even if a
 bad profile survives a closed dialog, the next click re-prompts instead
-of looping silently. Profiles with a *correct* password are untouched —
+of looping silently. Profiles with a *correct* password are untouched -
 their activation succeeds and the callback does nothing.
 
 A pacman hook (`hyperwebster-wifi-password-retry.hook`) re-applies the patch
@@ -55,7 +55,7 @@ patch.
 
 Pinned against the `NetworkConnection.qml` shipped with caelestia-shell
 **2.0.2**. If upstream reshapes the `hasSavedProfile` branch, the patch
-script detects the miss, warns, and leaves stock behaviour in place —
+script detects the miss, warns, and leaves stock behaviour in place -
 update the regex. If upstream fixes the bug properly, drop this
 component and its hook.
 

@@ -1,4 +1,4 @@
-# monitor-hotload — hot-apply saved hyprmoncfg profiles
+# monitor-hotload - hot-apply saved hyprmoncfg profiles
 
 Follow-up to monitor-control and monitor-control-fix.
 
@@ -16,21 +16,21 @@ which applies it instantly
 Two upstream behaviours compound:
 
 1. The TUI's plain **"Save Profile"** action only writes the snapshot to
-   `~/.config/hyprmoncfg/profiles/` — applying is a separate
+   `~/.config/hyprmoncfg/profiles/` - applying is a separate
    **"Save & Apply"** action, which is easy to miss.
 2. `hyprmoncfgd` re-evaluates profiles only on **startup, monitor
    hotplug (event or poll) and lid events** (see its `triggered:` log
    lines). It does not watch the profiles directory, so a new or edited
-   profile is invisible to it until one of those triggers happens —
+   profile is invisible to it until one of those triggers happens -
    on a desktop with one monitor, effectively never.
 
 ## Fix
 
 A systemd user **path unit** closes the gap:
 
-- `hyprmoncfgd-rescan.path` — watches `~/.config/hyprmoncfg/profiles`
+- `hyprmoncfgd-rescan.path` - watches `~/.config/hyprmoncfg/profiles`
   (`PathChanged=`, i.e. create/delete/rename/write-close inside the dir).
-- `hyprmoncfgd-rescan.service` — oneshot
+- `hyprmoncfgd-rescan.service` - oneshot
   `systemctl --user try-restart hyprmoncfgd` (`try-restart` so a daemon
   the user deliberately stopped stays stopped).
 
@@ -46,7 +46,7 @@ profiles dir natively.
 
 | File | Role |
 |------|------|
-| `install-monitor-hotload.sh` | idempotent installer — installs + enables both units, pre-creates the watched dir (no sudo) |
+| `install-monitor-hotload.sh` | idempotent installer - installs + enables both units, pre-creates the watched dir (no sudo) |
 | `hyprmoncfgd-rescan.path` | watches the profiles dir |
 | `hyprmoncfgd-rescan.service` | oneshot daemon bounce |
 
@@ -55,7 +55,7 @@ profiles dir natively.
 - Bake both units into the user skeleton and enable
   `hyprmoncfgd-rescan.path` alongside `hyprmoncfgd` (presets or
   skeleton symlink in `default.target.wants`).
-- Pre-create `~/.config/hyprmoncfg/profiles/` (empty — the no-pre-seeded-
+- Pre-create `~/.config/hyprmoncfg/profiles/` (empty - the no-pre-seeded-
   profiles rule from monitor-control still stands; an empty dir is fine and the
   path unit needs it to exist).
 

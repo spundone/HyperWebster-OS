@@ -1,4 +1,4 @@
-# theme-polish — light/dark consistency
+# theme-polish - light/dark consistency
 
 Tasteful fixes on top of the NoSignal / caelestia look:
 

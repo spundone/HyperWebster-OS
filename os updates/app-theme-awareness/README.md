@@ -4,12 +4,12 @@ User-level, no root.
 
 ## Goal
 Make external apps (Chrome/Chromium, Electron, Firefox, GTK, Qt) **follow
-Caelestia's light/dark mode** automatically — dark when Caelestia is dark.
+Caelestia's light/dark mode** automatically - dark when Caelestia is dark.
 
 ## Why they don't today
 Modern apps read one signal: `org.freedesktop.appearance` → `color-scheme`,
 published by **xdg-desktop-portal**. By default that value is **0
-("no preference")** because nothing sets it — `gsettings
+("no preference")** because nothing sets it - `gsettings
 org.gnome.desktop.interface color-scheme` is `'default'`. So every app defaults
 to light. All portal pieces are already installed (`xdg-desktop-portal`,
 `-gtk`, `-hyprland`); `libadwaita` is present.
@@ -31,7 +31,7 @@ to light. All portal pieces are already installed (`xdg-desktop-portal`,
   Hyprland's portal default for screencast), so the appearance value is served
   reliably. Installed only if the user has no `portals.conf`.
 
-`install-app-theme-awareness.sh` does all of it idempotently — entirely
+`install-app-theme-awareness.sh` does all of it idempotently - entirely
 user-level (no root, no pacman hook).
 
 ## Per-app notes
@@ -41,7 +41,7 @@ user-level (no root, no pacman hook).
   Old Qt5 apps may need a dark qt5ct/Kvantum style (out of scope).
 - **GTK3 dark fidelity:** prefer-dark uses Adwaita's built-in dark rendering. For
   a fuller dark GTK3 theme the builder can add `gnome-themes-extra` (ships
-  `Adwaita-dark`) — optional.
+  `Adwaita-dark`) - optional.
 
 ## Builder integration
 Ship the sync script in the layer bin, the two user units (enabled by default,
@@ -60,8 +60,8 @@ gsettings get org.gnome.desktop.interface color-scheme   # -> 'prefer-dark'
 ```
 
 ## Files
-- `hyperwebster-app-theme-sync` — mode → portal/GTK sync.
-- `hyperwebster-app-theme.service` / `.path` — login run + watch-on-change.
-- `portals.conf` — Settings backend = gtk.
-- `install-app-theme-awareness.sh` — idempotent user-level installer.
-- `migrations/1781442000-app-theme-awareness.sh` — delegates to it.
+- `hyperwebster-app-theme-sync` - mode → portal/GTK sync.
+- `hyperwebster-app-theme.service` / `.path` - login run + watch-on-change.
+- `portals.conf` - Settings backend = gtk.
+- `install-app-theme-awareness.sh` - idempotent user-level installer.
+- `migrations/1781442000-app-theme-awareness.sh` - delegates to it.

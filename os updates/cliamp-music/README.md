@@ -1,11 +1,11 @@
-# cliamp-music — CLIAmp as the default music player
+# cliamp-music - CLIAmp as the default music player
 
-Adds a default music player — HyperWebster previously had none.
+Adds a default music player - HyperWebster previously had none.
 
 ## What
 
-[CLIAmp](https://github.com/search?q=cliamp) — "a retro terminal music
-player inspired by Winamp 2.x" — is what Omarchy ships for terminal
+[CLIAmp](https://github.com/search?q=cliamp) - "a retro terminal music
+player inspired by Winamp 2.x" - is what Omarchy ships for terminal
 music (their `omarchy-launch-or-focus-tui cliamp` bind), and it is
 prebuilt in the `[omarchy]` pacman repo HyperWebster already carries
 (v1.57.0 at time of writing; deps pull in ffmpeg and yt-dlp).
@@ -21,7 +21,7 @@ prebuilt in the `[omarchy]` pacman repo HyperWebster already carries
   `Super+M` and `Super+Shift+M` toggled the shell's music panel (an
   MPRIS controller, not a player); the panel keeps `Super+Shift+M`.
   Launch-or-focus is inlined (`hyprctl dispatch focuswindow … || kitty …`)
-  since HyperWebster does not ship omarchy's helper — note `hyprctl` exits 0
+  since HyperWebster does not ship omarchy's helper - note `hyprctl` exits 0
   even when no window matches, so the check greps for `ok`.
 - **Keymap doc:** `Super+M` row updated (the Super+K cheatsheet
   regenerates from it on next open).
@@ -30,7 +30,7 @@ prebuilt in the `[omarchy]` pacman repo HyperWebster already carries
 
 | File | Role |
 |------|------|
-| `install-cliamp-music.sh` | idempotent installer — package (sudo), desktop entry, MIME defaults, marked bind block, keymap doc row |
+| `install-cliamp-music.sh` | idempotent installer - package (sudo), desktop entry, MIME defaults, marked bind block, keymap doc row |
 | `cliamp.desktop` | desktop entry: `kitty --class cliamp -e cliamp %F` + audio MimeType list |
 | `hyprland-cliamp.conf` | `# >>> cliamp music player >>>` marked block (float rules + Super+M), appended to hypr-user.conf |
 
@@ -39,7 +39,7 @@ prebuilt in the `[omarchy]` pacman repo HyperWebster already carries
 - Add `cliamp` to the package list (from `[omarchy]`).
 - Bake the desktop entry, the MIME defaults (skeleton
   `~/.config/mimeapps.list`), the marked block (verbatim, markers
-  included — the installer greps for it), and the keymap doc row.
+  included - the installer greps for it), and the keymap doc row.
 
 ## Test
 
@@ -47,7 +47,7 @@ prebuilt in the `[omarchy]` pacman repo HyperWebster already carries
    (no second instance). `Super+Shift+M` still toggles the music panel.
 2. Open an `.mp3`/`.flac` from the file manager → opens in CLIAmp.
 3. `xdg-mime query default audio/mpeg` → `cliamp.desktop`.
-4. Super+K lists `Super+M  Music player — CLIAmp…`.
+4. Super+K lists `Super+M  Music player - CLIAmp…`.
 
 ## Notes
 

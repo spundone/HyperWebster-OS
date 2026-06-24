@@ -1,4 +1,4 @@
-# drive-automount — premount data drives at boot
+# drive-automount - premount data drives at boot
 
 On boot, discovers **non-system** block devices with a supported filesystem and
 mounts them under `/mnt/<label>` (or `/mnt/disk-<uuid8>` when unlabeled).

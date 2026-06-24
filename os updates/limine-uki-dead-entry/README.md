@@ -24,22 +24,22 @@ entry) boots normally.
   pointing at the now-deleted files. With **no `default_entry`**, this dead
   entry is the **auto-boot default** → TTY.
 - The auto-generated UKI entry (`protocol: efi` → `/EFI/Linux/hyperwebster_linux.efi`)
-  is correct and bootable — that's the "Linux" entry that worked.
+  is correct and bootable - that's the "Linux" entry that worked.
 
 ### Evidence
 - `vmlinuz-linux` / `initramfs-linux.img`: **absent**.
 - Dead entry present in both `limine.conf` and the pre-update `limine.conf.old`
   (shipped from the ISO).
-- UKI is **current**: its sha256 equals the freshly-built image — not stale
+- UKI is **current**: its sha256 equals the freshly-built image - not stale
   (the May-28 mtime is merely preserved). So the UKI is not the problem.
 - GPU-agnostic; prior AMD rounds likely never ran a post-install kernel update.
 
-### Secondary risk (NVIDIA-specific) — flag for the builder
+### Secondary risk (NVIDIA-specific) - flag for the builder
 The UKI is **139 MB** (NVIDIA driver + GSP firmware; `linux-firmware-nvidia` is
 214 MB) on a **511 MB** ESP. limine.conf already shows the live UKI + a history
 copy. As more kernel versions / snapshot UKIs accumulate, the ESP can fill, and
 then UKI writes *would* genuinely fail (a real stale-UKI scenario). Recommend:
-size the ESP ≥1–2 GB on NVIDIA, and/or trim the initramfs (don't embed the full
+size the ESP ≥1-2 GB on NVIDIA, and/or trim the initramfs (don't embed the full
 GSP firmware), and/or keep UKI snapshot history off the ESP.
 
 ## Fix
@@ -64,5 +64,5 @@ grep -A3 'HyperWebster (Arch Linux)' /boot/limine.conf   # protocol: efi + UKI p
 Then reboot and confirm the top/default entry boots to the desktop.
 
 ## Files
-- `fix-limine-uki-entry.sh` — idempotent root repair.
-- `migrations/1781434800-limine-uki-dead-entry.sh` — delegates to it.
+- `fix-limine-uki-entry.sh` - idempotent root repair.
+- `migrations/1781434800-limine-uki-dead-entry.sh` - delegates to it.

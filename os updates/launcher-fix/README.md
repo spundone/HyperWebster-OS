@@ -1,10 +1,10 @@
-# launcher-fix — Super+Space opens the launcher and keeps it open
+# launcher-fix - Super+Space opens the launcher and keeps it open
 
 Bug fix for omarchy-keys (Omarchy keybindings).
 
 ## Symptom
 
-`Super+Space` flashes the app launcher open, then it immediately disappears —
+`Super+Space` flashes the app launcher open, then it immediately disappears -
 it won't stay.
 
 ## Root cause
@@ -46,7 +46,7 @@ edits to the caelestia clone.
 sh install-launcher-fix.sh
 ```
 
-## Builder notes — fold into omarchy-keys
+## Builder notes - fold into omarchy-keys
 
 In `omarchy-keys/omarchy-keys-user.conf`, replace
 `bind = Super, Space, global, caelestia:launcher` with
