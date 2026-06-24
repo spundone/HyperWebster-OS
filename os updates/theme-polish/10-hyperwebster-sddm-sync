@@ -1,0 +1,2 @@
+# Allow passwordless SDDM theme sync when the desktop palette changes.
+%wheel ALL=(root) NOPASSWD: /usr/local/bin/sddm-theme-sync

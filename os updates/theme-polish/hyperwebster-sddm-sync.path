@@ -1,0 +1,10 @@
+[Unit]
+Description=Sync SDDM greeter to Caelestia scheme change
+Documentation=file:///usr/local/share/hyperwebster/theme-polish/README.md
+
+[Path]
+PathChanged=%h/.local/state/caelestia/scheme.json
+MakeDirectory=no
+
+[Install]
+WantedBy=default.target

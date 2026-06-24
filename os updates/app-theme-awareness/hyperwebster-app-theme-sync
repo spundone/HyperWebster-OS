@@ -1,0 +1,49 @@
+#!/bin/sh
+# hyperwebster-app-theme-sync — make external apps follow Caelestia's light/dark mode.
+set -u
+
+mode=$(caelestia scheme get 2>/dev/null | awk -F': *' '/Mode:/{print tolower($2); exit}')
+case "$mode" in
+  dark)
+    cs=prefer-dark;  pd=true
+    gtk_theme=adw-gtk3-dark; icon_theme=Papirus-Dark
+    ;;
+  light)
+    cs=prefer-light; pd=false
+    gtk_theme=adw-gtk3; icon_theme=Papirus
+    ;;
+  *)
+    cs=default; pd=false
+    gtk_theme=adw-gtk3; icon_theme=Papirus
+    ;;
+esac
+
+if command -v gsettings >/dev/null 2>&1; then
+  gsettings set org.gnome.desktop.interface color-scheme "$cs" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" 2>/dev/null || true
+  gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
+fi
+
+for v in 3.0 4.0; do
+  d="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-$v"; f="$d/settings.ini"
+  mkdir -p "$d"
+  [ -f "$f" ] || printf '[Settings]\n' > "$f"
+  grep -q '^\[Settings\]' "$f" || printf '[Settings]\n' >> "$f"
+  if grep -q '^gtk-application-prefer-dark-theme' "$f"; then
+    sed -i "s/^gtk-application-prefer-dark-theme.*/gtk-application-prefer-dark-theme=$pd/" "$f"
+  else
+    printf 'gtk-application-prefer-dark-theme=%s\n' "$pd" >> "$f"
+  fi
+  if grep -q '^gtk-theme-name' "$f"; then
+    sed -i "s/^gtk-theme-name.*/gtk-theme-name=$gtk_theme/" "$f"
+  else
+    printf 'gtk-theme-name=%s\n' "$gtk_theme" >> "$f"
+  fi
+  if grep -q '^gtk-icon-theme-name' "$f"; then
+    sed -i "s/^gtk-icon-theme-name.*/gtk-icon-theme-name=$icon_theme/" "$f"
+  else
+    printf 'gtk-icon-theme-name=%s\n' "$icon_theme" >> "$f"
+  fi
+done
+
+echo "app-theme: mode=${mode:-unknown} -> color-scheme=$cs gtk=$gtk_theme icons=$icon_theme"

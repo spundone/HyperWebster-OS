@@ -1,0 +1,7 @@
+[Unit]
+Description=Sync SDDM greeter to Caelestia scheme change
+Documentation=file:///usr/local/share/hyperwebster/theme-polish/README.md
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/sudo -n /usr/local/bin/sddm-theme-sync
