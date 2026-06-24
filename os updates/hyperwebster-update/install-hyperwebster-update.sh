@@ -68,6 +68,7 @@ done
 [ -d "$SRC/hypersmooth-display" ] && cp -a "$SRC/hypersmooth-display" "$DEST/"
 [ -d "$SRC/zephyr-polish" ] && cp -a "$SRC/zephyr-polish" "$DEST/"
 [ -d "$SRC/distro-tools" ] && cp -a "$SRC/distro-tools" "$DEST/"
+[ -d "$SRC/shell-branding" ] && cp -a "$SRC/shell-branding" "$DEST/"
 
 # The update system itself.
 cp -a "$SRC/hyperwebster-update" "$DEST/"

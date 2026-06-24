@@ -88,7 +88,19 @@ update, PCR drift, cleared TPM). Re-enroll:
 sudo hyperwebster-luks-tpm-enroll /dev/disk/by-partuuid/YOUR-LUKS-PARTUUID
 ```
 
-(`hyperwebster-luks-tpm-enroll` rebuilds the initramfs automatically.)
+(`hyperwebster-luks-tpm-enroll` rebuilds the initramfs and runs `limine-update` when available.)
+
+#### Troubleshooting
+
+| Symptom | What to do |
+|---------|------------|
+| Passphrase every boot | `sudo systemd-cryptenroll --list /dev/disk/by-partuuid/…` — if no TPM2 token, re-enroll with `hyperwebster-luks-tpm-enroll`. |
+| Enrollment failed at install | TPM may be unavailable in the live ISO chroot — enroll after first boot with the same command. |
+| Worked once, fails after BIOS update | PCR drift — passphrase fallback should still work; re-enroll with `--pcrs 7+11`. |
+| Secure Boot disabled | Try `sudo hyperwebster-luks-tpm-enroll --pcrs 7+11 /dev/disk/by-partuuid/…`. |
+| Initramfs missing TPM support | Confirm `sd-encrypt` in `/etc/mkinitcpio.conf`; run `hyperwebster-update` or `install-luks-tpm-unlock.sh`. |
+
+Verify TPM: `systemd-cryptenroll --tpm2-device=list` and `tpm2_pcrread sha256:7` (package `tpm2-tools`).
 
 #### Boot flow (LUKS + TPM)
 

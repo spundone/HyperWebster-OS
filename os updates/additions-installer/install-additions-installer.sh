@@ -24,26 +24,29 @@ install -m 0755 "$SRC/obs-extras.sh" "$SHARE/obs-extras.sh"
 install -m 0644 "$SRC/AdditionsPage.qml" "$SHARE/AdditionsPage.qml"
 install -m 0755 "$SRC/patch-additions-page.sh" "$SHARE/patch-additions-page.sh"
 
-# 3. Apply the QML patch now.
-sudo sh "$SHARE/patch-additions-page.sh"
-
-# 4. Pacman hook: caelestia-shell upgrades revert both registries — re-patch.
-HOOK=/etc/pacman.d/hooks/hyperwebster-additions-page.hook
-sudo mkdir -p /etc/pacman.d/hooks
-sudo tee "$HOOK" > /dev/null <<EOF
+# 3. QML registration — skipped when the ISO builder already branded nosignal-shell.
+if [ -n "${HYPERWEBSTER_SKIP_SHELL_PATCH:-}" ]; then
+  echo ":: skipping Additions QML patch (HYPERWEBSTER_SKIP_SHELL_PATCH — fork ships the page)"
+else
+  sudo sh "$SHARE/patch-additions-page.sh"
+  HOOK=/etc/pacman.d/hooks/hyperwebster-additions-page.hook
+  sudo mkdir -p /etc/pacman.d/hooks
+  sudo tee "$HOOK" > /dev/null <<EOF
 [Trigger]
 Operation = Install
 Operation = Upgrade
 Type = Package
 Target = hyperwebster-shell
 Target = caelestia-shell
+Target = nosignal-shell
 
 [Action]
 Description = Re-applying HyperWebster Additions settings page...
 When = PostTransaction
 Exec = /bin/sh $SHARE/patch-additions-page.sh
 EOF
-echo ":: pacman hook installed -> $HOOK"
+  echo ":: pacman hook installed -> $HOOK"
+fi
 
 # 5. Seed the status cache so the page has data on first open.
 "$BIN/hyperwebster-additions" status >/dev/null 2>&1 || true

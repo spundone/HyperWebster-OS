@@ -102,7 +102,7 @@ FLATHUB_REPO_URL="https://dl.flathub.org/repo/flathub.flatpakrepo"
 BASE_PKGS=(
   base linux linux-cachyos linux-cachyos-headers linux-firmware
   cachyos-keyring cachyos-mirrorlist cachyos-v3-mirrorlist cachyos-v4-mirrorlist
-  intel-ucode amd-ucode cryptsetup tpm2-tss
+  intel-ucode amd-ucode cryptsetup tpm2-tss tpm2-tools
   networkmanager openssh sudo git curl wget vim less base-devel
   limine efibootmgr zram-generator
   btrfs-progs btrfsmaintenance snapper snap-pac btrfs-assistant-git
@@ -1959,13 +1959,22 @@ echo "==> Installing drive automount..."
 arch-chroot /mnt sh "$USER_HOME/.local/share/hyperwebster/drive-automount/install-drive-automount.sh" \
   || echo "    (drive-automount install failed — mount data drives manually)"
 
-# --- changes 8/25/20: Updates page, Additions page, and Wi-Fi wrong-password
-# recovery are now BAKED INTO the pinned hyperwebster-shell fork (Phase 2 — we own
-# the shell, so the old patch-script + pacman-hook machinery that re-applied
-# these after every caelestia-shell upgrade is gone). The Updates/Additions
-# CLIs + units are still installed above; only the shell-side QML edits moved
-# into the fork source. The Additions status cache is still seeded below.
+# --- changes 8/25/20: Updates/Additions/Wi-Fi pages ship in nosignal-shell, rebranded
+# to hyperwebster-* at ISO build (see shell-branding/) + install-time safety patch.
+# Additions manifest + status cache install below; Updates timer units above.
 install -d -m 755 /mnt/etc/pacman.d/hooks
+
+# --- change 25: Additions manifest + status cache (shell QML is branded at ISO build).
+echo "==> Installing Additions backend (manifest + status cache)..."
+arch-chroot /mnt runuser -u "$USERNAME" -- \
+  env HOME="$USER_HOME" HYPERWEBSTER_SKIP_SHELL_PATCH=1 \
+  sh "$USER_HOME/.local/share/hyperwebster/additions-installer/install-additions-installer.sh" \
+  || echo "    (additions-installer failed — Settings → Additions may be empty)"
+
+# --- Shell branding safety net (patch installed QML if the on-box package predates build-time rebrand).
+echo "==> Applying shell branding (About / Updates / Additions CLIs)..."
+arch-chroot /mnt sh "$USER_HOME/.local/share/hyperwebster/shell-branding/install-shell-branding.sh" \
+  || echo "    (shell-branding patch failed — run hyperwebster-update after boot)"
 
 # --- change 31 (kernel-reboot-notify, finding F5): a pacman PostTransaction
 # hook that prints a "reboot required" reminder (and "boot the UKI entry") in
@@ -2163,6 +2172,9 @@ if [ "$USE_LUKS" -eq 0 ] && [ "${LUKS_TPM:-1}" -eq 0 ]; then
   if arch-chroot /mnt hyperwebster-luks-tpm-enroll \
        --passphrase-file /root/hyperwebster-luks-pw --pcrs 7 "$LUKS_DEV"; then
     echo "    TPM2 token enrolled (passphrase remains fallback)."
+    arch-chroot /mnt limine-update 2>/dev/null \
+      && echo "    Limine UKI refreshed after TPM enrollment." \
+      || true
   else
     echo "    TPM enrollment failed — passphrase-only unlock unchanged."
   fi
@@ -2206,7 +2218,9 @@ as_user hyperwebster-app-theme-sync >/dev/null 2>&1 || true
 # on first open (all 15 items not-installed on a fresh image — the page IS the
 # opt-in). Needs as_user, hence here rather than next to the QML patch.
 as_user "$USER_HOME/.local/bin/hyperwebster-additions" status >/dev/null 2>&1 \
-  || echo "    (Additions status seed failed — the page populates on first re-check)"
+  || echo "    (Additions status seed failed — run: hyperwebster-additions status)"
+as_user "$USER_HOME/.local/bin/hyperwebster-update-check" >/dev/null 2>&1 \
+  || echo "    (Updates status seed failed — run: hyperwebster-update-check)"
 
 arch-chroot /mnt chown -R "$USERNAME:$USERNAME" "$USER_HOME/.local/state" 2>/dev/null || true
 
@@ -2400,18 +2414,22 @@ CHROOTPAC
     echo "==> Building AUR package: $name..."
     rm -rf "${OFFLINE:?}/aur/$name"
     if [ "$name" = "nosignal-shell" ]; then
-      # NOT an AUR package — it's our fork of the caelestia shell. Pull the
-      # PKGBUILD from the fork at the pinned commit and pin the git source to
-      # the same commit (reproducible, exactly like quickshell-git below). The
-      # PKGBUILD already carries DISTRIBUTOR + the `git` makedepend that the
-      # shell's M3Shapes CMake FetchContent needs in a clean chroot, so no
-      # further patching is required here.
+      # NOT an AUR package — HyperWebster's fork of the caelestia shell. Clone,
+      # rebrand nosignal -> hyperwebster in QML + DISTRIBUTOR, then build from the
+      # local tree (not a live git fetch) so ISO shells match hyperwebster-* CLIs.
       mkdir -p "$OFFLINE/aur/$name"
+      rm -rf "$OFFLINE/aur/$name.fork"
       git clone --depth 1 "$HYPERWEBSTER_SHELL_REPO" -b nosignal "$OFFLINE/aur/$name.fork"
       ( cd "$OFFLINE/aur/$name.fork" && git fetch --depth 1 origin "$HYPERWEBSTER_SHELL_COMMIT" && git checkout -q "$HYPERWEBSTER_SHELL_COMMIT" )
+      SHELL_ROOT="$OFFLINE/aur/$name.fork" sh "$HYPERWEBSTER_LAYER_DIR/shell-branding/patch-shell-branding.sh"
+      rm -rf "$OFFLINE/aur/$name/nosignal-shell"
+      cp -a "$OFFLINE/aur/$name.fork" "$OFFLINE/aur/$name/nosignal-shell"
       cp "$OFFLINE/aur/$name.fork/packaging/PKGBUILD" "$OFFLINE/aur/$name/PKGBUILD"
-      rm -rf "$OFFLINE/aur/$name.fork"
-      sed -i 's|#branch=nosignal|#commit='"$HYPERWEBSTER_SHELL_COMMIT"'|' "$OFFLINE/aur/$name/PKGBUILD"
+      sed -i 's|^source=.*|source=("nosignal-shell")|' "$OFFLINE/aur/$name/PKGBUILD"
+      sed -i 's|DDISTRIBUTOR="NoSignal (package: $_pkgname)"|DDISTRIBUTOR="HyperWebster (package: $_pkgname)"|' \
+        "$OFFLINE/aur/$name/PKGBUILD"
+      sed -i 's|pkgdesc="NoSignal desktop shell|pkgdesc="HyperWebster desktop shell|' \
+        "$OFFLINE/aur/$name/PKGBUILD"
     else
       git clone --depth 1 "https://aur.archlinux.org/$name.git" "$OFFLINE/aur/$name"
     fi

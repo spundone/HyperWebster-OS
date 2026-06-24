@@ -48,6 +48,7 @@ Operation = Upgrade
 Type = Package
 Target = hyperwebster-shell
 Target = caelestia-shell
+Target = nosignal-shell
 
 [Action]
 Description = Re-applying HyperWebster Updates settings page...

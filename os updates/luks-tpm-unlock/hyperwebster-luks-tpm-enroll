@@ -9,12 +9,12 @@ usage() {
 Usage: hyperwebster-luks-tpm-enroll [options] <luks-device>
 
 Options:
-  --passphrase-file PATH   unlock key file (default: prompt)
-  --pcrs LIST              TPM PCRs (default: 7 — Secure Boot state)
+  --passphrase-file PATH   LUKS passphrase file (default: prompt)
+  --pcrs LIST              TPM PCRs (default: 7 — Secure Boot state; try 7+11 if boot fails)
   --dry-run                print actions only
 
 Example (fresh install chroot):
-  echo -n "$LUKS_PW" | hyperwebster-luks-tpm-enroll /dev/nvme0n1p2
+  hyperwebster-luks-tpm-enroll --passphrase-file /root/hyperwebster-luks-pw /dev/nvme0n1p2
 
 Example (running system, root):
   hyperwebster-luks-tpm-enroll /dev/disk/by-partuuid/XXXX
@@ -27,6 +27,20 @@ need_root() {
 
 tpm_present() {
   [[ -e /dev/tpmrm0 || -e /dev/tpm0 ]]
+}
+
+rebuild_initramfs() {
+  if ! command -v mkinitcpio >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "Rebuilding initramfs (sd-encrypt / UKI)…"
+  /usr/bin/mkinitcpio -P 2>/dev/null || mkinitcpio -P || {
+    echo "WARNING: mkinitcpio -P failed — rebuild initramfs manually" >&2
+    return 1
+  }
+  if command -v limine-update >/dev/null 2>&1; then
+    limine-update 2>/dev/null || echo "NOTE: limine-update failed — UKI may be stale until next kernel update" >&2
+  fi
 }
 
 DRYRUN=0
@@ -58,31 +72,43 @@ if ! command -v systemd-cryptenroll >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! cryptsetup isLuks "$DEVICE" 2>/dev/null; then
+  echo "Error: $DEVICE is not a LUKS volume." >&2
+  exit 1
+fi
+
 # Resolve symlinks for clearer logs.
 DEVICE=$(readlink -f "$DEVICE" 2>/dev/null || echo "$DEVICE")
 
 if [[ $DRYRUN -eq 1 ]]; then
-  echo "+ systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=$PCRS $DEVICE"
+  echo "+ systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=$PCRS --unlock-passphrase $DEVICE"
   exit 0
 fi
 
-ARGS=(--tpm2-device=auto --tpm2-pcrs="$PCRS" "$DEVICE")
-if [[ -n "$PASS_FILE" ]]; then
-  ARGS=(--unlock-key-file="$PASS_FILE" "${ARGS[@]}")
-else
-  ARGS=(--unlock-passphrase "${ARGS[@]}")
-fi
+enroll() {
+  local pcrs="$1"
+  local args=(--tpm2-device=auto --tpm2-pcrs="$pcrs" --unlock-passphrase "$DEVICE")
+  if [[ -n "$PASS_FILE" ]]; then
+    systemd-cryptenroll "${args[@]}" <"$PASS_FILE"
+  else
+    systemd-cryptenroll "${args[@]}"
+  fi
+}
 
 echo "Enrolling $DEVICE with TPM2 (PCRs: $PCRS)…"
-if systemd-cryptenroll "${ARGS[@]}"; then
-  echo "TPM2 token enrolled. Passphrase unlock remains available as fallback."
-  echo "If boot stops auto-unlocking after a firmware/Secure Boot change, run:"
-  echo "  sudo hyperwebster-luks-tpm-enroll --pcrs $PCRS $DEVICE"
-  if command -v mkinitcpio >/dev/null 2>&1; then
-    echo "Rebuilding initramfs (sd-encrypt / UKI)…"
-    /usr/bin/mkinitcpio -P 2>/dev/null || mkinitcpio -P || true
-  fi
+if enroll "$PCRS"; then
+  :
+elif [[ "$PCRS" == "7" ]]; then
+  echo "PCR 7 enrollment failed — retrying with PCRs 7+11 (firmware + boot policy)…" >&2
+  enroll "7+11"
+  PCRS="7+11"
 else
   echo "TPM enrollment failed — LUKS passphrase unlock is unchanged." >&2
   exit 1
 fi
+
+echo "TPM2 token enrolled (PCRs: $PCRS). Passphrase unlock remains available as fallback."
+echo "Verify tokens: systemd-cryptenroll --list $DEVICE"
+echo "If boot stops auto-unlocking after a firmware/Secure Boot change, re-enroll:"
+echo "  sudo hyperwebster-luks-tpm-enroll --pcrs $PCRS $DEVICE"
+rebuild_initramfs

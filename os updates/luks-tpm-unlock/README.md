@@ -29,9 +29,22 @@ Initramfs rebuild runs automatically after enrollment.
 Limine → UKI initramfs (`sd-encrypt`) → TPM unlock (or Plymouth passphrase) →
 btrfs `@` → Plymouth splash → SDDM.
 
+## Troubleshooting
+
+| Symptom | Check / fix |
+|---------|-------------|
+| Passphrase prompt every boot | `sudo systemd-cryptenroll --list /dev/disk/by-partuuid/…` — no TPM token? Re-run `hyperwebster-luks-tpm-enroll`. |
+| Enrollment fails in installer | Live ISO chroot may lack TPM access — enroll after first boot (same command). |
+| Worked once, fails after BIOS update | PCR drift — passphrase fallback should still work; re-enroll (try `--pcrs 7+11`). |
+| `sd-encrypt` missing | `grep sd-encrypt /etc/mkinitcpio.conf` — run `install-luks-tpm-unlock.sh` or `hyperwebster-update`. |
+| Secure Boot off | PCR 7 alone may be insufficient — enroll with `--pcrs 7+11`. |
+
+Verify TPM: `systemd-cryptenroll --tpm2-device=list` and `tpm2_pcrread sha256:7` (needs `tpm2-tools`).
+
+After any enrollment or hook change, `hyperwebster-luks-tpm-enroll` rebuilds the initramfs and runs `limine-update` when available.
+
 ## Hardware testing
 
-- Verify TPM is visible: `systemd-cryptenroll --tpm2-device=list`
 - Cold boot without controller/keyboard: should reach SDDM without passphrase
 - After a BIOS/Secure Boot change: passphrase fallback should still work; re-enroll TPM
 
