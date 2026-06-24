@@ -355,13 +355,20 @@ nsi_fail() {
   tail -n 25 /tmp/installer.log 2>/dev/null
 }
 
-# Banner — centred Starman figure + box. Monospace ASCII only (no CJK).
+# Banner — centred Starman (helmet + visor + beer mug). ASCII + box-drawing only.
 STARMAN_LINES=(
-  '                   *                   '
-  '                 /|\\                  '
-  '                / | \\                 '
-  '                  |                    '
-  '                 / \\                  '
+  '              .-------.                '
+  '             /    o    \               '
+  '            |  .-----.  |              '
+  '            | | #### | |              '
+  '            |  `-----`  |              '
+  '             \    |    /               '
+  '           ___|    |___               '
+  '          /   |~~~~|   \              '
+  '         |    |####|    |             '
+  '         |     \__/     |             '
+  '          \      |      /              '
+  '           `-----+-----`               '
 )
 for line in "${STARMAN_LINES[@]}"; do
   printf '%s%s%s\n' "$(nsi_pad ${#line})" "$NSI_GB" "$line"

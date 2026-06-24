@@ -1,4 +1,5 @@
-# HyperWebster Plymouth — Bowie Starman figure + wordmark on black.
+# HyperWebster Plymouth — Starman astronaut with beer (logo.png) on black.
+# Image: classic white suit, dark visor, mug + foam; green/blue wordmark below.
 
 Window.SetBackgroundTopColor(0, 0, 0);
 Window.SetBackgroundBottomColor(0, 0, 0);
@@ -6,48 +7,22 @@ Window.SetBackgroundBottomColor(0, 0, 0);
 screen_width = Window.GetWidth();
 screen_height = Window.GetHeight();
 
-base_y = screen_height / 2 - 72;
-
-star.image = Image.Text("*", 0.95, 0.95, 0.45, 1.0);
-star.sprite = Sprite(star.image);
-star.sprite.SetX(screen_width / 2 - star.image.GetWidth() / 2);
-star.sprite.SetY(base_y);
-star.sprite.SetOpacity(1);
-
-arms.image = Image.Text("/|\\", 0.75, 0.75, 0.75, 1.0);
-arms.sprite = Sprite(arms.image);
-arms.sprite.SetX(screen_width / 2 - arms.image.GetWidth() / 2);
-arms.sprite.SetY(base_y + 22);
-arms.sprite.SetOpacity(1);
-
-body.image = Image.Text("/ | \\", 0.75, 0.75, 0.75, 1.0);
-body.sprite = Sprite(body.image);
-body.sprite.SetX(screen_width / 2 - body.image.GetWidth() / 2);
-body.sprite.SetY(base_y + 44);
-body.sprite.SetOpacity(1);
-
-torso.image = Image.Text("  |  ", 0.75, 0.75, 0.75, 1.0);
-torso.sprite = Sprite(torso.image);
-torso.sprite.SetX(screen_width / 2 - torso.image.GetWidth() / 2);
-torso.sprite.SetY(base_y + 66);
-torso.sprite.SetOpacity(1);
-
-legs.image = Image.Text(" / \\ ", 0.75, 0.75, 0.75, 1.0);
-legs.sprite = Sprite(legs.image);
-legs.sprite.SetX(screen_width / 2 - legs.image.GetWidth() / 2);
-legs.sprite.SetY(base_y + 88);
-legs.sprite.SetOpacity(1);
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(screen_width / 2 - logo.image.GetWidth() / 2);
+logo.sprite.SetY(screen_height / 2 - logo.image.GetHeight() / 2 - 48);
+logo.sprite.SetOpacity(1);
 
 title.image = Image.Text("HYPERWEBSTER", 0.55, 0.88, 0.55, 1.0);
 title.sprite = Sprite(title.image);
 title.sprite.SetX(screen_width / 2 - title.image.GetWidth() / 2);
-title.sprite.SetY(base_y + 118);
+title.sprite.SetY(screen_height / 2 + logo.image.GetHeight() / 2 - 20);
 title.sprite.SetOpacity(1);
 
 subtitle.image = Image.Text("STARMAN", 0.55, 0.72, 0.95, 1.0);
 subtitle.sprite = Sprite(subtitle.image);
 subtitle.sprite.SetX(screen_width / 2 - subtitle.image.GetWidth() / 2);
-subtitle.sprite.SetY(base_y + 148);
+subtitle.sprite.SetY(screen_height / 2 + logo.image.GetHeight() / 2 + 10);
 subtitle.sprite.SetOpacity(1);
 
 message.sprite = Sprite();
@@ -60,6 +35,7 @@ fun message_callback(text) {
 Plymouth.SetMessageFunction(message_callback);
 
 fun quit_callback() {
+    logo.sprite.SetOpacity(1);
     title.sprite.SetOpacity(1);
     subtitle.sprite.SetOpacity(1);
 }
