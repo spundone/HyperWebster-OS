@@ -54,6 +54,13 @@ done
 # Passwordless sudo toggle
 [ -d "$SRC/sudo-timed-nopasswd" ] && cp -a "$SRC/sudo-timed-nopasswd" "$DEST/"
 [ -d "$SRC/starman-gaming-boot" ] && cp -a "$SRC/starman-gaming-boot" "$DEST/"
+[ -d "$SRC/luks-tpm-unlock" ] && cp -a "$SRC/luks-tpm-unlock" "$DEST/"
+[ -d "$SRC/chimera-deckify-gaming" ] && cp -a "$SRC/chimera-deckify-gaming" "$DEST/"
+[ -d "$SRC/cachyos-kernel-manager" ] && cp -a "$SRC/cachyos-kernel-manager" "$DEST/"
+[ -d "$SRC/tcl-t89c-display" ] && cp -a "$SRC/tcl-t89c-display" "$DEST/"
+[ -d "$SRC/launcher-raycast" ] && cp -a "$SRC/launcher-raycast" "$DEST/"
+[ -d "$SRC/blur-toggle" ] && cp -a "$SRC/blur-toggle" "$DEST/"
+[ -d "$SRC/cachyos-repo-switch" ] && cp -a "$SRC/cachyos-repo-switch" "$DEST/"
 [ -d "$SRC/theme-polish" ] && cp -a "$SRC/theme-polish" "$DEST/"
 [ -d "$SRC/drive-automount" ] && cp -a "$SRC/drive-automount" "$DEST/"
 

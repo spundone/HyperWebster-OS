@@ -29,18 +29,23 @@ them. Please support the originals; each remains under its own licence.
   snapshots on package transactions.
 - **[Omarchy](https://omarchy.org)** — keybinding layout inspiration and
   prebuilt `[omarchy]` repo for Limine snapshot tooling.
-- **cryptsetup / LUKS** — full-disk encryption (Arch `base` ecosystem).
+- **cryptsetup / LUKS** + **systemd-cryptenroll** — full-disk encryption with
+  optional TPM2 auto-unlock.
 
 ## Gaming
 
-- **[DeckShift](https://github.com/28allday/DeckShift)** — desktop ↔ gamescope
-  Steam session switching (opt-in post-install).
-- **gamescope** + **Steam** — gaming session stack (user-installed via DeckShift).
+- **[ChimeraOS](https://chimeraos.org)** — `gamescope-session` / `gamescope-session-steam`
+  session stack (AUR PKGBUILDs; integrated via Deckify path).
+- **[Arch Deckify](https://github.com/unlbslk/arch-deckify)** — SteamOS-like session
+  switching inspiration for `hyperwebster-deckify-install`.
+- **[DeckShift](https://github.com/28allday/DeckShift)** — alternative desktop ↔
+  gamescope session switching (opt-in post-install).
+- **gamescope** + **Steam** — gaming session compositor and store.
 
 ## Hardware detection & tuning
 
 - **[CachyOS](https://github.com/CachyOS/CachyOS)** — `linux-cachyos` kernel (default),
-  pacman repositories, and repo bootstrap tooling (`cachyos-repo.tar.xz` stanzas).
+  `cachyos-kernel-manager`, pacman repositories, and repo bootstrap tooling.
 - **[CachyOS `chwd`](https://github.com/CachyOS/chwd)** — GPU detection
   *method* (PCI scan → vendor → driver set), reimplemented natively in the
   builder.
@@ -48,6 +53,11 @@ them. Please support the originals; each remains under its own licence.
   sysctl + I/O scheduler rules vendored as plain text.
 - **[Omarchy installer shims](https://github.com/28allday)** — gaming package
   helpers (`omarchy-pkg-add`, etc.).
+
+## Networking
+
+- **[Tailscale](https://tailscale.com)** — mesh VPN (preinstalled; user authenticates
+  with `tailscale up`).
 
 ## Themes, icons & fonts
 
@@ -64,9 +74,9 @@ them. Please support the originals; each remains under its own licence.
 
 ## Maintainer
 
-HyperWebster / Starman branding, wallpaper art, layer overrides, LUKS installer
-flow, Starman boot entry, and theme polish are maintained by **Spandan**
-as a personal distro flavor.
+HyperWebster / Starman branding, wallpaper art, layer overrides, LUKS/TPM installer
+flow, Starman boot entry, TV display profiles, and theme polish are maintained by
+**Spandan** as a personal distro flavor.
 
 ## Licence
 
