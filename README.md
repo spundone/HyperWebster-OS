@@ -12,6 +12,13 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for hardware guidance and
 > HyperWebster is the *ISO builder*. It bundles and installs the upstream caelestia
 > dotfiles; it is not affiliated with that project.
 
+## Disclaimer
+
+> **Vibecoded and experimental.** This repository was built largely with AI-assisted
+> development. It has **not been tested** on real hardware at scale and is meant for
+> **personal use only for now**. Use at your own risk - there is no warranty, and the
+> ISO builder should be treated as experimental.
+
 ## What you get on the installed system
 
 - **Hyprland + caelestia shell** (Quickshell), restyled with a restrained flat
