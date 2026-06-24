@@ -58,9 +58,14 @@ On an **Arch Linux** host with internet:
 sudo pacman -S --needed git libisoburn squashfs-tools coreutils devtools pacman-contrib reflector util-linux
 git clone https://github.com/spundone/HyperWebster-OS.git
 cd HyperWebster-OS
-curl -LO https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
 ./hyperwebster.sh
 ```
+
+If no stock Arch ISO (`archlinux-*.iso`) is in the repo root, the script **downloads
+the latest automatically** from official mirrors (~1.3 GB). To supply your own ISO
+instead, place it in the repo root or set `HYPERWEBSTER_ARCH_ISO`. Set
+`HYPERWEBSTER_SKIP_ISO_DOWNLOAD=1` to restore fail-fast behavior when the ISO is
+missing.
 
 Output: `hyperwebster-arch-YYYYMMDD.iso` (~4 GB). Cached payload in `./offline/`.
 
@@ -76,19 +81,17 @@ to run an Arch container with the repo bind-mounted.
 **Requirements**
 
 - Docker Desktop for Mac (or Podman on Linux) with ~30 GB free disk
-- Stock Arch ISO in the repo root (`archlinux-*.iso`, ~1.3 GB download)
-- Stable internet for the first build (AUR + package downloads)
+- Stable internet for the first build (stock ISO auto-download + AUR + packages)
 
 **Step by step (macOS)**
 
 1. Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/).
-2. Clone the repo and download a stock Arch ISO:
+2. Clone the repo (stock Arch ISO is downloaded on first build if missing):
 
    ```bash
    git clone https://github.com/spundone/HyperWebster-OS.git
    cd HyperWebster-OS
    git checkout feature/cross-platform-build   # until merged to main
-   curl -LO https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
    ```
 
 3. Run the wrapper (builds the Arch image on first run, then builds the ISO):
@@ -111,6 +114,7 @@ to run an Arch container with the repo bind-mounted.
 - **Force container on Arch:** `HYPERWEBSTER_FORCE_CONTAINER=1 ./build.sh`
 
 **Useful env vars** (native or container): `HYPERWEBSTER_ARCH_ISO`,
+`HYPERWEBSTER_ARCH_ISO_URL`, `HYPERWEBSTER_SKIP_ISO_DOWNLOAD=1`,
 `HYPERWEBSTER_MIRRORLIST`, `HYPERWEBSTER_REFRESH_MIRRORS=1`, `SSH_PUBKEY`
 (dev builds only). See `hyperwebster.sh` header comments.
 

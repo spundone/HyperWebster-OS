@@ -43,7 +43,9 @@
 # devtools (mkarchroot/makechrootpkg), pacman-contrib (paccache).
 #
 # Cross-platform / container build env vars (see also ./build.sh and README):
-#   HYPERWEBSTER_ARCH_ISO   — path to stock archlinux-*.iso (default: repo dir)
+#   HYPERWEBSTER_ARCH_ISO          — path to stock archlinux-*.iso (default: repo dir)
+#   HYPERWEBSTER_ARCH_ISO_URL      — custom mirror URL for auto-download
+#   HYPERWEBSTER_SKIP_ISO_DOWNLOAD — set to 1 to fail if no local stock ISO
 #   HYPERWEBSTER_BUILD_UID  — final ISO owner uid (set by build-in-container.sh)
 #   HYPERWEBSTER_BUILD_GID  — final ISO owner gid
 #   HYPERWEBSTER_BUILD_USER — invoking username for chown fallback
@@ -2565,32 +2567,10 @@ CHROOTPAC
 # inject, re-squash, repack, output.
 # ===========================================================================
 
-# ---- locate stock ISO ----------------------------------------------------
-STOCK_ISO=""
-if [ -n "${HYPERWEBSTER_ARCH_ISO:-}" ]; then
-  if [ ! -f "$HYPERWEBSTER_ARCH_ISO" ]; then
-    echo "ERROR: HYPERWEBSTER_ARCH_ISO=$HYPERWEBSTER_ARCH_ISO not found" >&2
-    exit 1
-  fi
-  STOCK_ISO="$HYPERWEBSTER_ARCH_ISO"
-else
-  shopt -s nullglob
-  CANDIDATES=("$SCRIPT_DIR"/archlinux-*.iso)
-  shopt -u nullglob
-  for iso in "${CANDIDATES[@]}"; do
-    [[ "$(basename "$iso")" == *HyperWebster* ]] && continue
-    STOCK_ISO="$iso"
-    break
-  done
-fi
-
-if [ -z "$STOCK_ISO" ]; then
-  echo "ERROR: No stock Arch ISO found in $SCRIPT_DIR" >&2
-  echo >&2
-  echo "Download the latest from https://archlinux.org/download/ and put it" >&2
-  echo "in this folder (filename must start with 'archlinux-')." >&2
-  exit 1
-fi
+# ---- locate stock ISO (auto-download when missing) -----------------------
+# shellcheck source=scripts/fetch-arch-iso.sh
+source "$SCRIPT_DIR/scripts/fetch-arch-iso.sh"
+STOCK_ISO="$(hyperwebster_ensure_stock_iso "$SCRIPT_DIR")"
 
 echo "  Stock ISO: $(basename "$STOCK_ISO")"
 echo "  Output:    $(basename "$OUT_ISO")"
