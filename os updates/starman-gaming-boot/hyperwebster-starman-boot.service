@@ -1,0 +1,14 @@
+[Unit]
+Description=HyperWebster Starman gaming boot (Limine entry)
+Documentation=file:///usr/local/share/hyperwebster/starman-gaming-boot/README.md
+DefaultDependencies=no
+Before=sddm.service display-manager.service
+ConditionKernelCommandLine=hyperwebster.starman=1
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/hyperwebster-starman-arm
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sddm.service

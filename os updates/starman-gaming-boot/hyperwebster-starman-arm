@@ -1,0 +1,34 @@
+#!/bin/bash
+# hyperwebster-starman-arm — arm one-shot SDDM autologin into the DeckShift
+# gaming session when the kernel cmdline contains hyperwebster.starman=1.
+# Invoked by hyperwebster-starman-boot.service before SDDM starts.
+set -euo pipefail
+
+grep -q 'hyperwebster\.starman=1' /proc/cmdline || exit 0
+
+CONF="/etc/sddm.conf.d/zz-gaming-session.conf"
+MARKER="/run/deckshift-session-switch"
+SESSION="gamescope-session-steam-nm"
+
+# DeckShift (or a compatible gamescope session) must be installed.
+if ! compgen -G "/usr/share/wayland-sessions/${SESSION}.desktop" >/dev/null \
+   && ! compgen -G "/usr/share/xsessions/${SESSION}.desktop" >/dev/null; then
+  echo "hyperwebster-starman: gaming session $SESSION not installed — skipping" >&2
+  exit 0
+fi
+
+USER_NAME=""
+for u in $(getent passwd | awk -F: '$3 >= 1000 && $3 < 65534 { print $1 }'); do
+  getent group wheel | grep -qw "$u" && USER_NAME="$u" && break
+done
+USER_NAME="${USER_NAME:-$(getent passwd | awk -F: '$3 >= 1000 && $3 < 65534 { print $1; exit }')}"
+[[ -n "$USER_NAME" ]] || { echo "hyperwebster-starman: no desktop user found" >&2; exit 1; }
+
+cat > "$CONF" << EOF
+[Autologin]
+User=${USER_NAME}
+Session=${SESSION}
+Relogin=false
+EOF
+touch "$MARKER"
+echo "hyperwebster-starman: armed one-shot autologin for $USER_NAME -> $SESSION"
