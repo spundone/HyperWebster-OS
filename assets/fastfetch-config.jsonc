@@ -5,9 +5,9 @@
     "source": "~/.config/fastfetch/logo.txt",
     "color": { "1": "blue", "2": "magenta" },
     "padding": {
-      "top": 2,
-      "right": 6,
-      "left": 2
+      "top": 1,
+      "right": 4,
+      "left": 1
     }
   },
   "modules": [

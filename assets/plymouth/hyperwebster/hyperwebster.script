@@ -1,4 +1,4 @@
-# HyperWebster Plymouth — Starman astronaut with beer (logo.png) on black.
+# HyperWebster Plymouth — Starman astronaut (logo.png) on black.
 # Image: classic white suit, dark visor, mug + foam; green/blue wordmark below.
 
 Window.SetBackgroundTopColor(0, 0, 0);
