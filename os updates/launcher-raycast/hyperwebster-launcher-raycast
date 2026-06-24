@@ -1,0 +1,37 @@
+#!/bin/bash
+# hyperwebster-launcher-raycast — merge Raycast-like launcher defaults into shell.json.
+set -euo pipefail
+
+SHELLJSON="${HOME}/.config/caelestia/shell.json"
+FRAG="${HOME}/.local/share/hyperwebster/launcher-raycast/launcher-shell.fragment.json"
+HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
+MARK_BEGIN='# >>> launcher-raycast >>>'
+MARK_END='# <<< launcher-raycast <<<'
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "jq is required for launcher-raycast merge" >&2
+  exit 1
+fi
+
+[ -f "$SHELLJSON" ] || { echo "$SHELLJSON not found" >&2; exit 1; }
+[ -f "$FRAG" ] || { echo "$FRAG not found" >&2; exit 1; }
+
+tmp=$(mktemp)
+jq -s '.[0] * .[1]' "$SHELLJSON" "$FRAG" > "$tmp" && mv "$tmp" "$SHELLJSON"
+echo "Merged Raycast-style launcher settings into $SHELLJSON"
+
+if [ -f "$HYPRUSER" ] && ! grep -qF "$MARK_BEGIN" "$HYPRUSER"; then
+  cat >> "$HYPRUSER" <<'EOF'
+
+# >>> launcher-raycast >>>
+# Centered keyboard-first launcher (Super+Space via drawers IPC).
+windowrule = float on, match:class caelestia-launcher
+windowrule = center on, match:class caelestia-launcher
+# <<< launcher-raycast <<<
+EOF
+  echo "Appended launcher window rules to $HYPRUSER"
+fi
+
+if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
+  hyprctl reload >/dev/null 2>&1 || true
+fi

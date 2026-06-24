@@ -1,0 +1,127 @@
+#!/bin/bash
+# hyperwebster-blur-toggle — optional frosted glass when blur is enabled.
+# Default HyperWebster install stays flat/restrained; enable for Raycast-style panels.
+set -euo pipefail
+
+HYPRVARS="${HOME}/.config/caelestia/hypr-vars.conf"
+SHELLJSON="${HOME}/.config/caelestia/shell.json"
+SHELLTOKENS="${HOME}/.config/caelestia/shell-tokens.json"
+OVCFG="${HOME}/.config/quickshell/overview/config.json"
+HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
+STATE="${HOME}/.local/state/hyperwebster/blur-enabled"
+MARK_BEGIN='# >>> hyperwebster-blur-toggle >>>'
+MARK_END='# <<< hyperwebster-blur-toggle <<<'
+
+usage() {
+  echo "Usage: hyperwebster-blur-toggle {enable|disable|status|toggle}" >&2
+}
+
+json_merge_transparency() {
+  local enabled="$1"
+  if command -v jq >/dev/null 2>&1 && [ -f "$SHELLJSON" ]; then
+    local tmp
+    tmp=$(mktemp)
+    jq --argjson en "$enabled" \
+      '.appearance.transparency = (.appearance.transparency // {}) | .appearance.transparency.enabled = $en | .appearance.transparency.base = (if $en then 0.72 else 1.0 end) | .appearance.transparency.layers = (if $en then 0.35 else 0.4 end)' \
+      "$SHELLJSON" > "$tmp" && mv "$tmp" "$SHELLJSON"
+  fi
+}
+
+set_hyprvars() {
+  local on="$1"
+  if [ ! -f "$HYPRVARS" ]; then return 0; fi
+  if [ "$on" = 1 ]; then
+    sed -i \
+      -e 's/^\$blurEnabled = .*/$blurEnabled = true/' \
+      -e 's/^\$blurPopups = .*/$blurPopups = true/' \
+      -e 's/^\$windowOpacity = .*/$windowOpacity = 0.92/' \
+      -e 's/^\$windowRounding = .*/$windowRounding = 8/' \
+      "$HYPRVARS"
+  else
+    sed -i \
+      -e 's/^\$blurEnabled = .*/$blurEnabled = false/' \
+      -e 's/^\$blurPopups = .*/$blurPopups = false/' \
+      -e 's/^\$windowOpacity = .*/$windowOpacity = 1.0/' \
+      -e 's/^\$windowRounding = .*/$windowRounding = 0/' \
+      "$HYPRVARS"
+  fi
+}
+
+set_overview() {
+  local on="$1"
+  [ -f "$OVCFG" ] || return 0
+  if command -v jq >/dev/null 2>&1; then
+    local tmp
+    tmp=$(mktemp)
+    jq --argjson en "$on" \
+      '.overview.effects.enableBlur = $en | .overview.effects.enableBackdrop = $en | .overview.effects.glassMode = $en' \
+      "$OVCFG" > "$tmp" && mv "$tmp" "$OVCFG"
+  fi
+}
+
+set_tokens_rounding() {
+  local on="$1"
+  [ -f "$SHELLTOKENS" ] || return 0
+  if ! command -v jq >/dev/null 2>&1; then return 0; fi
+  local tmp
+  tmp=$(mktemp)
+  if [ "$on" = 1 ]; then
+    jq '.appearance.rounding = {extraSmall:4,small:6,medium:8,large:10,largeIncreased:12,extraLarge:14,extraLargeIncreased:16,extraExtraLarge:20}' \
+      "$SHELLTOKENS" > "$tmp"
+  else
+    jq '.appearance.rounding = {extraSmall:0,small:0,medium:0,large:0,largeIncreased:0,extraLarge:0,extraLargeIncreased:0,extraExtraLarge:0}' \
+      "$SHELLTOKENS" > "$tmp"
+  fi
+  mv "$tmp" "$SHELLTOKENS"
+}
+
+set_layer_rules() {
+  local on="$1"
+  [ -f "$HYPRUSER" ] || return 0
+  if [ "$on" = 1 ]; then
+    grep -qF "$MARK_BEGIN" "$HYPRUSER" && return 0
+    cat >> "$HYPRUSER" <<'EOF'
+
+# >>> hyperwebster-blur-toggle >>>
+# Frosted glass for caelestia shell layers (Hyprland 0.55+ rule syntax).
+layerrule = blur on, match:namespace caelestia-.*
+layerrule = blur on, match:namespace qs-.*
+layerrule = ignorealpha 0.57, match:namespace caelestia-.*
+# <<< hyperwebster-blur-toggle <<<
+EOF
+  else
+    sed -i "/$MARK_BEGIN/,/$MARK_END/d" "$HYPRUSER" 2>/dev/null || true
+  fi
+}
+
+apply() {
+  local on="$1"
+  mkdir -p "$(dirname "$STATE")"
+  echo "$on" > "$STATE"
+  set_hyprvars "$on"
+  json_merge_transparency "$on"
+  set_overview "$on"
+  set_tokens_rounding "$on"
+  set_layer_rules "$on"
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+  if [ "$on" = 1 ]; then
+    echo "Frosted glass enabled (blur + shell transparency)."
+  else
+    echo "Flat/restrained look restored (blur off)."
+  fi
+}
+
+case "${1:-}" in
+  enable) apply 1 ;;
+  disable) apply 0 ;;
+  toggle)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then apply 0; else apply 1; fi
+    ;;
+  status)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then echo enabled; exit 0; fi
+    echo disabled; exit 1
+    ;;
+  *) usage; exit 1 ;;
+esac

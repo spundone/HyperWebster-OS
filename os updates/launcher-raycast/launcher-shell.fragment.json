@@ -1,0 +1,16 @@
+{
+  "launcher": {
+    "maxShown": 8,
+    "vimKeybinds": false,
+    "showOnHover": false,
+    "useFuzzy": {
+      "apps": true,
+      "actions": true,
+      "schemes": false,
+      "variants": false,
+      "wallpapers": false
+    },
+    "favouriteApps": [],
+    "hiddenApps": []
+  }
+}
