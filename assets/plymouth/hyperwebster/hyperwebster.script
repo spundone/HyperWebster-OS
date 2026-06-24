@@ -1,0 +1,54 @@
+# HyperWebster Plymouth — Bowie Starman figure + wordmark on black.
+
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+star_col = 0.95;
+body_col = 0.75;
+accent_col = 0.55;
+
+fun text_line(y, str, r, g, b) {
+    local.image = Image.Text(str, r, g, b, 1.0);
+    local.sprite = Sprite(local.image);
+    local.sprite.SetX(screen_width / 2 - local.image.GetWidth() / 2);
+    local.sprite.SetY(y);
+    local.sprite.SetOpacity(1);
+}
+
+# Starman figure (monospace lines, centred).
+base_y = screen_height / 2 - 72;
+text_line(base_y,       "*", star_col, star_col, 0.45);
+text_line(base_y + 22,  "/|\\", body_col, body_col, body_col);
+text_line(base_y + 44,  "/ | \\", body_col, body_col, body_col);
+text_line(base_y + 66,  "  |  ", body_col, body_col, body_col);
+text_line(base_y + 88,  " / \\ ", body_col, body_col, body_col);
+
+title.image = Image.Text("HYPERWEBSTER", accent_col, 0.88, 0.55, 1.0);
+title.sprite = Sprite(title.image);
+title.sprite.SetX(screen_width / 2 - title.image.GetWidth() / 2);
+title.sprite.SetY(base_y + 118);
+title.sprite.SetOpacity(1);
+
+subtitle.image = Image.Text("STARMAN", 0.55, 0.72, 0.95, 1.0);
+subtitle.sprite = Sprite(subtitle.image);
+subtitle.sprite.SetX(screen_width / 2 - subtitle.image.GetWidth() / 2);
+subtitle.sprite.SetY(base_y + 148);
+subtitle.sprite.SetOpacity(1);
+
+message.sprite = Sprite();
+message.sprite.SetX(20);
+message.sprite.SetY(screen_height - 36);
+fun message_callback(text) {
+    message.image = Image.Text(text, 0.66, 0.84, 0.45);
+    message.sprite.SetImage(message.image);
+}
+Plymouth.SetMessageFunction(message_callback);
+
+fun quit_callback() {
+    title.sprite.SetOpacity(1);
+    subtitle.sprite.SetOpacity(1);
+}
+Plymouth.SetQuitFunction(quit_callback);

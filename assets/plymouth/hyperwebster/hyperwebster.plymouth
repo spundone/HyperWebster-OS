@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=HyperWebster
+Description=HyperWebster Starman boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/hyperwebster
+ScriptFile=/usr/share/plymouth/themes/hyperwebster/hyperwebster.script
