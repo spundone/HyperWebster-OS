@@ -41,7 +41,8 @@ Edit the keymap here and the help updates itself.
 | `Super+Escape` | Session menu (logout / shutdown / reboot) |
 | `Ctrl+Alt+Delete` | Session menu (alias, old key) |
 | `Super+D` | Toggle dashboard - calendar + widgets (was hover-only) |
-| `Super+Alt+Space` | Open Settings (Caelestia nexus) |
+| `Super+Alt+Space` | Install / control menu (`hyperwebster-omarchy-menu`, Omarchy-style) |
+| `F10` | Open Settings (Caelestia nexus) |
 | `Super+N` | Toggle sidebar |
 | `Super+Ctrl+K` | Show all shell panels |
 | `Super+Ctrl+L` | Lock screen (Omarchy key) |
@@ -210,7 +211,20 @@ Edit the keymap here and the help updates itself.
 
 CLI: `omarchy-send`, `hyperwebster-transcode`, bash aliases `img2jpg` / `transcode-video-1080p` (via `omarchy-transcode` shim).
 
-## 12c. Maintenance & snapshots (HyperWebster)
+## 12c. Install menu (Omarchy-inspired)
+
+| Keys | Action |
+|------|--------|
+| `Super+Alt+Space` | Install / control menu (`hyperwebster-omarchy-menu`) |
+| `F10` | Settings (caelestia nexus — moved off Super+Alt+Space) |
+
+Menu paths: official package search (fzf + pacman), AUR search (fzf + yay), web
+apps, curated editors/browsers/gaming one-shots, quick picks (Steam, Firefox, …),
+remove packages, Shelly app store, maintenance, keybindings help.
+
+CLI: `hyperwebster-omarchy-menu`, `hyperwebster-pkg-install`, `hyperwebster-pkg-aur-install`, `hyperwebster-pkg-remove`.
+
+## 12d. Maintenance & snapshots (HyperWebster)
 
 | Keys | Action |
 |------|--------|
@@ -282,7 +296,8 @@ All paths below; `~/.config/hypr` → symlink → `~/.local/share/caelestia/hypr
 - Keyboard layout forced to `gb` (UK).
 - Glassmorphism off: blur/shadows disabled, opacity 1.0, smaller rounding/gaps.
 - Keys left unbound by the Omarchy remap: `Super+Q`, `Super+E`,
-  `Super+U`, `Super+Comma`, `Super+L`, `Super+Alt+Space`.
+  `Super+U`, `Super+Comma`, `Super+L`. `Super+Alt+Space` = Omarchy install menu;
+  Settings = `F10`.
 
 ### Rebuild: this whole component ships in Downloads
 

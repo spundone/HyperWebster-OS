@@ -1,0 +1,16 @@
+#!/bin/bash
+# hyperwebster-pkg-remove — pick installed packages to remove (pacman -Rns).
+set -euo pipefail
+
+if ! command -v fzf >/dev/null 2>&1; then
+  echo "fzf is required (sudo pacman -S fzf)." >&2
+  exit 1
+fi
+
+pkg_names=$(pacman -Qq | fzf --multi \
+  --preview 'pacman -Qi {1} 2>/dev/null || true' \
+  --preview-window 'down:60%:wrap' \
+  --color 'pointer:red,marker:red') || exit 0
+[ -n "$pkg_names" ] || exit 0
+
+echo "$pkg_names" | tr '\n' ' ' | xargs sudo pacman -Rns --noconfirm

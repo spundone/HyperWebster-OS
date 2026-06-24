@@ -1631,10 +1631,10 @@ cat > "$M_HOME/.config/caelestia/hypr-user.conf" <<'HYPERWEBSTER_HYPRUSER'
 exec-once = qs -c overview -d
 bind = Super, Grave, exec, qs ipc -c overview call overview toggle
 
-# F10: open Caelestia Settings (nexus). Super+Alt+Space is free (HyperWebster moved
-# the old float-toggle to Super+T). caelestia:nexus is the registered global
-# shortcut that opens the Settings window.
-bind = Super+Alt, Space, global, caelestia:nexus
+# F10: Settings (caelestia nexus). Super+Alt+Space: Omarchy install menu
+# (hyperwebster-omarchy-menu — see omarchy-launcher/; float-toggle is Super+T).
+bind = , F10, exec, caelestia nexus
+bind = Super+Alt, Space, exec, hyperwebster-omarchy-menu
 
 # hyprmoncfg writes monitor layout/resolution + workspace assignments here
 # (the files are pre-created empty so Hyprland never warns about the source;
@@ -1781,6 +1781,10 @@ install -m 755 "$LAYER/hyperwebster-keybinds" "$LAYER/hyperwebster-keybinds-gen"
   "$LAYER/tv-gaming-display/hyperwebster-tv-gaming-toggle" \
   "$LAYER/launcher-raycast/hyperwebster-launcher-raycast" \
   "$LAYER/omarchy-extras/hyperwebster-omarchy-extras-toggle" \
+  "$LAYER/omarchy-launcher/hyperwebster-omarchy-menu" \
+  "$LAYER/omarchy-launcher/hyperwebster-pkg-install" \
+  "$LAYER/omarchy-launcher/hyperwebster-pkg-aur-install" \
+  "$LAYER/omarchy-launcher/hyperwebster-pkg-remove" \
   "$LAYER/distro-tools/hyperwebster-maint" \
   "$M_HOME/.local/bin/"
 # Omarchy CLI shims (change 15) — let Omarchy-targeted gaming installers
@@ -1890,6 +1894,8 @@ echo "==> Omarchy keymap + layer binds..."
   cat "$LAYER/omarchy-keys/omarchy-keys-user.conf"
   echo ''
   cat "$LAYER/omarchy-extras/omarchy-extras-keys.conf"
+  echo ''
+  cat "$LAYER/omarchy-launcher/omarchy-launcher-keys.conf"
   echo ''
   cat "$LAYER/monitor-control/hyprland-monitor-control.conf"
   echo ''

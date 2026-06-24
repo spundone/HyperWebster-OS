@@ -117,6 +117,7 @@ hyperwebster-snapshots               # btrfs / snapper shortcuts
 hyperwebster-launcher-raycast        # refresh Raycast-like launcher settings
 hyprmoncfg apply tv-gaming-4k        # 4K HDR TV display profile
 hyperwebster-transcode               # resize media for sharing (Omarchy-style)
+hyperwebster-omarchy-menu            # install menu (or Super+Alt+Space)
 omarchy-send                         # LAN file transfer TUI
 ```
 
@@ -132,13 +133,15 @@ See `os updates/omarchy-extras/README.md` for the full mapping.
 | Media transcode | `Super+Ctrl+Period` | fuzzel menus; `omarchy-transcode` shim for bash aliases |
 | OCR capture | `Super+Ctrl+Print` | grim + tesseract |
 | Night light | `Super+Ctrl+N` | hyprsunset; Quick Settings tile too |
+| Install menu | `Super+Alt+Space` | fuzzel menus + fzf package pickers (`omarchy-launcher/`) |
 | Bash shell setup | default login shell | Vendored from Omarchy `default/bash` |
 | Developer polish | omadots configs | starship, tmux, btop, LazyVim |
 | Gaming installer shims | `omarchy-pkg-add` etc. | DeckShift / Chimera compatibility |
 | Limine snapshot tools | `[omarchy]` pacman repo | Prebuilt `limine-snapper-sync` updates |
 
 **Not ported:** Walker/Elephant launcher (caelestia launcher instead), Waybar,
-theme/background switchers, Omarchy reminders, full `omarchy` CLI menus.
+theme/background switchers, Omarchy reminders, full Omarchy Style/Setup/Update
+menus (install/control menu is in `omarchy-launcher/`).
 
 
 On-box AI guide: `~/.claude/skills/hyperwebster/SKILL.md` and

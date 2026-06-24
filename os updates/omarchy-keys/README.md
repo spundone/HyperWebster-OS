@@ -76,8 +76,10 @@ overwritten). Installer: `install-omarchy-keys.sh` (idempotent).
 - Group lock (`Super+Shift+Comma`) dropped (key now = clear notifications).
 - Mute alias `Super+Shift+M` dropped (key now = music); `XF86AudioMute` works.
 - Keys left unbound after the moves: `Super+Q`, `Super+C`, `Super+E`,
-  `Super+U`, `Super+Comma`, `Super+L`, `Super+Alt+Space`.
-- Omarchy-only, no equivalent: walker/omarchy menus, waybar toggles, theme/
+  `Super+U`, `Super+Comma`, `Super+L`.
+- `Super+Alt+Space` → Omarchy install menu (`hyperwebster-omarchy-menu`); Settings
+  (nexus) → `F10`.
+- Omarchy-only, no equivalent: Walker/Waybar toggles, theme/background switchers,
   background switchers, webapps, reminders, nightlight (→ `Super+Ctrl+N` in
   omarchy-extras), share/transcode/OCR (→ omarchy-extras layer), monitor scaling.
 

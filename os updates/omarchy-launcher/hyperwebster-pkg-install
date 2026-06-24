@@ -1,0 +1,23 @@
+#!/bin/bash
+# hyperwebster-pkg-install — fuzzy search official Arch repos and install.
+# Adapted from Omarchy's omarchy-pkg-install (fzf + pacman).
+set -euo pipefail
+
+if ! command -v fzf >/dev/null 2>&1; then
+  echo "fzf is required for package search (sudo pacman -S fzf)." >&2
+  exit 1
+fi
+
+fzf_args=(
+  --multi
+  --preview 'pacman -Sii {1} 2>/dev/null || true'
+  --preview-label='alt-p: toggle preview, tab: multi-select'
+  --preview-window 'down:60%:wrap'
+  --bind 'alt-p:toggle-preview'
+  --color 'pointer:green,marker:green'
+)
+
+pkg_names=$(pacman -Slq | fzf "${fzf_args[@]}") || exit 0
+[ -n "$pkg_names" ] || exit 0
+
+echo "$pkg_names" | tr '\n' ' ' | xargs sudo pacman -S --needed --noconfirm

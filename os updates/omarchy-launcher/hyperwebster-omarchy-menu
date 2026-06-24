@@ -1,0 +1,224 @@
+#!/bin/bash
+# hyperwebster-omarchy-menu — Omarchy-style install/control menu (Super+Alt+Space).
+# Uses fuzzel for menus and fzf for package pickers (like Omarchy's Walker + fzf).
+set -euo pipefail
+
+pick() {
+  if command -v fuzzel >/dev/null 2>&1; then
+    fuzzel --dmenu --prompt "HyperWebster › " "$@"
+  elif command -v rofi >/dev/null 2>&1; then
+    rofi -dmenu -p "HyperWebster"
+  else
+    echo "fuzzel or rofi required for hyperwebster-omarchy-menu" >&2
+    exit 1
+  fi
+}
+
+menu() {
+  local prompt="$1"
+  shift
+  printf '%s\n' "$@" | fuzzel --dmenu --prompt "$prompt " --width 44
+}
+
+terminal() {
+  local cmd="$1"
+  kitty --class TUI.float -e bash -lc "$cmd; printf '\nPress Enter to close...'; read _"
+}
+
+install_pkg() {
+  local label="$1"
+  shift
+  terminal "echo 'Installing $label...'; omarchy-pkg-add $*"
+}
+
+aur_install() {
+  local label="$1"
+  shift
+  terminal "echo 'Installing $label from AUR...'; yay -S --needed --noconfirm $*"
+}
+
+show_install_editor_menu() {
+  case $(menu "Editor" \
+    "VS Code
+Cursor
+Zed
+Sublime Text
+Helix
+Vim") in
+    "VS Code") install_pkg "VS Code" code ;;
+    Cursor) aur_install "Cursor" cursor-bin ;;
+    Zed) aur_install "Zed" zed ;;
+    "Sublime Text") aur_install "Sublime Text" sublime-text-4 ;;
+    Helix) install_pkg "Helix" helix ;;
+    Vim) install_pkg "Vim" vim ;;
+    *) show_install_menu ;;
+  esac
+}
+
+show_install_browser_menu() {
+  case $(menu "Browser" \
+    "Firefox
+Chromium
+Google Chrome
+Brave
+Microsoft Edge") in
+    Firefox) install_pkg "Firefox" firefox ;;
+    Chromium) install_pkg "Chromium" chromium ;;
+    "Google Chrome") aur_install "Google Chrome" google-chrome ;;
+    Brave) aur_install "Brave" brave-bin ;;
+    "Microsoft Edge") aur_install "Microsoft Edge" microsoft-edge-stable-bin ;;
+    *) show_install_menu ;;
+  esac
+}
+
+show_install_gaming_menu() {
+  case $(menu "Gaming" \
+    "Steam
+Deckify / Chimera session
+Lutris
+Heroic (Epic)
+RetroArch
+Minecraft") in
+    Steam) terminal omarchy-install-gaming-steam ;;
+    "Deckify / Chimera session") terminal hyperwebster-deckify-install ;;
+    Lutris) install_pkg "Lutris" lutris ;;
+    "Heroic (Epic)") aur_install "Heroic" heroic-games-launcher-bin ;;
+    RetroArch) install_pkg "RetroArch" retroarch ;;
+    Minecraft) install_pkg "Minecraft" minecraft-launcher ;;
+    *) show_install_menu ;;
+  esac
+}
+
+show_install_service_menu() {
+  case $(menu "Service" \
+    "Tailscale connect
+OBS Studio
+Discord
+Spotify
+VLC") in
+    "Tailscale connect")
+      terminal 'sudo systemctl enable --now tailscaled; echo "Connect with: sudo tailscale up"'
+      ;;
+    "OBS Studio") install_pkg "OBS Studio" obs-studio ;;
+    Discord) install_pkg "Discord" discord ;;
+    Spotify) install_pkg "Spotify" spotify ;;
+    VLC) install_pkg "VLC" vlc ;;
+    *) show_install_menu ;;
+  esac
+}
+
+show_install_quick_menu() {
+  case $(menu "Quick install" \
+    "Steam
+Firefox
+OBS Studio
+Discord
+Spotify
+VLC
+Bitwarden") in
+    Steam) terminal omarchy-install-gaming-steam ;;
+    Firefox) install_pkg "Firefox" firefox ;;
+    "OBS Studio") install_pkg "OBS Studio" obs-studio ;;
+    Discord) install_pkg "Discord" discord ;;
+    Spotify) install_pkg "Spotify" spotify ;;
+    VLC) install_pkg "VLC" vlc ;;
+    Bitwarden) install_pkg "Bitwarden" bitwarden bitwarden-cli ;;
+    *) show_install_menu ;;
+  esac
+}
+
+show_install_menu() {
+  case $(menu "Install" \
+    "Package (official repos)
+AUR package
+Web app
+Editor
+Browser
+Gaming
+Apps & services
+Quick picks
+Open Shelly app store") in
+    "Package (official repos)") terminal hyperwebster-pkg-install ;;
+    "AUR package") terminal hyperwebster-pkg-aur-install ;;
+    "Web app")
+      terminal 'read -rp "App name: " n; read -rp "URL: " u; read -rp "Icon URL (optional, Enter to skip): " i; if [ -n "$i" ]; then hyperwebster-webapp-install "$n" "$u" "$i"; else hyperwebster-webapp-install "$n" "$u"; fi'
+      ;;
+    Editor) show_install_editor_menu ;;
+    Browser) show_install_browser_menu ;;
+    Gaming) show_install_gaming_menu ;;
+    "Apps & services") show_install_service_menu ;;
+    "Quick picks") show_install_quick_menu ;;
+    "Open Shelly app store")
+      command -v shelly-ui >/dev/null 2>&1 && exec shelly-ui || \
+        notify-send "Install menu" "Shelly not installed — try Package or AUR." 2>/dev/null || true
+      ;;
+    *) show_main_menu ;;
+  esac
+}
+
+show_remove_menu() {
+  case $(menu "Remove" \
+    "Package (installed)
+Web app") in
+    "Package (installed)") terminal hyperwebster-pkg-remove ;;
+    "Web app")
+      terminal 'read -rp "Web app name to remove: " n; hyperwebster-webapp-remove "$n"'
+      ;;
+    *) show_main_menu ;;
+  esac
+}
+
+show_learn_menu() {
+  case $(menu "Learn" \
+    "Keybindings cheatsheet
+HyperWebster keymap doc
+Omarchy manual
+Hyprland wiki
+Arch wiki") in
+    "Keybindings cheatsheet") exec hyperwebster-keybinds ;;
+    "HyperWebster keymap doc")
+      terminal 'less "${HOME}/.local/share/hyperwebster/HyperWebster-keybindings.md"'
+      ;;
+    "Omarchy manual") exec xdg-open "https://learn.omacom.io/2/the-omarchy-manual" ;;
+    "Hyprland wiki") exec xdg-open "https://wiki.hypr.land/" ;;
+    "Arch wiki") exec xdg-open "https://wiki.archlinux.org/title/Main_page" ;;
+    *) show_main_menu ;;
+  esac
+}
+
+show_main_menu() {
+  case $(menu "Go" \
+    "Install
+Remove
+App store (Shelly)
+Settings
+Maintenance
+Keybindings
+Learn") in
+    Install) show_install_menu ;;
+    Remove) show_remove_menu ;;
+    "App store (Shelly)")
+      command -v shelly-ui >/dev/null 2>&1 && exec shelly-ui || \
+        show_install_menu
+      ;;
+    Settings) exec caelestia nexus ;;
+    Maintenance) exec hyperwebster-maint ;;
+    Keybindings) exec hyperwebster-keybinds ;;
+    Learn) show_learn_menu ;;
+    *) exit 0 ;;
+  esac
+}
+
+# Close an open fuzzel picker when toggling the menu (Omarchy closes Walker).
+if pgrep -x fuzzel >/dev/null 2>&1; then
+  pkill -x fuzzel 2>/dev/null || true
+  exit 0
+fi
+
+case "${1:-}" in
+  install) show_install_menu ;;
+  remove) show_remove_menu ;;
+  learn) show_learn_menu ;;
+  "") show_main_menu ;;
+  *) show_main_menu ;;
+esac

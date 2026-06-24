@@ -34,4 +34,5 @@ Idempotent. Wired into `hyperwebster-update` as migration
 Walker/Elephant launcher, Waybar position keys, theme/background switchers,
 Omarchy reminders, universal Super+C/V copy (conflicts with clipboard history),
 `Super+Comma` dismiss-last (caelestia has clear-all only), monitor lid hooks
-(desktop/TV box), and the full `omarchy` menu tree.
+(desktop/TV box), and the full Omarchy Style/Setup/Update menu tree (install
+menu is ported in `omarchy-launcher/`).

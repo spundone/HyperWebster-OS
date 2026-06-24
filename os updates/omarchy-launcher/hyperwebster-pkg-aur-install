@@ -1,0 +1,26 @@
+#!/bin/bash
+# hyperwebster-pkg-aur-install — fuzzy search the AUR and install via yay.
+# Adapted from Omarchy's omarchy-pkg-aur-install.
+set -euo pipefail
+
+if ! command -v fzf >/dev/null 2>&1; then
+  echo "fzf is required for AUR search (sudo pacman -S fzf)." >&2
+  exit 1
+fi
+
+helper=yay
+command -v "$helper" >/dev/null 2>&1 || { echo "yay not found — run software-install first." >&2; exit 1; }
+
+fzf_args=(
+  --multi
+  --preview "$helper -Siia {1} 2>/dev/null || true"
+  --preview-label='alt-p: toggle preview, tab: multi-select'
+  --preview-window 'down:60%:wrap'
+  --bind 'alt-p:toggle-preview'
+  --color 'pointer:green,marker:green'
+)
+
+pkg_names=$("$helper" -Slqa | fzf "${fzf_args[@]}") || exit 0
+[ -n "$pkg_names" ] || exit 0
+
+echo "$pkg_names" | tr '\n' ' ' | xargs "$helper" -S --needed --noconfirm
