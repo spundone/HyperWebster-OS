@@ -36,7 +36,7 @@ Edit the keymap here and the help updates itself.
 
 | Keys | Action |
 |------|--------|
-| `Super+Space` | Open app launcher (Omarchy key) |
+| `Super+Space` | Open app launcher (Omarchy key; stock `caelestia:launcher` is unbound first) |
 | `Super` (tap & release) | Open app launcher (tapping another key/mouse cancels it) |
 | `Super+Escape` | Session menu (logout / shutdown / reboot) |
 | `Ctrl+Alt+Delete` | Session menu (alias, old key) |

@@ -28,14 +28,22 @@ if [ -f "$SRC/HyperWebster-keybindings.md" ]; then
   echo "installed keymap doc -> $SHARE/HyperWebster-keybindings.md"
 fi
 
-# Add the binds, only if not already present.
+# Add alias binds (Super+/ + Super+F1). omarchy-keys may already own Super+K —
+# check each alias independently so install order never drops documented keys.
 if [ -f "$HYPRUSER" ]; then
-  if grep -q 'hyperwebster-keybinds' "$HYPRUSER"; then
-    echo "binds already present in $HYPRUSER"
+  appended=0
+  if ! grep -qE 'Super, Slash, exec.*hyperwebster-keybinds' "$HYPRUSER"; then
+    printf '\nbind = Super, Slash, exec, ~/.local/bin/hyperwebster-keybinds\n' >> "$HYPRUSER"
+    appended=1
+  fi
+  if ! grep -qE 'Super, F1, exec.*hyperwebster-keybinds' "$HYPRUSER"; then
+    printf 'bind = Super, F1, exec, ~/.local/bin/hyperwebster-keybinds\n' >> "$HYPRUSER"
+    appended=1
+  fi
+  if [ "$appended" -eq 1 ]; then
+    echo "appended missing cheatsheet alias binds -> $HYPRUSER"
   else
-    printf '\n' >> "$HYPRUSER"
-    cat "$SRC/hyprland-keybinds-help.conf" >> "$HYPRUSER"
-    echo "appended binds -> $HYPRUSER"
+    echo "cheatsheet alias binds already present in $HYPRUSER"
   fi
 else
   echo "NOTE: $HYPRUSER not found — add the lines from hyprland-keybinds-help.conf to your Hyprland user config."
