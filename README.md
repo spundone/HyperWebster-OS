@@ -46,7 +46,7 @@ On an **Arch Linux** host with internet:
 
 ```bash
 sudo pacman -S --needed git libisoburn squashfs-tools coreutils devtools pacman-contrib
-git clone <your-remote-url> HyperWebster-OS
+git clone https://github.com/spundone/HyperWebster-OS.git
 cd HyperWebster-OS
 curl -LO https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
 ./hyperwebster.sh
