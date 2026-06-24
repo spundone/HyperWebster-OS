@@ -41,6 +41,13 @@
 #
 # Dependencies (build host): xorriso, squashfs-tools, git, sha512sum, sudo,
 # devtools (mkarchroot/makechrootpkg), pacman-contrib (paccache).
+#
+# Environment:
+#   HYPERWEBSTER_ARCH_ISO          — path to stock archlinux-*.iso (default: repo dir)
+#   HYPERWEBSTER_ARCH_ISO_URL      — custom mirror URL for auto-download
+#   HYPERWEBSTER_SKIP_ISO_DOWNLOAD — set to 1 to fail if no local stock ISO
+#   HYPERWEBSTER_MIRRORLIST — custom pacman mirrorlist for build downloads
+#   HYPERWEBSTER_REFRESH_MIRRORS=1 — re-rank mirrors before download
 
 set -euo pipefail
 
@@ -2551,24 +2558,10 @@ CHROOTPAC
 # inject, re-squash, repack, output.
 # ===========================================================================
 
-# ---- locate stock ISO ----------------------------------------------------
-shopt -s nullglob
-CANDIDATES=("$SCRIPT_DIR"/archlinux-*.iso)
-shopt -u nullglob
-STOCK_ISO=""
-for iso in "${CANDIDATES[@]}"; do
-  [[ "$(basename "$iso")" == *HyperWebster* ]] && continue
-  STOCK_ISO="$iso"
-  break
-done
-
-if [ -z "$STOCK_ISO" ]; then
-  echo "ERROR: No stock Arch ISO found in $SCRIPT_DIR" >&2
-  echo >&2
-  echo "Download the latest from https://archlinux.org/download/ and put it" >&2
-  echo "in this folder (filename must start with 'archlinux-')." >&2
-  exit 1
-fi
+# ---- locate stock ISO (auto-download when missing) -----------------------
+# shellcheck source=scripts/fetch-arch-iso.sh
+source "$SCRIPT_DIR/scripts/fetch-arch-iso.sh"
+STOCK_ISO="$(hyperwebster_ensure_stock_iso "$SCRIPT_DIR")"
 
 echo "  Stock ISO: $(basename "$STOCK_ISO")"
 echo "  Output:    $(basename "$OUT_ISO")"

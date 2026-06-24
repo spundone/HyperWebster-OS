@@ -58,11 +58,20 @@ On an **Arch Linux** host with internet:
 sudo pacman -S --needed git libisoburn squashfs-tools coreutils devtools pacman-contrib reflector
 git clone https://github.com/spundone/HyperWebster-OS.git
 cd HyperWebster-OS
-curl -LO https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
 ./hyperwebster.sh
 ```
 
+If no stock Arch ISO (`archlinux-*.iso`) is in the repo root, the script **downloads
+the latest automatically** from official mirrors (~1.3 GB). To supply your own ISO
+instead, place it in the repo root or set `HYPERWEBSTER_ARCH_ISO`. Set
+`HYPERWEBSTER_SKIP_ISO_DOWNLOAD=1` to restore fail-fast behavior when the ISO is
+missing.
+
 Output: `hyperwebster-arch-YYYYMMDD.iso` (~4 GB). Cached payload in `./offline/`.
+
+**Env vars:** `HYPERWEBSTER_ARCH_ISO`, `HYPERWEBSTER_ARCH_ISO_URL`,
+`HYPERWEBSTER_SKIP_ISO_DOWNLOAD=1`, `HYPERWEBSTER_MIRRORLIST`,
+`HYPERWEBSTER_REFRESH_MIRRORS=1`. See `hyperwebster.sh` header comments.
 
 The offline repo includes `linux-cachyos`, `cachyos-kernel-manager`, `tailscale`,
 and CachyOS trust packages (downloaded from [CachyOS mirrors](https://mirror.cachyos.org)
