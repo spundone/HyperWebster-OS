@@ -7,7 +7,7 @@ gaming workstation rather than a generic live image.
 
 | Component | Hardware | Driver stack |
 |-----------|----------|--------------|
-| CPU | AMD Ryzen 7 5700X3D | `linux` / optional `linux-cachyos` via Settings toggle |
+| CPU | AMD Ryzen 7 5700X3D | `linux-cachyos` (x86-64-v3 tier) — default OOB |
 | GPU | AMD Radeon RX 9070 (RDNA 4) | `mesa`, `vulkan-radeon`, kernel `amdgpu` |
 | Storage | NVMe (LUKS2 + btrfs) | Full-disk encryption on the root partition |
 | Boot | UEFI + Limine | UKI snapshots; optional **Starman Gaming** entry |
@@ -18,15 +18,18 @@ Wayland/Hyprland — no NVIDIA hybrid logic applies on this box.
 
 ### RX 9070 notes
 
-- RDNA 4 support tracks Arch `mesa` and `linux` kernel versions. After install,
-  keep the system updated (`hyperwebster-update` or `sudo pacman -Syu`).
-- For bleeding-edge Mesa fixes, the optional CachyOS repo toggle in Settings
-  can switch to optimized builds (reboot required).
+- RDNA 4 support tracks Arch `mesa` and the installed kernel (`linux-cachyos` by
+  default). After install, keep the system updated (`hyperwebster-update` or
+  `sudo pacman -Syu`).
+- CachyOS optimized userspace builds are available once online — flip Settings →
+  Services → **CachyOS kernel & repos** ON (or `sudo hyperwebster-cachy-repo enable`)
+  to run the full `-Suu` conversion; the kernel is already installed.
 - ROCm is **not** pre-installed; add it manually only if you need compute
   workloads outside gaming.
 
 ### Ryzen 5700X3D notes
 
+- Zen 3 → **x86-64-v3** CachyOS repo tier (auto-detected at install).
 - 3D V-Cache benefits most games without special tuning.
 - `zram` swap is enabled by default; no dedicated swap partition.
 - Power profiles are available from the quick settings panel.

@@ -39,9 +39,13 @@ them. Please support the originals; each remains under its own licence.
 
 ## Hardware detection & tuning
 
+- **[CachyOS](https://github.com/CachyOS/CachyOS)** — `linux-cachyos` kernel (default),
+  pacman repositories, and repo bootstrap tooling (`cachyos-repo.tar.xz` stanzas).
 - **[CachyOS `chwd`](https://github.com/CachyOS/chwd)** — GPU detection
   *method* (PCI scan → vendor → driver set), reimplemented natively in the
   builder.
+- **[CachyOS-Settings](https://github.com/CachyOS/CachyOS-Settings)** — curated
+  sysctl + I/O scheduler rules vendored as plain text.
 - **[Omarchy installer shims](https://github.com/28allday)** — gaming package
   helpers (`omarchy-pkg-add`, etc.).
 

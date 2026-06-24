@@ -23,6 +23,8 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for the target machine profile and
   switch light/dark mode.
 - **Limine boot menu** with UKI snapshots **plus a Starman (Gaming / Steam)**
   entry — boots straight into the gamescope Steam session when DeckShift is installed.
+- **CachyOS `linux-cachyos` kernel** (BORE/sched-ext, LTO) — default out of the box;
+  CachyOS pacman repos bootstrapped at install; stock `linux` kept as a Limine fallback.
 - **Data drive automount** — non-system disks premount under `/mnt/<label>` at
   boot (`nofail`).
 - **Omarchy-style keybindings** — `Super+K` cheatsheet, `Super+Space` launcher,
@@ -48,13 +50,19 @@ curl -LO https://geo.mirror.pkgbuild.com/iso/latest/archlinux-x86_64.iso
 
 Output: `hyperwebster-arch-YYYYMMDD.iso` (~4 GB). Cached payload in `./offline/`.
 
+The offline repo includes `linux-cachyos` and CachyOS trust packages (downloaded from
+[CachyOS mirrors](https://mirror.cachyos.org) at build time). Delete `./offline/` to
+force a full refresh after upstream kernel bumps.
+
 ## Install
 
 1. Write the ISO to USB (`dd` or Ventoy). **UEFI only.**
 2. Boot and follow the offline installer: hostname, user, password, region,
    **LUKS encryption** (recommended), target disk.
 3. Layout: 1 GiB EFI + LUKS/btrfs with `@`/`@home`/`@snapshots`/`@log` + Limine.
-4. Reboot into SDDM. Run `sudo pacman -Syu` once online.
+4. Reboot into SDDM. Run `sudo pacman -Syu` once online (syncs CachyOS + Arch dbs).
+   Optional: Settings → Services → **CachyOS kernel & repos** → ON to convert
+   userspace packages to CachyOS optimized builds (reboot after).
 
 ## GPU detection
 
@@ -86,7 +94,7 @@ On-box AI guide: `~/.claude/skills/hyperwebster/SKILL.md` and
 
 See [docs/CREDITS.md](docs/CREDITS.md) for the full list. Key upstream projects:
 NoSignal OS, Arch Linux, Hyprland, caelestia, Quickshell, SDDM, Limine, Omarchy,
-DeckShift, CachyOS chwd (detection method).
+DeckShift, CachyOS (`linux-cachyos` kernel + `chwd` detection method).
 
 ## License
 
