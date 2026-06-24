@@ -1,11 +1,11 @@
 #!/bin/bash
-# hyperwebster-blur-toggle — optional frosted glass when blur is enabled.
-# Default HyperWebster install stays flat/restrained; enable for Raycast-style panels.
+# hyperwebster-blur-toggle — frosted glass for shell panels and launcher.
+# Fresh installs enable blur by default; disable for a fully flat look.
+# Corner rounding is separate: hyperwebster-rounding-toggle.
 set -euo pipefail
 
 HYPRVARS="${HOME}/.config/caelestia/hypr-vars.conf"
 SHELLJSON="${HOME}/.config/caelestia/shell.json"
-SHELLTOKENS="${HOME}/.config/caelestia/shell-tokens.json"
 OVCFG="${HOME}/.config/quickshell/overview/config.json"
 HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
 STATE="${HOME}/.local/state/hyperwebster/blur-enabled"
@@ -35,14 +35,12 @@ set_hyprvars() {
       -e 's/^\$blurEnabled = .*/$blurEnabled = true/' \
       -e 's/^\$blurPopups = .*/$blurPopups = true/' \
       -e 's/^\$windowOpacity = .*/$windowOpacity = 0.92/' \
-      -e 's/^\$windowRounding = .*/$windowRounding = 8/' \
       "$HYPRVARS"
   else
     sed -i \
       -e 's/^\$blurEnabled = .*/$blurEnabled = false/' \
       -e 's/^\$blurPopups = .*/$blurPopups = false/' \
       -e 's/^\$windowOpacity = .*/$windowOpacity = 1.0/' \
-      -e 's/^\$windowRounding = .*/$windowRounding = 0/' \
       "$HYPRVARS"
   fi
 }
@@ -57,22 +55,6 @@ set_overview() {
       '.overview.effects.enableBlur = $en | .overview.effects.enableBackdrop = $en | .overview.effects.glassMode = $en' \
       "$OVCFG" > "$tmp" && mv "$tmp" "$OVCFG"
   fi
-}
-
-set_tokens_rounding() {
-  local on="$1"
-  [ -f "$SHELLTOKENS" ] || return 0
-  if ! command -v jq >/dev/null 2>&1; then return 0; fi
-  local tmp
-  tmp=$(mktemp)
-  if [ "$on" = 1 ]; then
-    jq '.appearance.rounding = {extraSmall:4,small:6,medium:8,large:10,largeIncreased:12,extraLarge:14,extraLargeIncreased:16,extraExtraLarge:20}' \
-      "$SHELLTOKENS" > "$tmp"
-  else
-    jq '.appearance.rounding = {extraSmall:0,small:0,medium:0,large:0,largeIncreased:0,extraLarge:0,extraLargeIncreased:0,extraExtraLarge:0}' \
-      "$SHELLTOKENS" > "$tmp"
-  fi
-  mv "$tmp" "$SHELLTOKENS"
 }
 
 set_layer_rules() {
@@ -101,7 +83,6 @@ apply() {
   set_hyprvars "$on"
   json_merge_transparency "$on"
   set_overview "$on"
-  set_tokens_rounding "$on"
   set_layer_rules "$on"
   if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
     hyprctl reload >/dev/null 2>&1 || true

@@ -1,0 +1,59 @@
+#!/bin/bash
+# hyperwebster-tv-gaming-toggle — enable/disable 4K HDR TV hyprmoncfg profile hints.
+set -euo pipefail
+
+LAYER="${HOME}/.local/share/hyperwebster/tv-gaming-display"
+HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
+STATE="${HOME}/.local/state/hyperwebster/tv-gaming-enabled"
+MARK_BEGIN='# >>> tv-gaming-display: TV HDR/VRR profile >>>'
+MARK_END='# <<< tv-gaming-display: TV HDR/VRR profile <<<'
+
+usage() {
+  echo "Usage: hyperwebster-tv-gaming-toggle {enable|disable|status|toggle}" >&2
+}
+
+set_hypr() {
+  local on="$1"
+  [ -f "$HYPRUSER" ] || return 0
+  if [ "$on" = 1 ]; then
+    grep -qF "$MARK_BEGIN" "$HYPRUSER" && return 0
+    cat >> "$HYPRUSER" <<EOF
+
+$MARK_BEGIN
+# hyprmoncfg apply tv-gaming-4k - edit HDMI output in the profile first.
+source = $LAYER/hypr-tv-gaming.conf
+$MARK_END
+EOF
+  else
+    sed -i "/$MARK_BEGIN/,/$MARK_END/d" "$HYPRUSER" 2>/dev/null || true
+  fi
+}
+
+apply() {
+  local on="$1"
+  mkdir -p "$(dirname "$STATE")"
+  echo "$on" > "$STATE"
+  set_hypr "$on"
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+  if [ "$on" = 1 ]; then
+    echo "TV gaming display profile enabled — run: hyprmoncfg apply tv-gaming-4k"
+  else
+    echo "TV gaming display profile disabled."
+  fi
+}
+
+case "${1:-}" in
+  enable) apply 1 ;;
+  disable) apply 0 ;;
+  toggle)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then apply 0; else apply 1; fi
+    ;;
+  status)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then echo enabled; exit 0; fi
+    if [ -f "$HYPRUSER" ] && grep -qF "$MARK_BEGIN" "$HYPRUSER"; then echo enabled; exit 0; fi
+    echo disabled; exit 1
+    ;;
+  *) usage; exit 1 ;;
+esac

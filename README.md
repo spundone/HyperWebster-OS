@@ -22,7 +22,8 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for hardware guidance and
 ## What you get on the installed system
 
 - **Hyprland + caelestia shell** (Quickshell), restyled with a restrained flat
-  look by default; optional frosted glass via `hyperwebster-blur-toggle enable`.
+  look; **frosted glass blur on by default** (`hyperwebster-blur-toggle disable` for flat).
+  Optional rounded corners via `hyperwebster-rounding-toggle enable`.
 - **LUKS2 disk encryption** with optional **TPM2 auto-unlock** at install
   (passphrase sealed in TPM; remains fallback). Plymouth may show briefly before SDDM.
 - **Themed SDDM login** that mirrors the desktop palette; auto-syncs when you
@@ -43,8 +44,9 @@ See [docs/HARDWARE.md](docs/HARDWARE.md) for hardware guidance and
 - **Software story**: `yay` (AUR), **Shelly** on `Super+I`, flatpak preconfigured.
 - **Btrfs + bootable snapshots** via snapper/snap-pac; **btrfs-assistant** GUI +
   timeline snapshots; roll back from Limine.
-- **120/144 Hz hypersmooth UI** - VFR + tuned Hyprland/shell animation durations OOB.
-- **Optional zephyr motion** - `hyperwebster-zephyr-polish enable` for overshoot flair.
+- **120/144 Hz hypersmooth UI** - VFR + tuned Hyprland/shell animation durations OOB (toggle in Additions).
+- **Optional zephyr motion** - `hyperwebster-zephyr-polish enable` or Settings → Additions.
+- **Settings → Additions** - layer mod toggles (blur, rounding, hypersmooth, TV profile, …) plus optional software (Steam, Lutris, OBS, …).
 - **Maintenance menu** - `Super+Ctrl+Shift+M` (`hyperwebster-maint`).
 - **`hyperwebster-update`** - snapshot → upgrade → layer migrations.
 - **Gaming (opt-in)**: Deckify/Chimera (`hyperwebster-deckify-install`) or DeckShift;
@@ -107,9 +109,10 @@ and `~/.local/share/hyperwebster/`. Delete a file to revert one change.
 `hyperwebster-update` snapshots before every upgrade.
 
 ```sh
-hyperwebster-blur-toggle enable      # frosted glass (optional)
-hyperwebster-zephyr-polish enable    # optional zephyr overshoot motion
-hyperwebster-maint                   # maintenance menu (or Super+Ctrl+Shift+M)
+hyperwebster-blur-toggle disable      # flat opaque panels (blur is on by default)
+hyperwebster-rounding-toggle enable   # rounded shell + window corners
+hyperwebster-zephyr-polish enable     # optional zephyr overshoot motion
+hyperwebster-maint                    # maintenance menu (or Super+Ctrl+Shift+M)
 hyperwebster-snapshots               # btrfs / snapper shortcuts
 hyperwebster-launcher-raycast        # refresh Raycast-like launcher settings
 hyprmoncfg apply tv-gaming-4k        # 4K HDR TV display profile

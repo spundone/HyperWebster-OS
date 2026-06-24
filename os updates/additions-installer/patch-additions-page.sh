@@ -51,7 +51,7 @@ if [ -f "$PAGEREG" ]; then
     echo ":: menu entry already relabeled"
   else
     cp -n "$PAGEREG" "$PAGEREG.pre-hyperwebster-additions"
-    perl -pi -e 's/label: qsTr\("Plugins"\),/label: qsTr("Additions"),/; s/description: qsTr\("Manage plugins"\),/description: qsTr("Install optional software"),/' "$PAGEREG"
+    perl -pi -e 's/label: qsTr\("Plugins"\),/label: qsTr("Additions"),/; s/description: qsTr\("Manage plugins"\),/description: qsTr("Layer toggles and optional software"),/' "$PAGEREG"
     if grep -q '"Additions"' "$PAGEREG"; then
       echo ":: relabeled menu entry Plugins -> Additions"
     else

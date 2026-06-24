@@ -1,27 +1,51 @@
 #!/bin/bash
-# hyperwebster-launcher-raycast — merge Raycast-like launcher defaults into shell.json.
+# hyperwebster-launcher-raycast — Raycast-like caelestia launcher defaults.
 set -euo pipefail
 
 SHELLJSON="${HOME}/.config/caelestia/shell.json"
 FRAG="${HOME}/.local/share/hyperwebster/launcher-raycast/launcher-shell.fragment.json"
+BASE_FRAG="${HOME}/.local/share/hyperwebster/launcher-raycast/launcher-shell.base.json"
 HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
+STATE="${HOME}/.local/state/hyperwebster/launcher-raycast-enabled"
 MARK_BEGIN='# >>> launcher-raycast >>>'
 MARK_END='# <<< launcher-raycast <<<'
 
-if ! command -v jq >/dev/null 2>&1; then
-  echo "jq is required for launcher-raycast merge" >&2
-  exit 1
-fi
+usage() {
+  echo "Usage: hyperwebster-launcher-raycast {enable|disable|status|toggle|refresh}" >&2
+}
 
-[ -f "$SHELLJSON" ] || { echo "$SHELLJSON not found" >&2; exit 1; }
-[ -f "$FRAG" ] || { echo "$FRAG not found" >&2; exit 1; }
+save_base() {
+  command -v jq >/dev/null 2>&1 || return 0
+  [ -f "$SHELLJSON" ] || return 0
+  mkdir -p "$(dirname "$BASE_FRAG")"
+  jq '.launcher // {}' "$SHELLJSON" > "$BASE_FRAG"
+}
 
-tmp=$(mktemp)
-jq -s '.[0] * .[1]' "$SHELLJSON" "$FRAG" > "$tmp" && mv "$tmp" "$SHELLJSON"
-echo "Merged Raycast-style launcher settings into $SHELLJSON"
+merge_shell() {
+  command -v jq >/dev/null 2>&1 || return 0
+  [ -f "$SHELLJSON" ] || return 0
+  [ -f "$FRAG" ] || return 0
+  local tmp
+  tmp=$(mktemp)
+  jq -s '.[0] * .[1]' "$SHELLJSON" "$FRAG" > "$tmp" && mv "$tmp" "$SHELLJSON"
+}
 
-if [ -f "$HYPRUSER" ] && ! grep -qF "$MARK_BEGIN" "$HYPRUSER"; then
-  cat >> "$HYPRUSER" <<'EOF'
+restore_shell() {
+  command -v jq >/dev/null 2>&1 || return 0
+  [ -f "$SHELLJSON" ] || return 0
+  if [ -f "$BASE_FRAG" ]; then
+    local tmp
+    tmp=$(mktemp)
+    jq --slurpfile base "$BASE_FRAG" '.launcher = $base[0]' "$SHELLJSON" > "$tmp" && mv "$tmp" "$SHELLJSON"
+  fi
+}
+
+set_hypr() {
+  local on="$1"
+  [ -f "$HYPRUSER" ] || return 0
+  if [ "$on" = 1 ]; then
+    grep -qF "$MARK_BEGIN" "$HYPRUSER" && return 0
+    cat >> "$HYPRUSER" <<'EOF'
 
 # >>> launcher-raycast >>>
 # Centered keyboard-first launcher (Super+Space via drawers IPC).
@@ -29,9 +53,48 @@ windowrule = float on, match:class caelestia-launcher
 windowrule = center on, match:class caelestia-launcher
 # <<< launcher-raycast <<<
 EOF
-  echo "Appended launcher window rules to $HYPRUSER"
-fi
+  else
+    sed -i "/$MARK_BEGIN/,/$MARK_END/d" "$HYPRUSER" 2>/dev/null || true
+  fi
+}
 
-if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
-  hyprctl reload >/dev/null 2>&1 || true
-fi
+apply() {
+  local on="$1"
+  mkdir -p "$(dirname "$STATE")"
+  echo "$on" > "$STATE"
+  if [ "$on" = 1 ]; then
+    save_base
+    merge_shell
+    set_hypr 1
+    echo "Raycast-style launcher enabled."
+  else
+    restore_shell
+    set_hypr 0
+    echo "Raycast-style launcher disabled."
+  fi
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+}
+
+refresh() {
+  save_base
+  merge_shell
+  set_hypr 1
+  echo "Merged Raycast-style launcher settings into $SHELLJSON"
+}
+
+case "${1:-refresh}" in
+  enable) apply 1 ;;
+  disable) apply 0 ;;
+  toggle)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then apply 0; else apply 1; fi
+    ;;
+  status)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then echo enabled; exit 0; fi
+    if [ -f "$HYPRUSER" ] && grep -qF "$MARK_BEGIN" "$HYPRUSER"; then echo enabled; exit 0; fi
+    echo disabled; exit 1
+    ;;
+  refresh) refresh ;;
+  *) usage; exit 1 ;;
+esac

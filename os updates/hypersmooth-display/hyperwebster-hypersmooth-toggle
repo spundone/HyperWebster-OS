@@ -1,0 +1,78 @@
+#!/bin/bash
+# hyperwebster-hypersmooth-toggle — enable/disable 120/144 Hz hypersmooth tuning.
+set -euo pipefail
+
+LAYER="${HOME}/.local/share/hyperwebster/hypersmooth-display"
+HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
+SHELLTOKENS="${HOME}/.config/caelestia/shell-tokens.json"
+STATE="${HOME}/.local/state/hyperwebster/hypersmooth-enabled"
+MARK_BEGIN='# >>> hypersmooth-display >>>'
+MARK_END='# <<< hypersmooth-display <<<'
+
+usage() {
+  echo "Usage: hyperwebster-hypersmooth-toggle {enable|disable|status|toggle}" >&2
+}
+
+set_hypr() {
+  local on="$1"
+  [ -f "$HYPRUSER" ] || return 0
+  if [ "$on" = 1 ]; then
+    grep -qF "$MARK_BEGIN" "$HYPRUSER" && return 0
+    cat >> "$HYPRUSER" <<EOF
+
+$MARK_BEGIN
+source = $LAYER/hypr-hypersmooth.conf
+$MARK_END
+EOF
+  else
+    sed -i "/$MARK_BEGIN/,/$MARK_END/d" "$HYPRUSER" 2>/dev/null || true
+  fi
+}
+
+merge_tokens() {
+  local on="$1"
+  command -v jq >/dev/null 2>&1 || return 0
+  [ -f "$SHELLTOKENS" ] || return 0
+  local frag="$LAYER/shell-tokens.fragment.json"
+  [ -f "$frag" ] || return 0
+  local tmp
+  tmp=$(mktemp)
+  if [ "$on" = 1 ]; then
+    jq -s '.[0] * .[1]' "$SHELLTOKENS" "$frag" > "$tmp"
+  else
+  # Restore HyperWebster default animDurations (without zephyr fragment).
+    jq '.appearance.animDurations = {small:80,normal:130,large:210,extraLarge:300,expressiveFastSpatial:130,expressiveDefaultSpatial:200,expressiveSlowSpatial:280,expressiveFastEffects:70,expressiveDefaultEffects:110,expressiveSlowEffects:160}' \
+      "$SHELLTOKENS" > "$tmp"
+  fi
+  mv "$tmp" "$SHELLTOKENS"
+}
+
+apply() {
+  local on="$1"
+  mkdir -p "$(dirname "$STATE")"
+  echo "$on" > "$STATE"
+  set_hypr "$on"
+  merge_tokens "$on"
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+  if [ "$on" = 1 ]; then
+    echo "Hypersmooth display tuning enabled."
+  else
+    echo "Hypersmooth display tuning disabled."
+  fi
+}
+
+case "${1:-}" in
+  enable) apply 1 ;;
+  disable) apply 0 ;;
+  toggle)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then apply 0; else apply 1; fi
+    ;;
+  status)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then echo enabled; exit 0; fi
+    if [ -f "$HYPRUSER" ] && grep -qF "$MARK_BEGIN" "$HYPRUSER"; then echo enabled; exit 0; fi
+    echo disabled; exit 1
+    ;;
+  *) usage; exit 1 ;;
+esac

@@ -181,4 +181,5 @@ Run `sudo hyperwebster-drive-automount` after hot-plugging a new disk.
 ## Desktop polish
 
 - **Raycast-like launcher**: fuzzy search via Super+Space (`hyperwebster-launcher-raycast` refreshes settings).
-- **Optional frosted glass**: `hyperwebster-blur-toggle enable` (default stays flat/restrained).
+- **Optional frosted glass**: on by default; `hyperwebster-blur-toggle disable` for flat panels.
+- **Rounded corners**: `hyperwebster-rounding-toggle enable` or Settings → Additions.

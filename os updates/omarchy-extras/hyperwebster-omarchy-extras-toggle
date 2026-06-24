@@ -1,0 +1,59 @@
+#!/bin/bash
+# hyperwebster-omarchy-extras-toggle — enable/disable Omarchy utility keybinds.
+set -euo pipefail
+
+LAYER="${HOME}/.local/share/hyperwebster/omarchy-extras"
+HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
+STATE="${HOME}/.local/state/hyperwebster/omarchy-extras-enabled"
+MARK_BEGIN='# >>> hyperwebster-omarchy-extras >>>'
+MARK_END='# <<< hyperwebster-omarchy-extras <<<'
+
+usage() {
+  echo "Usage: hyperwebster-omarchy-extras-toggle {enable|disable|status|toggle}" >&2
+}
+
+set_hypr() {
+  local on="$1"
+  [ -f "$HYPRUSER" ] || return 0
+  if [ "$on" = 1 ]; then
+    grep -qF "$MARK_BEGIN" "$HYPRUSER" && return 0
+    grep -q 'hyperwebster-share' "$HYPRUSER" 2>/dev/null && return 0
+    {
+      printf '\n%s\n' "$MARK_BEGIN"
+      cat "$LAYER/omarchy-extras-keys.conf"
+      printf '%s\n' "$MARK_END"
+    } >> "$HYPRUSER"
+  else
+    sed -i "/$MARK_BEGIN/,/$MARK_END/d" "$HYPRUSER" 2>/dev/null || true
+  fi
+}
+
+apply() {
+  local on="$1"
+  mkdir -p "$(dirname "$STATE")"
+  echo "$on" > "$STATE"
+  set_hypr "$on"
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+  if [ "$on" = 1 ]; then
+    echo "Omarchy extras keybinds enabled (share, transcode, OCR, night light)."
+  else
+    echo "Omarchy extras keybinds disabled."
+  fi
+}
+
+case "${1:-}" in
+  enable) apply 1 ;;
+  disable) apply 0 ;;
+  toggle)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then apply 0; else apply 1; fi
+    ;;
+  status)
+    if [ -f "$STATE" ] && [ "$(cat "$STATE")" = 1 ]; then echo enabled; exit 0; fi
+    if [ -f "$HYPRUSER" ] && grep -qF "$MARK_BEGIN" "$HYPRUSER"; then echo enabled; exit 0; fi
+    if [ -f "$HYPRUSER" ] && grep -q 'hyperwebster-share' "$HYPRUSER" 2>/dev/null; then echo enabled; exit 0; fi
+    echo disabled; exit 1
+    ;;
+  *) usage; exit 1 ;;
+esac

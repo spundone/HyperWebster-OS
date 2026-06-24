@@ -9,6 +9,7 @@ HYPRUSER="$HOME/.config/caelestia/hypr-user.conf"
 MARK='Omarchy-inspired utility keybinds'
 
 mkdir -p "$BIN"
+install -m0755 "$SRC/hyperwebster-omarchy-extras-toggle" "$BIN/hyperwebster-omarchy-extras-toggle"
 for script in hyperwebster-share hyperwebster-transcode hyperwebster-ocr-capture \
               hyperwebster-nightlight-toggle omarchy-transcode; do
   install -m 0755 "$SRC/$script" "$BIN/$script"
@@ -39,12 +40,14 @@ fi
 
 if [ ! -f "$HYPRUSER" ]; then
   echo "NOTE: $HYPRUSER not found — append omarchy-extras-keys.conf manually."
-elif grep -q "$MARK" "$HYPRUSER" 2>/dev/null || grep -q 'hyperwebster-share' "$HYPRUSER" 2>/dev/null; then
+elif grep -qF '# >>> hyperwebster-omarchy-extras >>>' "$HYPRUSER" 2>/dev/null \
+     || grep -q 'hyperwebster-share' "$HYPRUSER" 2>/dev/null; then
   echo ":: keybinds already present in $HYPRUSER"
 else
   {
-    printf '\n# %s (omarchy-extras)\n' "$MARK"
+    printf '\n# >>> hyperwebster-omarchy-extras >>>\n'
     cat "$SRC/omarchy-extras-keys.conf"
+    printf '\n# <<< hyperwebster-omarchy-extras <<<\n'
   } >> "$HYPRUSER"
   echo ":: appended omarchy-extras keybinds -> $HYPRUSER"
 fi

@@ -1,0 +1,14 @@
+{
+  "appearance": {
+    "rounding": {
+      "extraSmall": 4,
+      "small": 6,
+      "medium": 8,
+      "large": 10,
+      "largeIncreased": 12,
+      "extraLarge": 14,
+      "extraLargeIncreased": 16,
+      "extraExtraLarge": 20
+    }
+  }
+}

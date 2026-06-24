@@ -21,6 +21,7 @@ CachyOS kernel manager
 System update (hyperwebster-update)
 Zephyr motion polish (toggle)
 Frosted glass (blur toggle)
+Rounded corners toggle
 Settings (caelestia nexus)"
 
 choice=$(printf '%s\n' "$menu" | pick) || exit 0
@@ -52,6 +53,9 @@ case "$choice" in
     ;;
   "Frosted glass (blur toggle)")
     exec hyperwebster-blur-toggle toggle
+    ;;
+  "Rounded corners toggle")
+    exec hyperwebster-rounding-toggle toggle
     ;;
   "Settings (caelestia nexus)")
     exec caelestia nexus

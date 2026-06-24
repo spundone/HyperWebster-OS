@@ -1,39 +1,80 @@
 #!/bin/sh
-# hyperwebster-additions — backend for Settings → Additions (optional software).
-# The manifest (additions.json, next to this component's on-system copy) is
-# the single source of truth: id/name/desc/icon per item, a `check` command
-# (exit 0 = installed) and an `install` command (run in a visible terminal).
+# hyperwebster-additions — backend for Settings → Additions (layer toggles + optional software).
 #
-#   hyperwebster-additions status        rewrite the status cache (JSON)
-#   hyperwebster-additions list          list manifest items (id<TAB>name)
-#   hyperwebster-additions install <id>  run the item's installer, then re-status
+#   hyperwebster-additions status              rewrite status cache (JSON with sections)
+#   hyperwebster-additions list                list manifest items (id<TAB>name)
+#   hyperwebster-additions install <id>        run an install-kind item, then re-status
+#   hyperwebster-additions enable <id>         run a toggle-kind enable command
+#   hyperwebster-additions disable <id>        run a toggle-kind disable command
 #
-# Sources policy: official pacman repos or official upstream installers/git
-# only — no AUR, no Flatpak.
+# Manifest: additions.json — kind "install" (default) or "toggle", optional category.
+# Sources policy for install items: official pacman repos or upstream installers only.
 set -eu
 
 SHARE="$HOME/.local/share/hyperwebster/additions-installer"
 MANIFEST="${HYPERWEBSTER_ADDITIONS_MANIFEST:-$SHARE/additions.json}"
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/hyperwebster"
+: "${STATE_DIR:=${XDG_STATE_HOME:-$HOME/.local/state}/hyperwebster}"
 STATE="$STATE_DIR/additions-status.json"
 
 [ -f "$MANIFEST" ] || { echo "hyperwebster-additions: manifest not found: $MANIFEST" >&2; exit 1; }
 
+item_field() {
+  printf '%s' "$1" | jq -r "$2"
+}
+
+enrich_item() {
+  item="$1"
+  kind=$(item_field "$item" '.kind // "install"')
+  check=$(item_field "$item" '.check')
+  category=$(item_field "$item" '.category // "software"')
+  if sh -c "$check" >/dev/null 2>&1; then on=true; else on=false; fi
+  if [ "$kind" = "toggle" ]; then
+    printf '%s' "$item" | jq -c \
+      --arg kind "$kind" --arg category "$category" --argjson enabled "$on" \
+      'del(.check, .install, .enable, .disable) + {kind: $kind, category: $category, enabled: $enabled}'
+  else
+    printf '%s' "$item" | jq -c \
+      --arg kind "$kind" --arg category "$category" --argjson installed "$on" \
+      'del(.check, .install, .enable, .disable) + {kind: $kind, category: $category, installed: $installed}'
+  fi
+}
+
 status() {
   mkdir -p "$STATE_DIR"
-  {
-    printf '{"checked":"%s","items":[' "$(date -Iseconds)"
-    sep=""
-    jq -c '.items[]' "$MANIFEST" | while IFS= read -r item; do
-      check=$(printf '%s' "$item" | jq -r '.check')
-      if sh -c "$check" >/dev/null 2>&1; then inst=true; else inst=false; fi
-      printf '%s' "$sep"
-      printf '%s' "$item" | jq -c --argjson inst "$inst" 'del(.check, .install) + {installed: $inst}'
-      sep=","
-    done
-    printf ']}\n'
-  } > "$STATE.tmp"
-  jq -e . "$STATE.tmp" >/dev/null    # never replace the cache with broken JSON
+  tmp_items=$(mktemp)
+  : > "$tmp_items"
+  jq -c '.items[]' "$MANIFEST" | while IFS= read -r item; do
+    enrich_item "$item" >> "$tmp_items"
+  done
+
+  categories=$(jq -c '.categories // []' "$MANIFEST")
+  if [ "$(printf '%s' "$categories" | jq 'length')" -eq 0 ]; then
+    categories='[{"id":"software","label":"Optional software"}]'
+  fi
+
+  items_json=$(jq -s '.' "$tmp_items")
+
+  jq -n \
+    --arg checked "$(date -Iseconds)" \
+    --argjson categories "$categories" \
+    --argjson items "$items_json" \
+    '
+      {
+        checked: $checked,
+        sections: [
+          $categories[] as $c |
+          {
+            id: $c.id,
+            label: $c.label,
+            items: [ $items[] | select(.category == $c.id) ]
+          }
+          | select(.items | length > 0)
+        ],
+        items: $items
+      }
+    ' > "$STATE.tmp"
+  rm -f "$tmp_items"
+  jq -e . "$STATE.tmp" >/dev/null
   mv "$STATE.tmp" "$STATE"
 }
 
@@ -41,11 +82,28 @@ install_one() {
   id="$1"
   item=$(jq -ce --arg id "$id" '.items[] | select(.id == $id)' "$MANIFEST") \
     || { echo "hyperwebster-additions: unknown addition: $id" >&2; exit 1; }
-  name=$(printf '%s' "$item" | jq -r '.name')
-  cmd=$(printf '%s' "$item" | jq -r '.install')
+  kind=$(item_field "$item" '.kind // "install"')
+  [ "$kind" = "install" ] || { echo "hyperwebster-additions: $id is not installable (kind=$kind)" >&2; exit 1; }
+  name=$(item_field "$item" '.name')
+  cmd=$(item_field "$item" '.install')
   printf '\033[1;34m::\033[0m installing %s\n' "$name"
   sh -ec "$cmd"
   printf '\033[1;34m::\033[0m %s — installer finished\n' "$name"
+  status
+}
+
+toggle_one() {
+  action="$1"
+  id="$2"
+  item=$(jq -ce --arg id "$id" '.items[] | select(.id == $id)' "$MANIFEST") \
+    || { echo "hyperwebster-additions: unknown addition: $id" >&2; exit 1; }
+  kind=$(item_field "$item" '.kind // "install"')
+  [ "$kind" = "toggle" ] || { echo "hyperwebster-additions: $id is not a toggle (kind=$kind)" >&2; exit 1; }
+  name=$(item_field "$item" '.name')
+  cmd=$(item_field "$item" ".$action")
+  [ -n "$cmd" ] && [ "$cmd" != "null" ] || { echo "hyperwebster-additions: no ${action} for $id" >&2; exit 1; }
+  printf '\033[1;34m::\033[0m %s %s\n' "$action" "$name"
+  sh -ec "$cmd"
   status
 }
 
@@ -54,5 +112,9 @@ case "${1:-}" in
   list)    jq -r '.items[] | "\(.id)\t\(.name)"' "$MANIFEST" ;;
   install) [ -n "${2:-}" ] || { echo "usage: hyperwebster-additions install <id>" >&2; exit 2; }
            install_one "$2" ;;
-  *)       echo "usage: hyperwebster-additions status | list | install <id>" >&2; exit 2 ;;
+  enable)  [ -n "${2:-}" ] || { echo "usage: hyperwebster-additions enable <id>" >&2; exit 2; }
+           toggle_one enable "$2" ;;
+  disable) [ -n "${2:-}" ] || { echo "usage: hyperwebster-additions disable <id>" >&2; exit 2; }
+           toggle_one disable "$2" ;;
+  *)       echo "usage: hyperwebster-additions status | list | install <id> | enable <id> | disable <id>" >&2; exit 2 ;;
 esac

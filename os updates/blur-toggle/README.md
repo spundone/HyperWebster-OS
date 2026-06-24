@@ -7,8 +7,8 @@ want them.
 ## Usage
 
 ```sh
-hyperwebster-blur-toggle enable    # blur + transparency + shell rounding
-hyperwebster-blur-toggle disable   # restore flat HyperWebster defaults
+hyperwebster-blur-toggle enable    # blur + transparency (rounding is separate)
+hyperwebster-blur-toggle disable   # restore flat opaque panels
 hyperwebster-blur-toggle toggle
 hyperwebster-blur-toggle status
 ```

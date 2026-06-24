@@ -1,8 +1,71 @@
 {
-  "_comment": "HyperWebster additions manifest — drives Settings → Additions. Each item: id (slug), name, desc (one line, shown until installed), icon (Material Symbol), check (sh, exit 0 = installed), install (sh, runs in a visible floating terminal — interactive sudo is fine). Sources policy: official pacman repos ([extra]/[omarchy]) or official upstream installers/git only — no AUR, no Flatpak.",
+  "_comment": "HyperWebster additions manifest — Settings → Additions. kind: install (check+install) or toggle (check+enable+disable). category groups sections. Sources: official pacman / upstream installers only — no AUR, no Flatpak.",
+  "categories": [
+    { "id": "appearance", "label": "Appearance" },
+    { "id": "gaming", "label": "Gaming" },
+    { "id": "system", "label": "System" },
+    { "id": "software", "label": "Optional software" }
+  ],
   "items": [
     {
+      "id": "blur",
+      "kind": "toggle",
+      "category": "appearance",
+      "name": "Frosted glass blur",
+      "desc": "Raycast-style frosted shell panels and launcher",
+      "icon": "blur_on",
+      "check": "hyperwebster-blur-toggle status",
+      "enable": "hyperwebster-blur-toggle enable",
+      "disable": "hyperwebster-blur-toggle disable"
+    },
+    {
+      "id": "rounding",
+      "kind": "toggle",
+      "category": "appearance",
+      "name": "Rounded corners",
+      "desc": "Caelestia-style rounding on shell and windows",
+      "icon": "rounded_corner",
+      "check": "hyperwebster-rounding-toggle status",
+      "enable": "hyperwebster-rounding-toggle enable",
+      "disable": "hyperwebster-rounding-toggle disable"
+    },
+    {
+      "id": "zephyr-polish",
+      "kind": "toggle",
+      "category": "appearance",
+      "name": "Zephyr motion polish",
+      "desc": "Overshoot flair on shell animations (off by default)",
+      "icon": "animation",
+      "check": "hyperwebster-zephyr-polish status",
+      "enable": "hyperwebster-zephyr-polish enable",
+      "disable": "hyperwebster-zephyr-polish disable"
+    },
+    {
+      "id": "hypersmooth",
+      "kind": "toggle",
+      "category": "appearance",
+      "name": "Hypersmooth 120/144 Hz",
+      "desc": "VFR + snappier shell animation durations",
+      "icon": "speed",
+      "check": "hyperwebster-hypersmooth-toggle status",
+      "enable": "hyperwebster-hypersmooth-toggle enable",
+      "disable": "hyperwebster-hypersmooth-toggle disable"
+    },
+    {
+      "id": "launcher-raycast",
+      "kind": "toggle",
+      "category": "appearance",
+      "name": "Raycast-like launcher",
+      "desc": "Fuzzy keyboard-first Super+Space launcher",
+      "icon": "search",
+      "check": "hyperwebster-launcher-raycast status",
+      "enable": "hyperwebster-launcher-raycast enable",
+      "disable": "hyperwebster-launcher-raycast disable"
+    },
+    {
       "id": "deckshift",
+      "kind": "install",
+      "category": "gaming",
       "name": "DeckShift Gaming Mode",
       "desc": "Steam Big Picture gamescope session (Super+Shift+S)",
       "icon": "sports_esports",
@@ -11,6 +74,8 @@
     },
     {
       "id": "deckify",
+      "kind": "install",
+      "category": "gaming",
       "name": "Deckify / Chimera Gaming",
       "desc": "ChimeraOS gamescope session — Starman boot path (Super+Shift+S)",
       "icon": "stadia_controller",
@@ -18,7 +83,92 @@
       "install": "hyperwebster-deckify-install; sh \"$HOME/.local/share/hyperwebster/deckshift-login/install-deckshift-login.sh\""
     },
     {
+      "id": "tv-gaming",
+      "kind": "toggle",
+      "category": "gaming",
+      "name": "4K HDR TV profile",
+      "desc": "TV gaming hyprmoncfg profile + HDR/VRR hints",
+      "icon": "tv",
+      "check": "hyperwebster-tv-gaming-toggle status",
+      "enable": "hyperwebster-tv-gaming-toggle enable",
+      "disable": "hyperwebster-tv-gaming-toggle disable"
+    },
+    {
+      "id": "steam",
+      "kind": "install",
+      "category": "gaming",
+      "name": "Steam",
+      "desc": "Valve gaming platform (multilib; first launch may download)",
+      "icon": "sports_esports",
+      "check": "pacman -Q steam",
+      "install": "omarchy-install-gaming-steam"
+    },
+    {
+      "id": "lutris",
+      "kind": "install",
+      "category": "gaming",
+      "name": "Lutris",
+      "desc": "Open gaming platform for Wine/Proton titles",
+      "icon": "gamepad",
+      "check": "pacman -Q lutris",
+      "install": "sudo pacman -S --needed --noconfirm lutris"
+    },
+    {
+      "id": "wine",
+      "kind": "install",
+      "category": "gaming",
+      "name": "Wine",
+      "desc": "Windows compatibility layer for games and apps",
+      "icon": "wine_bar",
+      "check": "pacman -Q wine",
+      "install": "sudo pacman -S --needed --noconfirm wine wine-gecko wine-mono"
+    },
+    {
+      "id": "omarchy-extras",
+      "kind": "toggle",
+      "category": "system",
+      "name": "Omarchy utility keys",
+      "desc": "Share, transcode, OCR, night light (Super+Ctrl+…)",
+      "icon": "keyboard",
+      "check": "hyperwebster-omarchy-extras-toggle status",
+      "enable": "hyperwebster-omarchy-extras-toggle enable",
+      "disable": "hyperwebster-omarchy-extras-toggle disable"
+    },
+    {
+      "id": "drive-automount",
+      "kind": "toggle",
+      "category": "system",
+      "name": "Secondary drive automount",
+      "desc": "Premount non-system disks under /mnt/<label> at boot",
+      "icon": "hard_drive",
+      "check": "systemctl is-enabled hyperwebster-drive-automount.service >/dev/null 2>&1",
+      "enable": "sudo sh \"$HOME/.local/share/hyperwebster/drive-automount/install-drive-automount.sh\"",
+      "disable": "sudo systemctl disable --now hyperwebster-drive-automount.service"
+    },
+    {
+      "id": "tailscale",
+      "kind": "install",
+      "category": "system",
+      "name": "Tailscale connect",
+      "desc": "Preinstalled mesh VPN — enable daemon and connect",
+      "icon": "vpn_lock",
+      "check": "tailscale status --json 2>/dev/null | jq -e '.BackendState == \"Running\"' >/dev/null 2>&1",
+      "install": "sudo systemctl enable --now tailscaled; echo 'Connect with: sudo tailscale up'; echo 'Optional: sudo tailscale up --ssh for Tailscale SSH'"
+    },
+    {
+      "id": "vlc",
+      "kind": "install",
+      "category": "software",
+      "name": "VLC",
+      "desc": "Media player for local files and streams",
+      "icon": "play_circle",
+      "check": "pacman -Q vlc",
+      "install": "sudo pacman -S --needed --noconfirm vlc"
+    },
+    {
       "id": "spotify",
+      "kind": "install",
+      "category": "software",
       "name": "Spotify",
       "desc": "Music streaming client",
       "icon": "music_note",
@@ -26,23 +176,9 @@
       "install": "sudo pacman -S --needed --noconfirm spotify"
     },
     {
-      "id": "once",
-      "name": "Once",
-      "desc": "Basecamp self-hosted web app manager (installs + starts Docker)",
-      "icon": "deployed_code",
-      "check": "pacman -Q once-bin",
-      "install": "sudo pacman -S --needed --noconfirm once-bin docker; sudo systemctl enable --now docker.service; sudo usermod -aG docker \"$USER\"; echo 'Once + Docker installed and Docker is running. Log out and back in (or run: newgrp docker) so docker works without sudo.'"
-    },
-    {
-      "id": "obsidian",
-      "name": "Obsidian",
-      "desc": "Knowledge base and Markdown notes",
-      "icon": "edit_note",
-      "check": "pacman -Q obsidian",
-      "install": "sudo pacman -S --needed --noconfirm obsidian"
-    },
-    {
       "id": "obs",
+      "kind": "install",
+      "category": "software",
       "name": "OBS Studio",
       "desc": "Screen recording and streaming (+ hardware encoders)",
       "icon": "videocam",
@@ -50,63 +186,39 @@
       "install": "sh \"$HOME/.local/share/hyperwebster/additions-installer/obs-extras.sh\" install"
     },
     {
-      "id": "claude-code",
-      "name": "Claude Code",
-      "desc": "Anthropic terminal coding agent",
-      "icon": "smart_toy",
-      "check": "command -v claude",
-      "install": "curl -fsSL https://claude.ai/install.sh | bash"
+      "id": "obsidian",
+      "kind": "install",
+      "category": "software",
+      "name": "Obsidian",
+      "desc": "Knowledge base and Markdown notes",
+      "icon": "edit_note",
+      "check": "pacman -Q obsidian",
+      "install": "sudo pacman -S --needed --noconfirm obsidian"
     },
     {
-      "id": "codex",
-      "name": "Codex CLI",
-      "desc": "OpenAI terminal coding agent",
-      "icon": "code",
-      "check": "command -v codex",
-      "install": "curl -fsSL https://chatgpt.com/codex/install.sh | sh"
-    },
-    {
-      "id": "opencode",
-      "name": "opencode",
-      "desc": "Open-source terminal coding agent",
-      "icon": "data_object",
-      "check": "command -v opencode",
-      "install": "curl -fsSL https://opencode.ai/install | bash"
-    },
-    {
-      "id": "ollama",
-      "name": "Ollama",
-      "desc": "Run LLMs locally (GPU-accelerated)",
-      "icon": "neurology",
-      "check": "pacman -Q ollama",
-      "install": "gpu=$(lspci -nn 2>/dev/null | grep -iE 'VGA|3D|Display'); if echo \"$gpu\" | grep -qi '10de'; then pkg=ollama-cuda; elif echo \"$gpu\" | grep -qi '1002'; then pkg=ollama-rocm; else pkg=ollama; fi; echo \"Installing $pkg\"; sudo pacman -S --needed --noconfirm \"$pkg\""
-    },
-    {
-      "id": "lmstudio",
-      "name": "LM Studio",
-      "desc": "Desktop app to run LLMs locally (GPU-accelerated)",
-      "icon": "psychology",
-      "check": "pacman -Q lmstudio-bin || pacman -Q lmstudio",
-      "install": "sudo pacman -S --needed --noconfirm lmstudio-bin"
+      "id": "once",
+      "kind": "install",
+      "category": "software",
+      "name": "Once",
+      "desc": "Basecamp self-hosted web app manager (installs + starts Docker)",
+      "icon": "deployed_code",
+      "check": "pacman -Q once-bin",
+      "install": "sudo pacman -S --needed --noconfirm once-bin docker; sudo systemctl enable --now docker.service; sudo usermod -aG docker \"$USER\"; echo 'Once + Docker installed. Log out and back in (or: newgrp docker) for docker group.'"
     },
     {
       "id": "dropbox",
+      "kind": "install",
+      "category": "software",
       "name": "Dropbox",
       "desc": "Cloud file sync and sharing",
       "icon": "cloud_sync",
       "check": "pacman -Q dropbox",
-      "install": "sudo pacman -S --needed --noconfirm dropbox dropbox-cli nautilus-dropbox; systemctl --user enable --now dropbox 2>/dev/null || true; echo 'Dropbox installed — it will open a browser to link your account on first start.'"
-    },
-    {
-      "id": "tailscale",
-      "name": "Tailscale",
-      "desc": "Mesh VPN — preinstalled; connect with sudo tailscale up",
-      "icon": "vpn_lock",
-      "check": "systemctl is-enabled tailscaled.service >/dev/null 2>&1",
-      "install": "sudo systemctl enable --now tailscaled; echo 'Tailscale is preinstalled. Connect with: sudo tailscale up'; echo 'Optional: sudo tailscale up --ssh for Tailscale SSH'; echo 'MagicDNS works when enabled in the Tailscale admin console.'"
+      "install": "sudo pacman -S --needed --noconfirm dropbox dropbox-cli nautilus-dropbox; systemctl --user enable --now dropbox 2>/dev/null || true; echo 'Dropbox installed — link your account on first start.'"
     },
     {
       "id": "pinta",
+      "kind": "install",
+      "category": "software",
       "name": "Pinta",
       "desc": "Simple image editor (Paint.NET-style)",
       "icon": "brush",
@@ -115,6 +227,8 @@
     },
     {
       "id": "kdenlive",
+      "kind": "install",
+      "category": "software",
       "name": "Kdenlive",
       "desc": "Video editor (hardware-accelerated export)",
       "icon": "movie_edit",
@@ -122,7 +236,59 @@
       "install": "sudo pacman -S --needed --noconfirm kdenlive"
     },
     {
+      "id": "claude-code",
+      "kind": "install",
+      "category": "software",
+      "name": "Claude Code",
+      "desc": "Anthropic terminal coding agent",
+      "icon": "smart_toy",
+      "check": "command -v claude",
+      "install": "curl -fsSL https://claude.ai/install.sh | bash"
+    },
+    {
+      "id": "codex",
+      "kind": "install",
+      "category": "software",
+      "name": "Codex CLI",
+      "desc": "OpenAI terminal coding agent",
+      "icon": "code",
+      "check": "command -v codex",
+      "install": "curl -fsSL https://chatgpt.com/codex/install.sh | sh"
+    },
+    {
+      "id": "opencode",
+      "kind": "install",
+      "category": "software",
+      "name": "opencode",
+      "desc": "Open-source terminal coding agent",
+      "icon": "data_object",
+      "check": "command -v opencode",
+      "install": "curl -fsSL https://opencode.ai/install | bash"
+    },
+    {
+      "id": "ollama",
+      "kind": "install",
+      "category": "software",
+      "name": "Ollama",
+      "desc": "Run LLMs locally (GPU-accelerated)",
+      "icon": "neurology",
+      "check": "pacman -Q ollama",
+      "install": "gpu=$(lspci -nn 2>/dev/null | grep -iE 'VGA|3D|Display'); if echo \"$gpu\" | grep -qi '10de'; then pkg=ollama-cuda; elif echo \"$gpu\" | grep -qi '1002'; then pkg=ollama-rocm; else pkg=ollama; fi; echo \"Installing $pkg\"; sudo pacman -S --needed --noconfirm \"$pkg\""
+    },
+    {
+      "id": "lmstudio",
+      "kind": "install",
+      "category": "software",
+      "name": "LM Studio",
+      "desc": "Desktop app to run LLMs locally (GPU-accelerated)",
+      "icon": "psychology",
+      "check": "pacman -Q lmstudio-bin || pacman -Q lmstudio",
+      "install": "sudo pacman -S --needed --noconfirm lmstudio-bin"
+    },
+    {
       "id": "pi",
+      "kind": "install",
+      "category": "software",
       "name": "Pi Coding Agent",
       "desc": "Interactive AI coding agent (multi-provider)",
       "icon": "robot_2",

@@ -5,13 +5,15 @@ set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
 SHELLTOKENS="${HOME}/.config/caelestia/shell-tokens.json"
+BIN="${HOME}/.local/bin"
 LAYER="${HOME}/.local/share/hyperwebster/hypersmooth-display"
 MARK_BEGIN='# >>> hypersmooth-display >>>'
 MARK_END='# <<< hypersmooth-display <<<'
 
-mkdir -p "$LAYER"
+mkdir -p "$LAYER" "$BIN"
 install -m0644 "$HERE/hypr-hypersmooth.conf" "$LAYER/hypr-hypersmooth.conf"
 install -m0644 "$HERE/shell-tokens.fragment.json" "$LAYER/shell-tokens.fragment.json"
+install -m0755 "$HERE/hyperwebster-hypersmooth-toggle" "$BIN/hyperwebster-hypersmooth-toggle"
 install -m0644 "$HERE/README.md" "$LAYER/README.md"
 
 if [ -f "$HYPRUSER" ] && ! grep -qF "$MARK_BEGIN" "$HYPRUSER"; then

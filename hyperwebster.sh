@@ -174,6 +174,8 @@ BASE_PKGS=(
   tailscale
   # CachyOS kernel variant picker (GUI) — pairs with linux-cachyos OOB default
   cachyos-kernel-manager
+  # Gaming overlays (lightweight; Steam/Lutris stay opt-in via Additions)
+  gamemode lib32-gamemode mangohud
 )
 
 # Every GPU driver variant goes into the offline repo; the installer detects
@@ -1773,6 +1775,12 @@ install -m 755 "$LAYER/hyperwebster-keybinds" "$LAYER/hyperwebster-keybinds-gen"
   "$LAYER/kernel-reboot-notify/hyperwebster-reboot-check" \
   "$LAYER/btrfs-snapshot-manager/hyperwebster-snapshots" \
   "$LAYER/zephyr-polish/hyperwebster-zephyr-polish" \
+  "$LAYER/appearance-toggles/hyperwebster-rounding-toggle" \
+  "$LAYER/blur-toggle/hyperwebster-blur-toggle" \
+  "$LAYER/hypersmooth-display/hyperwebster-hypersmooth-toggle" \
+  "$LAYER/tv-gaming-display/hyperwebster-tv-gaming-toggle" \
+  "$LAYER/launcher-raycast/hyperwebster-launcher-raycast" \
+  "$LAYER/omarchy-extras/hyperwebster-omarchy-extras-toggle" \
   "$LAYER/distro-tools/hyperwebster-maint" \
   "$M_HOME/.local/bin/"
 # Omarchy CLI shims (change 15) — let Omarchy-targeted gaming installers
@@ -2171,6 +2179,10 @@ arch-chroot /mnt runuser -u "$USERNAME" -- \
   env HOME="$USER_HOME" \
   sh "$USER_HOME/.local/share/hyperwebster/blur-toggle/install-blur-toggle.sh" \
   || echo "    (blur-toggle skipped)"
+arch-chroot /mnt runuser -u "$USERNAME" -- \
+  env HOME="$USER_HOME" \
+  sh "$USER_HOME/.local/share/hyperwebster/appearance-toggles/install-appearance-toggles.sh" \
+  || echo "    (appearance-toggles skipped)"
 
 # --- hypersmooth, zephyr polish, btrfs snapshots, maintenance menu.
 echo "==> Installing hypersmooth + snapshot + maintenance tools..."
@@ -2246,6 +2258,15 @@ if [ ! -f "$M_HOME/.local/state/caelestia/scheme.json" ]; then
 fi
 # Initial app-theme + GTK bridge (also re-runs on scheme changes via .path unit).
 as_user hyperwebster-app-theme-sync >/dev/null 2>&1 || true
+
+# --- Default appearance: frosted blur on; layer toggles seeded to match install ---
+echo "==> Seeding appearance defaults (blur on, layer toggle state)..."
+as_user hyperwebster-blur-toggle enable >/dev/null 2>&1 \
+  || echo "    (blur default skipped)"
+as_user hyperwebster-hypersmooth-toggle enable >/dev/null 2>&1 || true
+as_user hyperwebster-tv-gaming-toggle enable >/dev/null 2>&1 || true
+as_user hyperwebster-launcher-raycast enable >/dev/null 2>&1 || true
+as_user hyperwebster-omarchy-extras-toggle enable >/dev/null 2>&1 || true
 
 # --- change 25 (cont.): seed the Additions status cache so the page has data
 # on first open (all 15 items not-installed on a fresh image — the page IS the

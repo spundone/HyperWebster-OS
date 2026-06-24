@@ -8,19 +8,15 @@ import qs.components
 import qs.services
 import qs.modules.nexus.common
 
-// HyperWebster: the Additions settings page (replaces the upstream Plugins
-// placeholder). Optional software installed on demand from official sources
-// (pacman repos / upstream installers — no AUR, no Flatpak). Items come from
-// the additions.json manifest via the status cache written by
-// hyperwebster-additions; Install runs in a visible floating terminal so
-// git/sudo/pacman output and prompts stay in front of the user.
+// HyperWebster: Settings → Additions — layer mod toggles + optional software.
+// Manifest-driven via hyperwebster-additions status cache (sections by category).
 PageBase {
     id: root
 
     title: qsTr("Additions")
 
     property var status: ({})
-    readonly property var items: status.items || []
+    readonly property var sections: status.sections || []
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -28,12 +24,6 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
-        // The Process objects live INSIDE the layout (its `data` accepts
-        // non-visual objects) — PageBase's default property is a single
-        // `Item`, so declaring them at page level kills the whole shell.
-        // Same pattern as UpdatesPage / the upstream AboutPage.
-
-        // Read the cached status (instant).
         Process {
             id: readProc
 
@@ -50,7 +40,6 @@ PageBase {
             }
         }
 
-        // Refresh the cache on demand (re-runs every item's check).
         Process {
             id: checkProc
 
@@ -58,7 +47,6 @@ PageBase {
             onExited: readProc.running = true
         }
 
-        // Run an installer in a visible floating terminal.
         Process {
             id: installProc
 
@@ -68,33 +56,89 @@ PageBase {
             onExited: readProc.running = true
         }
 
-        SectionHeader {
-            text: qsTr("Optional software")
+        Process {
+            id: toggleProc
+
+            property string addId: ""
+            property bool turnOn: false
+
+            command: ["sh", "-c", "\"$HOME/.local/bin/hyperwebster-additions\" " + (turnOn ? "enable " : "disable ") + addId]
+            onExited: readProc.running = true
         }
 
         Repeater {
-            model: root.items
+            model: root.sections
 
-            NavRow {
+            delegate: ColumnLayout {
+                id: sectionBlock
+
                 required property var modelData
                 required property int index
 
-                first: index === 0
-                last: index === root.items.length - 1
-                icon: modelData.icon || "extension"
-                label: modelData.name
-                status: modelData.installed ? qsTr("Installed") : modelData.desc
-                onClicked: {
-                    if (!modelData.installed && !installProc.running) {
-                        installProc.addId = modelData.id;
-                        installProc.running = true;
+                spacing: Tokens.spacing.extraSmall / 2
+
+                SectionHeader {
+                    text: sectionBlock.modelData.label || ""
+                }
+
+                Repeater {
+                    model: sectionBlock.modelData.items || []
+
+                    delegate: Loader {
+                        id: rowLoader
+
+                        required property var modelData
+                        required property int index
+
+                        readonly property var items: sectionBlock.modelData.items || []
+                        readonly property bool isToggle: (modelData.kind || "install") === "toggle"
+                        readonly property bool isFirst: index === 0
+                        readonly property bool isLast: index === items.length - 1
+
+                        width: parent ? parent.width : implicitWidth
+                        sourceComponent: isToggle ? toggleRowComp : installRowComp
+
+                        Component {
+                            id: toggleRowComp
+
+                            ToggleRow {
+                                text: rowLoader.modelData.name || ""
+                                subtext: rowLoader.modelData.desc || ""
+                                checked: rowLoader.modelData.enabled === true
+                                onToggled: {
+                                    if (toggleProc.running)
+                                        return;
+                                    toggleProc.addId = rowLoader.modelData.id;
+                                    toggleProc.turnOn = checked;
+                                    toggleProc.running = true;
+                                }
+                            }
+                        }
+
+                        Component {
+                            id: installRowComp
+
+                            NavRow {
+                                first: rowLoader.isFirst
+                                last: rowLoader.isLast
+                                icon: rowLoader.modelData.icon || "extension"
+                                label: rowLoader.modelData.name || ""
+                                status: rowLoader.modelData.installed ? qsTr("Installed") : (rowLoader.modelData.desc || "")
+                                onClicked: {
+                                    if (!rowLoader.modelData.installed && !installProc.running) {
+                                        installProc.addId = rowLoader.modelData.id;
+                                        installProc.running = true;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
 
         InfoRow {
-            visible: root.items.length === 0
+            visible: root.sections.length === 0
             first: true
             last: true
             label: qsTr("No additions manifest")
@@ -110,7 +154,7 @@ PageBase {
             last: true
             icon: "refresh"
             label: qsTr("Re-check installed state")
-            status: installProc.running ? qsTr("Install running in terminal…") : (checkProc.running ? qsTr("Checking…") : qsTr("Refreshes the list above"))
+            status: installProc.running ? qsTr("Install running in terminal…") : (toggleProc.running ? qsTr("Applying toggle…") : (checkProc.running ? qsTr("Checking…") : qsTr("Refreshes the list above")))
             onClicked: {
                 if (!checkProc.running)
                     checkProc.running = true;

@@ -5,12 +5,14 @@ set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
 PROFILE_DIR="${HOME}/.config/hyprmoncfg/profiles"
+BIN="${HOME}/.local/bin"
 LAYER="${HOME}/.local/share/hyperwebster/tv-gaming-display"
 MARK='tv-gaming-display: TV HDR/VRR profile'
 
-mkdir -p "$PROFILE_DIR" "$LAYER"
+mkdir -p "$PROFILE_DIR" "$LAYER" "$BIN"
 install -m0644 "$HERE/profiles/tv-gaming-4k" "$PROFILE_DIR/tv-gaming-4k"
 install -m0644 "$HERE/hypr-tv-gaming.conf" "$LAYER/hypr-tv-gaming.conf"
+install -m0755 "$HERE/hyperwebster-tv-gaming-toggle" "$BIN/hyperwebster-tv-gaming-toggle"
 install -m0644 "$HERE/README.md" "$LAYER/README.md"
 
 if [ -f "$HYPRUSER" ] && ! grep -qF "$MARK" "$HYPRUSER"; then
