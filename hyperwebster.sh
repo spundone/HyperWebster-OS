@@ -1738,7 +1738,9 @@ nsi_phase "Applying the HyperWebster layer"
 echo "==> Installing HyperWebster layer (os-updates round)..."
 tar -xzf "$HYPERWEBSTER_PAYLOAD/vendor/hyperwebster-layer.tar.gz" -C "$M_HOME/.local/share"
 LAYER="$M_HOME/.local/share/hyperwebster"
-chmod +x "$LAYER/hyperwebster-update/bin/hyperwebster-update" "$LAYER/hyperwebster-update/migrations/"*.sh
+chmod +x "$LAYER/hyperwebster-update/bin/hyperwebster-update" \
+  "$LAYER/hyperwebster-update/bin/pull-layer.sh" \
+  "$LAYER/hyperwebster-update/migrations/"*.sh
 
 # On-box management skill: a fresh Claude Code on this machine auto-discovers
 # the `hyperwebster` skill (its description is surfaced in the available-skills list)
@@ -1798,6 +1800,8 @@ install -m 755 "$LAYER/gaming-enablement/omarchy-pkg-add" \
   "$M_HOME/.local/bin/"
 ln -sf "$USER_HOME/.local/share/hyperwebster/hyperwebster-update/bin/hyperwebster-update" \
   "$M_HOME/.local/bin/hyperwebster-update"
+ln -sf "$USER_HOME/.local/share/hyperwebster/hyperwebster-update/bin/pull-layer.sh" \
+  "$M_HOME/.local/bin/hyperwebster-layer-pull"
 
 # --- nosignal-update compat aliases (stale QML / scripts may still call nosignal-*).
 echo "==> Installing nosignal-update compat aliases..."

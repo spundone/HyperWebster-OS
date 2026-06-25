@@ -62,6 +62,7 @@ done
 [ -d "$SRC/tv-gaming-display" ] && cp -a "$SRC/tv-gaming-display" "$DEST/"
 [ -d "$SRC/launcher-raycast" ] && cp -a "$SRC/launcher-raycast" "$DEST/"
 [ -d "$SRC/blur-toggle" ] && cp -a "$SRC/blur-toggle" "$DEST/"
+[ -d "$SRC/appearance-toggles" ] && cp -a "$SRC/appearance-toggles" "$DEST/"
 [ -d "$SRC/cachyos-repo-switch" ] && cp -a "$SRC/cachyos-repo-switch" "$DEST/"
 [ -d "$SRC/theme-polish" ] && cp -a "$SRC/theme-polish" "$DEST/"
 [ -d "$SRC/drive-automount" ] && cp -a "$SRC/drive-automount" "$DEST/"
@@ -74,10 +75,13 @@ done
 
 # The update system itself.
 cp -a "$SRC/hyperwebster-update" "$DEST/"
-chmod +x "$DEST/hyperwebster-update/bin/hyperwebster-update" "$DEST/hyperwebster-update/migrations/"*.sh
+chmod +x "$DEST/hyperwebster-update/bin/hyperwebster-update" \
+  "$DEST/hyperwebster-update/bin/pull-layer.sh" \
+  "$DEST/hyperwebster-update/migrations/"*.sh
 
-# Expose the command (symlink resolves back to DEST so it finds its migrations).
+# Expose the commands (symlinks resolve back to DEST so they find migrations).
 ln -sf "$DEST/hyperwebster-update/bin/hyperwebster-update" "$BIN/hyperwebster-update"
+ln -sf "$DEST/hyperwebster-update/bin/pull-layer.sh" "$BIN/hyperwebster-layer-pull"
 
 echo "Installed HyperWebster update system -> $DEST"
 echo "  hyperwebster-update                              # snapshot + package upgrade + layer"

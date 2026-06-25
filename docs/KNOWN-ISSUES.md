@@ -1,5 +1,45 @@
 # Known issues and troubleshooting
 
+## hyperwebster-update shows no new changes
+
+**Symptom:** You run `hyperwebster-update` but blur toggle, Additions toggles, Omarchy
+install menu, shell branding, or other recent layer features never appear.
+
+**Cause:** Older ISOs baked the HyperWebster layer into `~/.local/share/hyperwebster/`
+at install time and marked every migration as already applied. `hyperwebster-update`
+only ran migrations against that frozen snapshot — it did not fetch newer layer files
+from GitHub.
+
+**Fix (current releases):** `hyperwebster-update` now pulls `main` from GitHub before
+migrations. Run a full update, then restart the shell:
+
+```sh
+hyperwebster-update -y
+# Ctrl+Super+Alt+R
+```
+
+Layer-only refresh (no package upgrade):
+
+```sh
+hyperwebster-update --pull-only -y
+# Ctrl+Super+Alt+R
+```
+
+**One-time manual refresh** (stuck on an ISO before self-update shipped):
+
+```sh
+hyperwebster-layer-pull
+# or, if that command is missing:
+bash <(curl -fsSL https://raw.githubusercontent.com/spundone/HyperWebster-OS/main/os%20updates/hyperwebster-update/bin/pull-layer.sh)
+hyperwebster-update --no-packages --no-snapshot --no-pull -y
+# Ctrl+Super+Alt+R
+```
+
+Offline / air-gapped: pass `--no-pull` and copy a fresh `os updates/` tree from a
+newer ISO or git checkout into `~/.local/share/hyperwebster/`.
+
+Check layer stamp: `cat ~/.local/state/hyperwebster/layer-version`
+
 ## Settings pages show NoSignal or stay blank after a shell upgrade
 
 **Symptom:** Settings → About says "NoSignal V1"; Updates, Additions, or Services

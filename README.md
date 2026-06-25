@@ -106,7 +106,8 @@ The installer scans PCI vendor IDs and installs the matching driver stack automa
 
 HyperWebster tweaks live in a **config-override layer** at `~/.config/caelestia/`
 and `~/.local/share/hyperwebster/`. Delete a file to revert one change.
-`hyperwebster-update` snapshots before every upgrade.
+`hyperwebster-update` pulls the latest layer from GitHub, snapshots before upgrades,
+and applies new migrations. Restart the shell after layer changes: **Ctrl+Super+Alt+R**.
 
 ```sh
 hyperwebster-blur-toggle disable      # flat opaque panels (blur is on by default)

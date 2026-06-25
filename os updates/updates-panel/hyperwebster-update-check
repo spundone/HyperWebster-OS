@@ -34,6 +34,12 @@ fi
 # HyperWebster layer: migrations present in the on-system repo but not yet applied.
 migrations=0
 applied="$STATE_DIR/applied"
+layer_version=""
+layer_commit=""
+if [ -f "$STATE_DIR/layer-version" ]; then
+  layer_version=$(sed -n 's/^fetched_at=//p' "$STATE_DIR/layer-version" | head -1)
+  layer_commit=$(sed -n 's/^commit=//p' "$STATE_DIR/layer-version" | head -1)
+fi
 if [ -d "$HYPERWEBSTER_REPO/hyperwebster-update/migrations" ]; then
   for m in "$HYPERWEBSTER_REPO/hyperwebster-update/migrations"/*.sh; do
     [ -e "$m" ] || continue
@@ -59,6 +65,8 @@ cat > "$OUT" <<EOF
   "aur": $aur,
   "flatpak": $flatpak,
   "migrations_pending": $migrations,
+  "layer_fetched_at": "$layer_version",
+  "layer_commit": "$layer_commit",
   "last_upgrade": "$last_upgrade"
 }
 EOF
