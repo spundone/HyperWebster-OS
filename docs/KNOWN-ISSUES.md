@@ -11,17 +11,18 @@ only ran migrations against that frozen snapshot — it did not fetch newer laye
 from GitHub.
 
 **Fix (current releases):** `hyperwebster-update` now pulls `main` from GitHub before
-migrations. Run a full update, then restart the shell:
+migrations. If your ISO marked every migration as applied without running installers,
+add `--force-migrations`. Then restart the shell:
 
 ```sh
-hyperwebster-update -y
+hyperwebster-update --force-migrations -y
 # Ctrl+Super+Alt+R
 ```
 
 Layer-only refresh (no package upgrade):
 
 ```sh
-hyperwebster-update --pull-only -y
+hyperwebster-update --pull-only --force-migrations -y
 # Ctrl+Super+Alt+R
 ```
 
@@ -31,12 +32,54 @@ hyperwebster-update --pull-only -y
 hyperwebster-layer-pull
 # or, if that command is missing:
 bash <(curl -fsSL https://raw.githubusercontent.com/spundone/HyperWebster-OS/main/os%20updates/hyperwebster-update/bin/pull-layer.sh)
-hyperwebster-update --no-packages --no-snapshot --no-pull -y
+hyperwebster-update --no-packages --no-snapshot --no-pull --force-migrations -y
 # Ctrl+Super+Alt+R
 ```
 
+**`rsync: command not found` during layer pull** (older ISOs without rsync):
+
+`hyperwebster-layer-pull` and current `pull-layer.sh` fall back to `rm` + `cp -a`
+when rsync is missing. If your installed copy still calls rsync directly, use this
+one-liner block instead:
+
+```sh
+set -euo pipefail
+layer="$HOME/.local/share/hyperwebster"
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+curl -fSL -o "$tmpdir/layer.tar.gz" \
+  https://github.com/spundone/HyperWebster-OS/archive/refs/heads/main.tar.gz
+tar -xzf "$tmpdir/layer.tar.gz" -C "$tmpdir"
+top=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -1)
+rm -rf "$layer"
+cp -a "$top/os updates" "$layer"
+mkdir -p "$HOME/.local/bin"
+ln -sf "$layer/hyperwebster-update/bin/hyperwebster-update" "$HOME/.local/bin/hyperwebster-update"
+ln -sf "$layer/hyperwebster-update/bin/pull-layer.sh" "$HOME/.local/bin/hyperwebster-layer-pull"
+chmod +x "$layer/hyperwebster-update/bin/"*.sh "$layer/hyperwebster-update/migrations/"*.sh
+hyperwebster-update --no-packages --no-snapshot --no-pull --force-migrations -y
+# Ctrl+Super+Alt+R
+```
+
+ISO installs may list every migration in `~/.local/state/hyperwebster/applied` even
+when installers never ran. After a manual layer pull, always pass `--force-migrations`
+(or `--reapply-all`) so shell branding, Additions toggles, and other layer CLIs
+actually install.
+
+Manual fallback if migrations still skip individual components:
+
+```sh
+layer="$HOME/.local/share/hyperwebster"
+sudo sh "$layer/shell-branding/install-shell-branding.sh"
+sh "$layer/appearance-toggles/install-appearance-toggles.sh"
+sh "$layer/omarchy-launcher/install-omarchy-launcher.sh"
+sh "$layer/update-alias/install-update-alias.sh"
+env HYPERWEBSTER_SKIP_SHELL_PATCH=1 sh "$layer/additions-installer/install-additions-installer.sh"
+```
+
 Offline / air-gapped: pass `--no-pull` and copy a fresh `os updates/` tree from a
-newer ISO or git checkout into `~/.local/share/hyperwebster/`.
+newer ISO or git checkout into `~/.local/share/hyperwebster/`, then
+`hyperwebster-update --no-packages --no-snapshot --no-pull --force-migrations -y`.
 
 Check layer stamp: `cat ~/.local/state/hyperwebster/layer-version`
 

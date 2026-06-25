@@ -16,7 +16,7 @@ VERSION_FILE="$STATE_DIR/layer-version"
 PULL_SCRIPT="$BIN_DIR/pull-layer.sh"
 
 # --- options ------------------------------------------------------------------
-ASSUME_YES=0; DO_PACKAGES=1; DO_SNAPSHOT=1; DO_CAELESTIA=0; DO_PULL=1
+ASSUME_YES=0; DO_PACKAGES=1; DO_SNAPSHOT=1; DO_CAELESTIA=0; DO_PULL=1; FORCE_MIGRATIONS=0
 for a in "$@"; do
   case "$a" in
     -y|--yes)       ASSUME_YES=1 ;;
@@ -24,6 +24,7 @@ for a in "$@"; do
     --no-snapshot)  DO_SNAPSHOT=0 ;;
     --no-pull)      DO_PULL=0 ;;
     --pull-only)    DO_PACKAGES=0; DO_SNAPSHOT=0; DO_PULL=1 ;;
+    --force-migrations|--reapply-all) FORCE_MIGRATIONS=1 ;;
     --caelestia)    DO_CAELESTIA=1 ;;
     -h|--help)
       cat <<EOF
@@ -33,6 +34,9 @@ Usage: hyperwebster-update [options]
   --no-snapshot     skip the pre-update snapper snapshot
   --no-pull         skip fetching the latest layer from GitHub (offline / ISO snapshot)
   --pull-only       refresh layer + migrations only (same as --no-packages --no-snapshot)
+  --force-migrations, --reapply-all
+                    re-run every migration (ISO installs that marked all applied
+                    without running installers — use after a manual layer pull)
   --caelestia       also 'git pull' the Caelestia dotfiles (may clobber local edits)
 
 By default hyperwebster-update pulls the latest HyperWebster layer from GitHub
@@ -120,15 +124,16 @@ run_migrations() {
     warn "no migrations found under $MIG_DIR"
     return 0
   fi
+  [ "$FORCE_MIGRATIONS" = 1 ] && log "re-running all migrations (--force-migrations)"
   for m in "${files[@]}"; do
     base=$(basename "$m")
-    if grep -qxF "$base" "$STATE" 2>/dev/null; then
+    if [ "$FORCE_MIGRATIONS" != 1 ] && grep -qxF "$base" "$STATE" 2>/dev/null; then
       skipped=$((skipped + 1))
       continue
     fi
     log "migration: $base"
     if HYPERWEBSTER_SRC="$ROOT" HYPERWEBSTER_LAYER="$ROOT" bash "$m"; then
-      echo "$base" >> "$STATE"
+      grep -qxF "$base" "$STATE" 2>/dev/null || echo "$base" >> "$STATE"
       applied=$((applied + 1))
     else
       failed=$((failed + 1))
@@ -136,7 +141,10 @@ run_migrations() {
       exit 1
     fi
   done
-  if [ "$applied" -gt 0 ]; then
+  if [ "$FORCE_MIGRATIONS" = 1 ] && [ "$applied" -gt 0 ]; then
+    log "$applied migration(s) re-applied"
+    log "restart the desktop shell: Ctrl+Super+Alt+R (or log out/in)"
+  elif [ "$applied" -gt 0 ]; then
     log "$applied new migration(s) applied, $skipped already applied"
     log "restart the desktop shell: Ctrl+Super+Alt+R (or log out/in)"
   elif [ "$skipped" -gt 0 ]; then

@@ -42,6 +42,7 @@ Each must be **idempotent** (safe to re-run).
 hyperwebster-update                              # pull layer + snapshot + packages + migrations
 hyperwebster-update -y                           # non-interactive
 hyperwebster-update --pull-only -y               # layer refresh + migrations only
+hyperwebster-update --force-migrations -y        # re-run all migrations (stuck ISO installs)
 hyperwebster-update --no-packages --no-snapshot  # migrations only (no pull unless you omit --no-pull)
 hyperwebster-update --no-pull                    # offline: packages + migrations against local layer
 hyperwebster-layer-pull                          # refresh ~/.local/share/hyperwebster only
@@ -63,5 +64,6 @@ hyperwebster-update --pull-only -y
 
 ## Requirements
 
-`bash`, `curl`, `tar`, `sudo`, `git`, `base-devel` (for yay bootstrap), and `snapper`
-(optional, for snapshots). `rsync` recommended for clean layer sync.
+`bash`, `curl`, `tar`, `cp`, `sudo`, `git`, `base-devel` (for yay bootstrap), and `snapper`
+(optional, for snapshots). `rsync` is used when present; otherwise `pull-layer.sh` replaces
+the layer with `rm` + `cp -a` (ships in `BASE_PKGS` on new ISOs).

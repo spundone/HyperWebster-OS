@@ -16,9 +16,22 @@ log() { printf '\033[1;34m::\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m::\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
-for cmd in curl tar; do
+for cmd in curl tar cp rm mkdir chmod ln; do
   command -v "$cmd" >/dev/null 2>&1 || die "$cmd is required to pull the HyperWebster layer"
 done
+
+# Sync extracted layer tree onto DEST (rsync --delete equivalent without rsync).
+sync_layer_tree() {
+  local src="$1" dest="$2"
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a --delete "$src/" "$dest/"
+    return
+  fi
+  warn "rsync not found — replacing layer with cp -a (install rsync for faster sync)"
+  rm -rf "$dest"
+  mkdir -p "$dest"
+  cp -a "$src/." "$dest/"
+}
 
 tmpdir=$(mktemp -d)
 cleanup() { rm -rf "$tmpdir"; }
@@ -35,13 +48,8 @@ top=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -1)
 src="$top/os updates"
 [ -d "$src" ] || die "tarball missing 'os updates/' (wrong URL or repo layout?)"
 
-mkdir -p "$DEST" "$STATE_DIR"
-if command -v rsync >/dev/null 2>&1; then
-  rsync -a --delete "$src/" "$DEST/"
-else
-  warn "rsync not found — merging with cp (orphan files may remain)"
-  cp -a "$src/." "$DEST/"
-fi
+mkdir -p "$(dirname -- "$DEST")" "$STATE_DIR"
+sync_layer_tree "$src" "$DEST"
 
 chmod +x "$DEST/hyperwebster-update/bin/hyperwebster-update" \
   "$DEST/hyperwebster-update/bin/pull-layer.sh" \

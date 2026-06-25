@@ -110,7 +110,7 @@ BASE_PKGS=(
   base linux linux-cachyos linux-cachyos-headers linux-firmware
   cachyos-keyring cachyos-mirrorlist cachyos-v3-mirrorlist cachyos-v4-mirrorlist
   intel-ucode amd-ucode cryptsetup tpm2-tss tpm2-tools
-  networkmanager openssh sudo git curl wget vim less base-devel
+  networkmanager openssh sudo git curl wget rsync vim less base-devel
   limine efibootmgr zram-generator
   btrfs-progs btrfsmaintenance snapper snap-pac btrfs-assistant-git
   pipewire pipewire-pulse pipewire-alsa pipewire-jack wireplumber
