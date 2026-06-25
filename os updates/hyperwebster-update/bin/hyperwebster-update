@@ -5,11 +5,14 @@
 set -euo pipefail
 
 # --- resolve the HyperWebster source root (works through the ~/.local/bin symlink) --
-SELF=$(readlink -f -- "$0")
-BIN_DIR=$(dirname -- "$SELF")
-UPDATE_DIR=$(dirname -- "$BIN_DIR")                 # .../hyperwebster-update
-ROOT=$(dirname -- "$UPDATE_DIR")                    # repo root; components live here
-MIG_DIR="$UPDATE_DIR/migrations"
+resolve_paths() {
+  SELF=$(readlink -f -- "${1:-$0}")
+  BIN_DIR=$(dirname -- "$SELF")
+  UPDATE_DIR=$(dirname -- "$BIN_DIR")              # .../hyperwebster-update
+  ROOT=$(dirname -- "$UPDATE_DIR")                 # .../hyperwebster (layer root)
+  MIG_DIR="$UPDATE_DIR/migrations"
+}
+resolve_paths "$0"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/hyperwebster"
 STATE="$STATE_DIR/applied"
 VERSION_FILE="$STATE_DIR/layer-version"
@@ -108,9 +111,8 @@ pull_layer() {
     return 1
   fi
   HYPERWEBSTER_LAYER="$ROOT" bash "$PULL_SCRIPT"
-  # pull-layer may refresh this script; re-resolve ROOT after sync.
-  ROOT=$(dirname -- "$(dirname -- "$(readlink -f -- "$SELF")")")
-  MIG_DIR="$ROOT/hyperwebster-update/migrations"
+  # pull-layer may refresh this script; re-resolve all paths after sync.
+  resolve_paths "$SELF"
 }
 
 # --- 5. migrations (re-apply / advance the HyperWebster layer) ----------------
@@ -120,6 +122,19 @@ run_migrations() {
   shopt -s nullglob
   local files=("$MIG_DIR"/*.sh)
   shopt -u nullglob
+  # Defensive: older pull_layer() bug doubled hyperwebster-update in MIG_DIR.
+  if [ ${#files[@]} -eq 0 ]; then
+    local alt="$UPDATE_DIR/migrations"
+    if [ "$alt" != "$MIG_DIR" ] && [ -d "$alt" ]; then
+      shopt -s nullglob
+      files=("$alt"/*.sh)
+      shopt -u nullglob
+      if [ ${#files[@]} -gt 0 ]; then
+        warn "corrected migrations path -> $alt"
+        MIG_DIR="$alt"
+      fi
+    fi
+  fi
   if [ ${#files[@]} -eq 0 ]; then
     warn "no migrations found under $MIG_DIR"
     return 0
