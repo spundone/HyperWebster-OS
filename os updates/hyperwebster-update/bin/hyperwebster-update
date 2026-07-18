@@ -17,6 +17,8 @@ STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/hyperwebster"
 STATE="$STATE_DIR/applied"
 VERSION_FILE="$STATE_DIR/layer-version"
 PULL_SCRIPT="$BIN_DIR/pull-layer.sh"
+# Preserve argv so we can re-exec after pull refreshes this script on disk.
+HW_UPDATE_ARGV=("$@")
 
 # --- options ------------------------------------------------------------------
 ASSUME_YES=0; DO_PACKAGES=1; DO_SNAPSHOT=1; DO_CAELESTIA=0; DO_PULL=1; FORCE_MIGRATIONS=0; FORCE_PULL=0
@@ -115,10 +117,22 @@ pull_layer() {
   fi
   local -a pull_args=()
   [ "$FORCE_PULL" = 1 ] && pull_args+=(--force)
+  local before_self after_self
+  before_self=$(readlink -f -- "$SELF")
   HYPERWEBSTER_LAYER="$ROOT" HYPERWEBSTER_LAYER_FORCE_PULL="$FORCE_PULL" \
     bash "$PULL_SCRIPT" "${pull_args[@]}"
   # pull-layer may refresh this script; re-resolve all paths after sync.
   resolve_paths "$SELF"
+  after_self=$(readlink -f -- "$ROOT/hyperwebster-update/bin/hyperwebster-update" 2>/dev/null || true)
+  # Re-exec the freshly pulled updater so soft-fail / migration runners pick up
+  # fixes from the same pull (in-memory bash would keep running the old file).
+  if [ -n "${after_self:-}" ] && [ -f "$after_self" ] \
+     && [ "${HYPERWEBSTER_UPDATE_REEXEC:-0}" != 1 ] \
+     && ! cmp -s "$before_self" "$after_self" 2>/dev/null; then
+    warn "updater binary changed on disk — re-execing refreshed hyperwebster-update"
+    export HYPERWEBSTER_UPDATE_REEXEC=1
+    exec bash "$after_self" "${HW_UPDATE_ARGV[@]}"
+  fi
 }
 
 # --- 5. migrations (re-apply / advance the HyperWebster layer) ----------------
@@ -180,9 +194,9 @@ run_migrations_once() {
       rm -f "$mig_log"
       grep -qxF "$base" "$STATE" 2>/dev/null || echo "$base" >> "$STATE"
       applied=$((applied + 1))
-    elif grep -qE 'are the same file|no .*/limine\.conf|not a Limine install|UKI not found|no /etc/machine-id — skipping|rewrite did not clear vmlinuz|FileDialog moved inside layout|System tools FileDialog' "$mig_log" 2>/dev/null; then
+    elif grep -qE 'are the same file|no .*/limine\.conf|not a Limine install|UKI not found|no /etc/machine-id — skipping|rewrite did not clear vmlinuz|FileDialog moved inside layout|System tools FileDialog|nsbar font \+ blur restored' "$mig_log" 2>/dev/null; then
       # Live-layer same-file installs, optional Limine/UKI soft-skips, or System
-      # tools patch that applied but still returned a spurious non-zero status.
+      # tools / nsbar patches that applied but still returned a spurious status.
       warn "migration $base: non-fatal skip — continuing"
       rm -f "$mig_log"
       grep -qxF "$base" "$STATE" 2>/dev/null || echo "$base" >> "$STATE"

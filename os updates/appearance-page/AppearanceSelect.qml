@@ -357,7 +357,7 @@ PageBase {
             Layout.fillWidth: true
             first: true
             label: qsTr("UI font")
-            subtext: qsTr("Shell, lock screen, Settings — install the font first if missing")
+            subtext: qsTr("Settings and Tokens — top bar chrome stays JetBrainsMono Nerd Font")
             menuItems: uiFontMenu.instances
             active: menuItems.find(i => {
                     const def = root.uiFontChoices.find(v => v.name === i.text);

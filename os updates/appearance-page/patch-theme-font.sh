@@ -1,60 +1,56 @@
 #!/bin/sh
-# patch-theme-font.sh — Theme.fontFamily follows GlobalConfig UI font.
-# Idempotent. Without this, nsbar/lock stay on hardcoded JetBrainsMono.
+# patch-theme-font.sh — keep Theme.fontFamily on JetBrainsMono Nerd Font.
+#
+# Earlier builds bound fontFamily to GlobalConfig.appearance.font.body.family
+# (defaults to GoogleSansFlex). NsBar icons need a Nerd Font, so the top bar
+# lost glyphs and looked "broken". Chrome stays on JetBrainsMono NF; Settings
+# → Appearance still writes GlobalConfig for Tokens / GTK / kitty.
 set -eu
 
 TARGET=${TARGET:-/etc/xdg/quickshell/caelestia/services/Theme.qml}
 [ -f "$TARGET" ] || { echo "Theme.qml not found at $TARGET — skipping"; exit 0; }
 
+# Undo the GlobalConfig body-font binding if a previous migration applied it.
 if grep -q 'HyperWebster: fontFamily follows GlobalConfig' "$TARGET" 2>/dev/null; then
-  echo ":: Theme.qml fontFamily already config-aware"
-  exit 0
-fi
-
-if ! grep -q 'readonly property string fontFamily:' "$TARGET" 2>/dev/null; then
-  echo "WARNING: Theme.qml has no fontFamily — nothing to patch" >&2
-  exit 0
-fi
-
-cp -n "$TARGET" "$TARGET.pre-hyperwebster-font" 2>/dev/null || true
-
-# Ensure Caelestia.Config is imported for GlobalConfig.
-if ! grep -q 'import Caelestia.Config' "$TARGET" 2>/dev/null; then
   python3 - "$TARGET" <<'PY'
-from pathlib import Path
-import sys
-path = Path(sys.argv[1])
-text = path.read_text()
-needle = "import qs.services\n"
-if needle in text:
-    text = text.replace(needle, needle + "import Caelestia.Config\n", 1)
-elif "import QtQuick\n" in text:
-    text = text.replace("import QtQuick\n", "import QtQuick\nimport Caelestia.Config\n", 1)
-else:
-    text = "import Caelestia.Config\n" + text
-path.write_text(text)
-print(f":: added Caelestia.Config import to {path}")
-PY
-fi
-
-python3 - "$TARGET" <<'PY'
 from pathlib import Path
 import re
 import sys
 
 path = Path(sys.argv[1])
 text = path.read_text()
-old = re.compile(
-    r'    readonly property string fontFamily: "[^"]*"'
+pat = re.compile(
+    r"    // HyperWebster: fontFamily follows GlobalConfig \(Settings → Appearance\)\.\n"
+    r"    readonly property string fontFamily: \{\n"
+    r"        const f = GlobalConfig\.appearance\.font\.body\.family;\n"
+    r"        return \(f && f\.length\) \? f : \"JetBrainsMono Nerd Font\";\n"
+    r"    \}"
 )
-new = '''    // HyperWebster: fontFamily follows GlobalConfig (Settings → Appearance).
-    readonly property string fontFamily: {
-        const f = GlobalConfig.appearance.font.body.family;
-        return (f && f.length) ? f : "JetBrainsMono Nerd Font";
-    }'''
-if not old.search(text):
-    print("WARNING: Theme.qml fontFamily shape changed — patch skipped", file=sys.stderr)
+rep = '    readonly property string fontFamily: "JetBrainsMono Nerd Font"'
+if not pat.search(text):
+    # Broader fallback: any multi-line fontFamily block mentioning GlobalConfig.
+    pat = re.compile(
+        r"    readonly property string fontFamily: \{\n"
+        r"        const f = GlobalConfig\.appearance\.font\.body\.family;\n"
+        r"        return \(f && f\.length\) \? f : \"JetBrainsMono Nerd Font\";\n"
+        r"    \}"
+    )
+if not pat.search(text):
+    print("WARNING: could not revert GlobalConfig fontFamily binding", file=sys.stderr)
     sys.exit(0)
-path.write_text(old.sub(new, text, count=1))
-print(f":: patched {path} (fontFamily follows GlobalConfig)")
+text = pat.sub(rep, text, count=1)
+# Drop unused Caelestia.Config import only if nothing else needs it.
+if "GlobalConfig" not in text and "import Caelestia.Config\n" in text:
+    text = text.replace("import Caelestia.Config\n", "", 1)
+path.write_text(text)
+print(f":: restored {path} fontFamily to JetBrainsMono Nerd Font (nsbar icons)")
 PY
+  exit 0
+fi
+
+if grep -q 'readonly property string fontFamily: "JetBrainsMono Nerd Font"' "$TARGET" 2>/dev/null; then
+  echo ":: Theme.qml fontFamily already JetBrainsMono Nerd Font"
+  exit 0
+fi
+
+echo ":: Theme.qml fontFamily left unchanged (not the GlobalConfig binding)"
