@@ -39,28 +39,31 @@ PageBase {
         Quickshell.execDetached(["sh", "-c", "command -v \"$1\" >/dev/null && exec \"$1\" || notify-send -u critical 'System tools' \"$1 is not installed\"", "sh", bin])
     }
 
-    FileDialog {
-        id: facePicker
-
-        title: qsTr("Select a profile picture")
-        filterLabel: qsTr("Image files")
-        filters: Images.validImageExtensions
-        onAccepted: path => {
-            if (CUtils.copyFile(Qt.resolvedUrl(path), Qt.resolvedUrl(`${Paths.home}/.face`))) {
-                root.faceReady = true
-                root.refreshFace()
-                Quickshell.execDetached(["notify-send", "-a", "caelestia-shell", "-u", "low", "-h", `STRING:image-path:${path}`, qsTr("Profile picture changed"), qsTr("Lock screen and dashboard will use this photo.")])
-            } else {
-                Quickshell.execDetached(["notify-send", "-a", "caelestia-shell", "-u", "critical", qsTr("Unable to change profile picture"), qsTr("Copy to ~/.face failed.")])
-            }
-        }
-    }
-
+    // Non-visual objects MUST live inside the layout. PageBase's default
+    // property is a single Item — a page-level FileDialog kills the whole
+    // shell when Nexus compiles SystemToolsPage ("Cannot assign … to QQuickItem*").
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
+
+        FileDialog {
+            id: facePicker
+
+            title: qsTr("Select a profile picture")
+            filterLabel: qsTr("Image files")
+            filters: Images.validImageExtensions
+            onAccepted: path => {
+                if (CUtils.copyFile(Qt.resolvedUrl(path), Qt.resolvedUrl(`${Paths.home}/.face`))) {
+                    root.faceReady = true
+                    root.refreshFace()
+                    Quickshell.execDetached(["notify-send", "-a", "caelestia-shell", "-u", "low", "-h", `STRING:image-path:${path}`, qsTr("Profile picture changed"), qsTr("Lock screen and dashboard will use this photo.")])
+                } else {
+                    Quickshell.execDetached(["notify-send", "-a", "caelestia-shell", "-u", "critical", qsTr("Unable to change profile picture"), qsTr("Copy to ~/.face failed.")])
+                }
+            }
+        }
 
         FileView {
             path: root.facePath
