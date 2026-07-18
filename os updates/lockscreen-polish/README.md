@@ -2,7 +2,7 @@
 
 Makes the Caelestia session lock feel like HyperWebster: **real wallpaper blur**,
 slow ken-burns motion, soft ambient orbs (screensaver-lite), frosted password
-glass, and the Starman mark.
+glass, and a **circular** profile photo (`~/.face`) with Starman as fallback.
 
 ## Why not hyprlock / mpvpaper?
 
