@@ -105,11 +105,11 @@ blur_block() {
 # Namespaces: nsbar (top bar), nspanels (popouts). Keep caelestia-drawers for
 # any leftover drawer surfaces. ignore_alpha ${NSBAR_IGNORE_ALPHA} must stay
 # below Theme.barBg (~0.60) or the bar fill is skipped for blur.
-layerrule = blur, match:namespace nsbar
+layerrule = blur on, match:namespace nsbar
 layerrule = ignore_alpha ${NSBAR_IGNORE_ALPHA}, match:namespace nsbar
-layerrule = blur, match:namespace nspanels
+layerrule = blur on, match:namespace nspanels
 layerrule = ignore_alpha ${NSBAR_IGNORE_ALPHA}, match:namespace nspanels
-layerrule = blur, match:namespace caelestia-drawers
+layerrule = blur on, match:namespace caelestia-drawers
 layerrule = ignore_alpha ${NSBAR_IGNORE_ALPHA}, match:namespace caelestia-drawers
 # <<< hyperwebster-blur-toggle <<<
 EOF
@@ -147,13 +147,14 @@ apply_live_keywords() {
     hyprctl keyword decoration:blur:passes 3 >/dev/null 2>&1 || true
     hyprctl keyword decoration:blur:popups true >/dev/null 2>&1 || true
     for ns in nsbar nspanels caelestia-drawers; do
-      hyprctl keyword "layerrule blur, match:namespace ${ns}" >/dev/null 2>&1 || true
+      # Hyprland requires a value: "blur on" / "blur off" (bare "blur," is invalid).
+      hyprctl keyword "layerrule blur on, match:namespace ${ns}" >/dev/null 2>&1 || true
       hyprctl keyword "layerrule ignore_alpha ${NSBAR_IGNORE_ALPHA}, match:namespace ${ns}" >/dev/null 2>&1 || true
     done
   else
     hyprctl keyword decoration:blur:enabled false >/dev/null 2>&1 || true
     for ns in nsbar nspanels caelestia-drawers; do
-      hyprctl keyword "layerrule unset, match:namespace ${ns}" >/dev/null 2>&1 || true
+      hyprctl keyword "layerrule blur off, match:namespace ${ns}" >/dev/null 2>&1 || true
     done
   fi
 }

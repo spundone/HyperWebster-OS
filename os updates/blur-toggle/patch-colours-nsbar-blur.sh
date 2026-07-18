@@ -6,11 +6,12 @@ set -eu
 TARGET=${TARGET:-/etc/xdg/quickshell/caelestia/services/Colours.qml}
 [ -f "$TARGET" ] || { echo "Colours.qml not found at $TARGET — skipping"; exit 0; }
 
-# Already correct (nsbar list + numeric blur + capped ignore_alpha).
+# Already correct (nsbar list + blur on/off value + capped ignore_alpha).
+# Bare "blur," without on/off is invalid on Hyprland 0.55+ ("missing a value").
 if grep -q '"nsbar"' "$TARGET" 2>/dev/null \
-   && grep -q 'transparency.enabled ? 1 : 0' "$TARGET" 2>/dev/null \
+   && grep -q 'transparency.enabled ? "on" : "off"' "$TARGET" 2>/dev/null \
    && grep -q 'Math.min(0.40' "$TARGET" 2>/dev/null; then
-  echo ":: Colours.qml already targets nsbar blur (numeric blur, ignore_alpha capped)"
+  echo ":: Colours.qml already targets nsbar blur (blur on/off, ignore_alpha capped)"
   exit 0
 fi
 
@@ -27,9 +28,8 @@ text = path.read_text()
 new_fn = '''    function reloadHyprRules(): void {
         // HyperWebster: NoSignal NsBar uses nsbar / nspanels.
         // ignore_alpha must stay below Theme.barBg (~0.60) or the bar fill is
-        // skipped for blur. Use 1/0 (not on/off) — matches stock caelestia and
-        // Hyprland keyword parsing.
-        const on = transparency.enabled ? 1 : 0;
+        // skipped for blur. Hyprland requires "blur on|off" (bare blur is invalid).
+        const on = transparency.enabled ? "on" : "off";
         const alpha = Math.min(0.40, Math.max(0, transparency.base - 0.03));
         const nss = ["nsbar", "nspanels", "caelestia-drawers"];
         const msgs = [];
@@ -50,5 +50,5 @@ if not pat.search(text):
     sys.exit(0)
 
 path.write_text(pat.sub(new_fn, text, count=1))
-print(f":: patched {path} (nsbar/nspanels blur 1/0, ignore_alpha capped at 0.40)")
+print(f":: patched {path} (nsbar/nspanels blur on/off, ignore_alpha capped at 0.40)")
 PY
