@@ -144,4 +144,11 @@ else
   echo ":: limine-update not found — menu seed written; install limine-mkinitcpio-hook to refresh"
 fi
 
+# limine-update may recreate a nested HyperWebster group (linux-cachyos / linux).
+# Point default_entry at the cachyos leaf and expand the parent so timeout boots it.
+SELF_DIR=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+if [ -x "$SELF_DIR/prefer-limine-cachyos.sh" ]; then
+  bash "$SELF_DIR/prefer-limine-cachyos.sh" || true
+fi
+
 echo "Limine menu simplified: desktop + Starman (backups: *.$stamp)"
