@@ -32,11 +32,10 @@ fi
 
 case "${1:-}" in
   gaming)
-    if SESSION=$(/usr/local/bin/hyperwebster-gaming-session 2>/dev/null); then
-      :
-    else
-      SESSION="gamescope-session-steam-nm"
-    fi
+    SESSION=$(/usr/local/bin/hyperwebster-gaming-session 2>/dev/null) || {
+      echo "Error: no gamescope session installed (run hyperwebster-deckify-install or DeckShift)" >&2
+      exit 1
+    }
     ;;
   desktop) SESSION="hyprland-uwsm" ;;
   *)

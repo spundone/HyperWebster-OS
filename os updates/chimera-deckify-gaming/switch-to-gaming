@@ -2,19 +2,36 @@
 # switch-to-gaming — queue SDDM restart into gamescope session.
 set -euo pipefail
 
+notify() {
+  notify-send -u critical "Gaming Mode" "$1" 2>/dev/null || true
+}
+
 if ! [ -x /usr/local/bin/gaming-session-switch ]; then
-  notify-send -u critical "Gaming Mode" "switch helpers missing — re-run Deckify / Chimera from Additions" 2>/dev/null || true
+  notify "switch helpers missing — re-run Deckify / Chimera from Additions"
+  exit 1
+fi
+
+if ! [ -x /usr/local/bin/hyperwebster-restart-sddm ]; then
+  notify "SDDM restart helper missing — run hyperwebster-update, then Deckify"
   exit 1
 fi
 
 if ! /usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1; then
-  notify-send -u critical "Gaming Mode" "No gamescope session installed — open Additions → Deckify / Chimera" 2>/dev/null || true
+  notify "No gamescope session installed — open Additions → Deckify / Chimera"
+  exit 1
+fi
+
+# Confirm NOPASSWD before arming — otherwise we write conf and never switch.
+if ! sudo -n /usr/local/bin/hyperwebster-restart-sddm --check; then
+  notify "Cannot restart SDDM without a password — re-run Additions → Deckify"
   exit 1
 fi
 
 if ! sudo -n /usr/local/bin/gaming-session-switch gaming; then
-  notify-send -u critical "Gaming Mode" "Session switch failed (sudoers / SDDM). Check /usr/local/bin/gaming-session-switch" 2>/dev/null || true
+  notify "Session switch failed (sudoers / SDDM). Check gaming-session-switch"
   exit 1
 fi
 
-nohup sudo -n systemctl restart sddm >/dev/null 2>&1 &
+# Detached: this session dies when SDDM restarts.
+nohup sudo -n /usr/local/bin/hyperwebster-restart-sddm >/dev/null 2>&1 &
+disown 2>/dev/null || true

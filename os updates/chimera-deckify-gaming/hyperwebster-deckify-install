@@ -76,6 +76,7 @@ echo "==> Installing session switch helpers…"
 sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/switch-to-gaming" /usr/local/bin/switch-to-gaming
 sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/switch-to-desktop" /usr/local/bin/switch-to-desktop
 sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/gaming-session-switch" /usr/local/bin/gaming-session-switch
+sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/hyperwebster-restart-sddm" /usr/local/bin/hyperwebster-restart-sddm
 sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/os-session-select" /usr/lib/os-session-select
 sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/hyperwebster-gaming-session" /usr/local/bin/hyperwebster-gaming-session
 
@@ -92,20 +93,9 @@ if [ -x "$LAYER/deckshift-login/install-deckshift-login.sh" ]; then
   sh "$LAYER/deckshift-login/install-deckshift-login.sh" || true
 fi
 
-# sudoers: passwordless session switch (Deckify pattern).
-if [ ! -f /etc/sudoers.d/hyperwebster-gaming-session ]; then
-  TMP=$(mktemp)
-  cat > "$TMP" <<'SUDO'
-# HyperWebster — gamescope session switching without a password prompt.
-%wheel ALL=(ALL) NOPASSWD: /usr/local/bin/gaming-session-switch
-SUDO
-  if sudo visudo -cf "$TMP" >/dev/null 2>&1; then
-    sudo install -m0440 "$TMP" /etc/sudoers.d/hyperwebster-gaming-session
-    echo "==> sudoers rule installed"
-  else
-    echo "WARNING: sudoers validation failed — session switch will prompt for sudo" >&2
-  fi
-  rm -f "$TMP"
+# sudoers: passwordless session switch + SDDM restart (always refresh).
+if [ -x "$LAYER/chimera-deckify-gaming/install-gaming-sudoers.sh" ]; then
+  sudo sh "$LAYER/chimera-deckify-gaming/install-gaming-sudoers.sh" || true
 fi
 
 echo

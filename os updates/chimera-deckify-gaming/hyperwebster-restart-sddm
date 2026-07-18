@@ -1,0 +1,22 @@
+#!/bin/bash
+# hyperwebster-restart-sddm — passwordless SDDM restart for session switches.
+# Queues via systemd-run so the restart survives tearing down the current
+# graphical session (Super+Shift+S / Exit to Desktop).
+set -euo pipefail
+
+if [[ $EUID -ne 0 ]]; then
+  echo "Error: must run as root (callers use: sudo -n $0)" >&2
+  exit 1
+fi
+
+# Allow a cheap sudoers / presence check without bouncing the display manager.
+if [[ "${1:-}" == "--check" ]]; then
+  exit 0
+fi
+
+systemctl reset-failed hyperwebster-sddm-restart.service 2>/dev/null || true
+# --collect: remove the transient unit when done. Unit name is fixed so a
+# second switch while the first is pending replaces cleanly after reset-failed.
+exec systemd-run --collect --unit=hyperwebster-sddm-restart \
+  --description="HyperWebster gamescope/desktop SDDM restart" \
+  /bin/systemctl restart sddm.service

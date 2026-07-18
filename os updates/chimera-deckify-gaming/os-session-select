@@ -10,6 +10,6 @@ sudo -n /usr/local/bin/gaming-session-switch desktop 2>/dev/null || {
 }
 timeout 5 steam -shutdown 2>/dev/null || true
 sleep 1
-nohup sudo -n systemctl restart sddm &>/dev/null &
+nohup sudo -n /usr/local/bin/hyperwebster-restart-sddm &>/dev/null &
 disown
 exit 0

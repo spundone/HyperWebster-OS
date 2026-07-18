@@ -38,7 +38,9 @@ one-shot SDDM autologin into the detected gamescope session
 ## Switching
 
 `Super+Shift+S` calls `hyperwebster-gaming-session` to find any installed
-gamescope desktop, then restarts SDDM into that session.
+gamescope desktop, arms one-shot SDDM autologin, then restarts SDDM via
+`hyperwebster-restart-sddm` (passwordless through sudoers). Without that
+helper / sudoers rule the key appears to do nothing.
 
 ## HDR / VRR
 
@@ -51,7 +53,9 @@ displays. Pair with the `tv-gaming-display` hyprmoncfg profile on the desktop.
 |------|------|
 | `hyperwebster-deckify-install` | User-facing installer (CachyOS or AUR) |
 | `hyperwebster-gaming-session` | Resolve installed session desktop name |
+| `hyperwebster-restart-sddm` | Passwordless SDDM restart (sudoers-pinned) |
 | `gaming-session-switch` | SDDM one-shot autologin helper |
+| `install-gaming-sudoers.sh` | NOPASSWD for switch + restart helpers |
 | `gamescope-hdr.env` | HDR/VRR environment defaults |
 
 ## Credit
