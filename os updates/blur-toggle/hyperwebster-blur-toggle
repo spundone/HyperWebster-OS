@@ -5,15 +5,22 @@
 #
 # NoSignal top bar is WlrLayershell namespace "nsbar"; popups use "nspanels".
 # Older rules matched caelestia-.* / qs-.* and never blurred the bar.
+#
+# ignore_alpha must stay BELOW Theme.barBg alpha (~0.60). Hyprland ignores
+# pixels with opacity <= ignore_alpha for blur; caelestia's default
+# (transparency.base - 0.03 ≈ 0.69) sits above the bar fill and kills frost.
 set -euo pipefail
 
 HYPRVARS="${HOME}/.config/caelestia/hypr-vars.conf"
+HYPRVARS_LUA="${HOME}/.config/caelestia/hypr-vars.lua"
 SHELLJSON="${HOME}/.config/caelestia/shell.json"
 OVCFG="${HOME}/.config/quickshell/overview/config.json"
 HYPRUSER="${HOME}/.config/caelestia/hypr-user.conf"
 STATE="${HOME}/.local/state/hyperwebster/blur-enabled"
 MARK_BEGIN='# >>> hyperwebster-blur-toggle >>>'
 MARK_END='# <<< hyperwebster-blur-toggle <<<'
+# Keep under Theme.barBg alpha (0.50–0.60) so the glass fill is blurred.
+NSBAR_IGNORE_ALPHA='0.45'
 
 usage() {
   echo "Usage: hyperwebster-blur-toggle {enable|disable|status|toggle}" >&2
@@ -32,19 +39,50 @@ json_merge_transparency() {
 
 set_hyprvars() {
   local on="$1"
-  if [ ! -f "$HYPRVARS" ]; then return 0; fi
+  if [ -f "$HYPRVARS" ]; then
+    if [ "$on" = 1 ]; then
+      sed -i \
+        -e 's/^\$blurEnabled = .*/$blurEnabled = true/' \
+        -e 's/^\$blurPopups = .*/$blurPopups = true/' \
+        -e 's/^\$windowOpacity = .*/$windowOpacity = 0.92/' \
+        "$HYPRVARS"
+      # Ensure size/passes exist (flat installs may never have set them).
+      grep -q '^\$blurSize = ' "$HYPRVARS" 2>/dev/null || echo '$blurSize = 10' >> "$HYPRVARS"
+      grep -q '^\$blurPasses = ' "$HYPRVARS" 2>/dev/null || echo '$blurPasses = 3' >> "$HYPRVARS"
+      sed -i -e 's/^\$blurSize = .*/$blurSize = 10/' -e 's/^\$blurPasses = .*/$blurPasses = 3/' "$HYPRVARS"
+    else
+      sed -i \
+        -e 's/^\$blurEnabled = .*/$blurEnabled = false/' \
+        -e 's/^\$blurPopups = .*/$blurPopups = false/' \
+        -e 's/^\$windowOpacity = .*/$windowOpacity = 1.0/' \
+        "$HYPRVARS"
+    fi
+  fi
+
+  # Lua-era caelestia (hypr-vars.lua) — keep in sync when present / creatable.
   if [ "$on" = 1 ]; then
-    sed -i \
-      -e 's/^\$blurEnabled = .*/$blurEnabled = true/' \
-      -e 's/^\$blurPopups = .*/$blurPopups = true/' \
-      -e 's/^\$windowOpacity = .*/$windowOpacity = 0.92/' \
-      "$HYPRVARS"
-  else
-    sed -i \
-      -e 's/^\$blurEnabled = .*/$blurEnabled = false/' \
-      -e 's/^\$blurPopups = .*/$blurPopups = false/' \
-      -e 's/^\$windowOpacity = .*/$windowOpacity = 1.0/' \
-      "$HYPRVARS"
+    mkdir -p "$(dirname "$HYPRVARS_LUA")"
+    cat > "$HYPRVARS_LUA" <<'LUA'
+-- HyperWebster frosted glass (synced by hyperwebster-blur-toggle).
+return {
+    blurEnabled = true,
+    blurPopups = true,
+    blurInputMethods = true,
+    blurSize = 10,
+    blurPasses = 3,
+    windowOpacity = 0.92,
+}
+LUA
+  elif [ -f "$HYPRVARS_LUA" ]; then
+    cat > "$HYPRVARS_LUA" <<'LUA'
+-- HyperWebster flat look (synced by hyperwebster-blur-toggle).
+return {
+    blurEnabled = false,
+    blurPopups = false,
+    blurInputMethods = false,
+    windowOpacity = 1.0,
+}
+LUA
   fi
 }
 
@@ -61,17 +99,18 @@ set_overview() {
 }
 
 blur_block() {
-  cat <<'EOF'
+  cat <<EOF
 # >>> hyperwebster-blur-toggle >>>
 # Frosted glass for NoSignal NsBar / panels (Hyprland 0.55+ rule syntax).
 # Namespaces: nsbar (top bar), nspanels (popouts). Keep caelestia-drawers for
-# any leftover drawer surfaces. Global blur comes from $blurEnabled in hypr-vars.
+# any leftover drawer surfaces. ignore_alpha ${NSBAR_IGNORE_ALPHA} must stay
+# below Theme.barBg (~0.60) or the bar fill is skipped for blur.
 layerrule = blur on, match:namespace nsbar
-layerrule = ignore_alpha 0.57, match:namespace nsbar
+layerrule = ignore_alpha ${NSBAR_IGNORE_ALPHA}, match:namespace nsbar
 layerrule = blur on, match:namespace nspanels
-layerrule = ignore_alpha 0.57, match:namespace nspanels
+layerrule = ignore_alpha ${NSBAR_IGNORE_ALPHA}, match:namespace nspanels
 layerrule = blur on, match:namespace caelestia-drawers
-layerrule = ignore_alpha 0.57, match:namespace caelestia-drawers
+layerrule = ignore_alpha ${NSBAR_IGNORE_ALPHA}, match:namespace caelestia-drawers
 # <<< hyperwebster-blur-toggle <<<
 EOF
 }
@@ -96,6 +135,29 @@ set_layer_rules() {
   fi
 }
 
+# Apply live keywords so frost shows without relying only on reload + Colours.
+apply_live_keywords() {
+  local on="$1"
+  command -v hyprctl >/dev/null 2>&1 || return 0
+  hyprctl version >/dev/null 2>&1 || return 0
+
+  if [ "$on" = 1 ]; then
+    hyprctl keyword decoration:blur:enabled true >/dev/null 2>&1 || true
+    hyprctl keyword decoration:blur:size 10 >/dev/null 2>&1 || true
+    hyprctl keyword decoration:blur:passes 3 >/dev/null 2>&1 || true
+    hyprctl keyword decoration:blur:popups true >/dev/null 2>&1 || true
+    for ns in nsbar nspanels caelestia-drawers; do
+      hyprctl keyword "layerrule blur on, match:namespace ${ns}" >/dev/null 2>&1 || true
+      hyprctl keyword "layerrule ignore_alpha ${NSBAR_IGNORE_ALPHA}, match:namespace ${ns}" >/dev/null 2>&1 || true
+    done
+  else
+    hyprctl keyword decoration:blur:enabled false >/dev/null 2>&1 || true
+    for ns in nsbar nspanels caelestia-drawers; do
+      hyprctl keyword "layerrule blur off, match:namespace ${ns}" >/dev/null 2>&1 || true
+    done
+  fi
+}
+
 apply() {
   local on="$1"
   mkdir -p "$(dirname "$STATE")"
@@ -107,6 +169,7 @@ apply() {
   if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
     hyprctl reload >/dev/null 2>&1 || true
   fi
+  apply_live_keywords "$on"
   if [ "$on" = 1 ]; then
     echo "Frosted glass enabled (nsbar/nspanels blur + shell transparency)."
     echo "Restart the shell if the bar is still flat: Ctrl+Super+Alt+R"

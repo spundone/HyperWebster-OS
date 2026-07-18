@@ -5,6 +5,11 @@ panels. The NoSignal top bar is a Wayland layer with namespace **`nsbar`**
 (popouts: **`nspanels`**). Blur layerrules must match those names — older
 `caelestia-.*` rules never blurred the bar.
 
+**ignore_alpha** must stay below `Theme.barBg` (~0.52–0.60). Hyprland skips
+blur for pixels with opacity ≤ that threshold; caelestia's default
+(`transparency.base - 0.03` ≈ 0.69) sat *above* the bar fill and made the
+status bar look flat even with blur "on".
+
 ## Usage
 
 ```sh

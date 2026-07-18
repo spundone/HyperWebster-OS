@@ -29,13 +29,18 @@ install -d -m755 "$BIN" "$SHARE"
 hw_install_file "$HERE/hyperwebster-blur-toggle" "$BIN/hyperwebster-blur-toggle" 0755
 hw_install_file "$HERE/README.md" "$SHARE/README.md" 0644
 hw_install_file "$HERE/patch-colours-nsbar-blur.sh" "$SHARE/patch-colours-nsbar-blur.sh" 0755
+hw_install_file "$HERE/patch-theme-nsbar-blur.sh" "$SHARE/patch-theme-nsbar-blur.sh" 0755
 
-# Patch shell Colours.qml so transparency toggles also hit nsbar.
-if [ "$(id -u)" -eq 0 ]; then
-  sh "$SHARE/patch-colours-nsbar-blur.sh" || sh "$HERE/patch-colours-nsbar-blur.sh"
-else
-  sudo sh "$SHARE/patch-colours-nsbar-blur.sh" 2>/dev/null \
-    || sudo sh "$HERE/patch-colours-nsbar-blur.sh" || true
-fi
+# Patch shell so transparency toggles hit nsbar and bar fill lets blur through.
+run_patch() {
+  name=$1
+  if [ "$(id -u)" -eq 0 ]; then
+    sh "$SHARE/$name" || sh "$HERE/$name"
+  else
+    sudo sh "$SHARE/$name" 2>/dev/null || sudo sh "$HERE/$name" || true
+  fi
+}
+run_patch patch-colours-nsbar-blur.sh
+run_patch patch-theme-nsbar-blur.sh
 
 echo "blur-toggle: run hyperwebster-blur-toggle enable for frosted glass"

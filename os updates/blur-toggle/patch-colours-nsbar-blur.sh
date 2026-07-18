@@ -1,18 +1,15 @@
 #!/bin/sh
-# patch-colours-nsbar-blur.sh — point Colours.reloadHyprRules at nsbar/nspanels.
-# Upstream still keywords caelestia-drawers (old vertical bar). Idempotent.
+# patch-colours-nsbar-blur.sh — point Colours.reloadHyprRules at nsbar/nspanels
+# with an ignore_alpha that stays below Theme.barBg (~0.60). Idempotent.
 set -eu
 
 TARGET=${TARGET:-/etc/xdg/quickshell/caelestia/services/Colours.qml}
 [ -f "$TARGET" ] || { echo "Colours.qml not found at $TARGET — skipping"; exit 0; }
 
-if grep -q 'match:namespace nsbar' "$TARGET" 2>/dev/null; then
-  echo ":: Colours.qml already targets nsbar blur"
-  exit 0
-fi
-
-if ! grep -q 'caelestia-drawers' "$TARGET" 2>/dev/null; then
-  echo "WARNING: Colours.qml has no caelestia-drawers layerrule — nothing to patch" >&2
+# Already correct (capped ignore_alpha for nsbar).
+if grep -q 'match:namespace nsbar' "$TARGET" 2>/dev/null \
+   && grep -q 'Math.min(0.45' "$TARGET" 2>/dev/null; then
+  echo ":: Colours.qml already targets nsbar blur (ignore_alpha capped)"
   exit 0
 fi
 
@@ -20,17 +17,18 @@ cp -n "$TARGET" "$TARGET.pre-hyperwebster-nsbar-blur" 2>/dev/null || true
 
 python3 - "$TARGET" <<'PY'
 from pathlib import Path
+import re
 import sys
+
 path = Path(sys.argv[1])
 text = path.read_text()
-old = '''    function reloadHyprRules(): void {
-        const str = "keyword layerrule %1 %2, match:namespace caelestia-drawers";
-        Hypr.extras.batchMessage([str.arg("blur").arg(transparency.enabled ? 1 : 0), str.arg("ignore_alpha").arg(transparency.base - 0.03)]);
-    }'''
-new = '''    function reloadHyprRules(): void {
-        // HyperWebster: NoSignal NsBar uses nsbar / nspanels (not only caelestia-drawers).
+
+new_fn = '''    function reloadHyprRules(): void {
+        // HyperWebster: NoSignal NsBar uses nsbar / nspanels.
+        // ignore_alpha must stay below Theme.barBg (~0.60) or the bar fill is
+        // skipped for blur (Hyprland ignores pixels with opacity <= threshold).
         const on = transparency.enabled ? "on" : "off";
-        const alpha = Math.max(0, Math.min(1, transparency.base - 0.03));
+        const alpha = Math.min(0.45, Math.max(0, transparency.base - 0.03));
         const nss = ["nsbar", "nspanels", "caelestia-drawers"];
         const msgs = [];
         for (let i = 0; i < nss.length; i++) {
@@ -40,9 +38,15 @@ new = '''    function reloadHyprRules(): void {
         }
         Hypr.extras.batchMessage(msgs);
     }'''
-if old not in text:
-    print("WARNING: Colours.qml reloadHyprRules shape changed — patch skipped", file=sys.stderr)
+
+pat = re.compile(
+    r"    function reloadHyprRules\(\): void \{.*?\n    \}",
+    re.DOTALL,
+)
+if not pat.search(text):
+    print("WARNING: Colours.qml reloadHyprRules not found — patch skipped", file=sys.stderr)
     sys.exit(0)
-path.write_text(text.replace(old, new, 1))
-print(f":: patched {path} (nsbar/nspanels blur)")
+
+path.write_text(pat.sub(new_fn, text, count=1))
+print(f":: patched {path} (nsbar/nspanels blur, ignore_alpha capped at 0.45)")
 PY
