@@ -28,21 +28,25 @@ if [ -f "$SELF_DIR/WallpaperAndStyle.qml" ]; then
 fi
 
 # 3. Registry: add AppearanceSelect as Wallpaper & style stack index 4.
-[ -f "$REG" ] || { echo "PageCompRegistry.qml missing — sub-page file installed only"; exit 0; }
-
-if grep -q 'AppearanceSelect' "$REG"; then
-  echo ":: registry already has AppearanceSelect"
-  exit 0
+if [ -f "$REG" ]; then
+  if grep -q 'AppearanceSelect' "$REG"; then
+    echo ":: registry already has AppearanceSelect"
+  else
+    cp -n "$REG" "$REG.pre-hyperwebster-appearance" 2>/dev/null || true
+    # Insert after ColourSelect {} inside the Wallpaper & style StackPage.
+    perl -0pi -e 's/(Component \{\s*\n\s*ColourSelect \{\}\s*\n\s*\})/$1\n                Component {\n                    AppearanceSelect {}\n                }/s' "$REG"
+    if grep -q 'AppearanceSelect' "$REG"; then
+      echo ":: patched $REG (Appearance page registered as stack index 4)"
+    else
+      echo "WARNING: registry patch did not apply — upstream PageCompRegistry.qml changed shape." >&2
+      echo "         AppearanceSelect.qml is installed; update the regex in $(basename "$0")." >&2
+    fi
+  fi
+else
+  echo "PageCompRegistry.qml missing — sub-page file installed only"
 fi
 
-cp -n "$REG" "$REG.pre-hyperwebster-appearance" 2>/dev/null || true
-
-# Insert after ColourSelect {} inside the Wallpaper & style StackPage.
-perl -0pi -e 's/(Component \{\s*\n\s*ColourSelect \{\}\s*\n\s*\})/$1\n                Component {\n                    AppearanceSelect {}\n                }/s' "$REG"
-
-if grep -q 'AppearanceSelect' "$REG"; then
-  echo ":: patched $REG (Appearance page registered as stack index 4)"
-else
-  echo "WARNING: registry patch did not apply — upstream PageCompRegistry.qml changed shape." >&2
-  echo "         AppearanceSelect.qml is installed; update the regex in $(basename "$0")." >&2
+# 4. Theme.fontFamily follows Settings → Appearance UI font.
+if [ -x "$SELF_DIR/patch-theme-font.sh" ]; then
+  sh "$SELF_DIR/patch-theme-font.sh" || true
 fi

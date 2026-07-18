@@ -52,6 +52,85 @@ PageBase {
         presetProc.running = true;
     }
 
+    readonly property var uiFontChoices: [
+        {
+            id: "JetBrainsMono Nerd Font",
+            name: qsTr("JetBrains Mono (default)")
+        },
+        {
+            id: "CaskaydiaCove NF",
+            name: "CaskaydiaCove NF"
+        },
+        {
+            id: "GoogleSansFlex",
+            name: "Google Sans Flex"
+        },
+        {
+            id: "Inter",
+            name: "Inter"
+        },
+        {
+            id: "Noto Sans",
+            name: "Noto Sans"
+        },
+        {
+            id: "Rubik",
+            name: "Rubik"
+        },
+        {
+            id: "IBM Plex Sans",
+            name: "IBM Plex Sans"
+        },
+        {
+            id: "Source Sans 3",
+            name: "Source Sans 3"
+        }
+    ]
+
+    readonly property var monoFontChoices: [
+        {
+            id: "JetBrainsMono Nerd Font",
+            name: qsTr("JetBrains Mono (default)")
+        },
+        {
+            id: "CaskaydiaCove NF",
+            name: "CaskaydiaCove NF"
+        },
+        {
+            id: "Fira Code",
+            name: "Fira Code"
+        },
+        {
+            id: "Source Code Pro",
+            name: "Source Code Pro"
+        },
+        {
+            id: "IBM Plex Mono",
+            name: "IBM Plex Mono"
+        },
+        {
+            id: "Hack",
+            name: "Hack"
+        }
+    ]
+
+    readonly property string currentUiFont: GlobalConfig.appearance.font.body.family || "JetBrainsMono Nerd Font"
+    readonly property string currentMonoFont: GlobalConfig.appearance.font.mono.family || "JetBrainsMono Nerd Font"
+
+    function applyUiFont(family: string): void {
+        GlobalConfig.appearance.font.headline.family = family;
+        GlobalConfig.appearance.font.title.family = family;
+        GlobalConfig.appearance.font.body.family = family;
+        GlobalConfig.appearance.font.label.family = family;
+        GlobalConfig.appearance.font.clock = family;
+        root.applyHypr("font-family", family);
+    }
+
+    function applyMonoFont(family: string): void {
+        GlobalConfig.appearance.font.mono.family = family;
+        root.applyHypr("font-mono", family);
+    }
+
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
@@ -89,6 +168,34 @@ PageBase {
                         root.syncShellFromHypr();
                     } catch (e) {}
                 }
+            }
+        }
+
+        Variants {
+            id: uiFontMenu
+
+            model: root.uiFontChoices
+
+            MenuItem {
+                required property var modelData
+
+                text: modelData.name
+                icon: modelData.id === root.currentUiFont ? "check" : "text_fields"
+                activeIcon: "text_fields"
+            }
+        }
+
+        Variants {
+            id: monoFontMenu
+
+            model: root.monoFontChoices
+
+            MenuItem {
+                required property var modelData
+
+                text: modelData.name
+                icon: modelData.id === root.currentMonoFont ? "check" : "code"
+                activeIcon: "code"
             }
         }
 
@@ -241,6 +348,63 @@ PageBase {
             }
         }
 
+        // Typography
+        SectionHeader {
+            text: qsTr("Typography")
+        }
+
+        SelectRow {
+            Layout.fillWidth: true
+            first: true
+            label: qsTr("UI font")
+            subtext: qsTr("Shell, lock screen, Settings — install the font first if missing")
+            menuItems: uiFontMenu.instances
+            active: menuItems.find(i => {
+                    const def = root.uiFontChoices.find(v => v.name === i.text);
+                    return def && def.id === root.currentUiFont;
+                }) ?? null
+            fallbackIcon: "text_fields"
+            fallbackText: root.uiFontChoices.find(v => v.id === root.currentUiFont)?.name ?? root.currentUiFont
+            onSelected: item => {
+                const def = root.uiFontChoices.find(v => v.name === item.text);
+                if (def)
+                    root.applyUiFont(def.id);
+            }
+        }
+
+        SelectRow {
+            Layout.fillWidth: true
+            label: qsTr("Monospace font")
+            subtext: qsTr("Terminals and mono UI text")
+            menuItems: monoFontMenu.instances
+            active: menuItems.find(i => {
+                    const def = root.monoFontChoices.find(v => v.name === i.text);
+                    return def && def.id === root.currentMonoFont;
+                }) ?? null
+            fallbackIcon: "code"
+            fallbackText: root.monoFontChoices.find(v => v.id === root.currentMonoFont)?.name ?? root.currentMonoFont
+            onSelected: item => {
+                const def = root.monoFontChoices.find(v => v.name === item.text);
+                if (def)
+                    root.applyMonoFont(def.id);
+            }
+        }
+
+        StepperRow {
+            Layout.fillWidth: true
+            last: true
+            label: qsTr("Font scale")
+            subtext: qsTr("Shell typography size (%)")
+            value: Math.round(GlobalConfig.appearance.font.scale * 100)
+            from: 75
+            to: 150
+            stepSize: 5
+            onMoved: v => {
+                GlobalConfig.appearance.font.scale = v / 100;
+                root.applyHypr("font-scale", v / 100);
+            }
+        }
+
         // Density
         SectionHeader {
             text: qsTr("Density")
@@ -263,6 +427,7 @@ PageBase {
 
         StepperRow {
             Layout.fillWidth: true
+            last: true
             label: qsTr("Padding scale")
             subtext: qsTr("Inner padding on panels and rows (%)")
             value: Math.round(GlobalConfig.appearance.padding.scale * 100)
@@ -272,21 +437,6 @@ PageBase {
             onMoved: v => {
                 GlobalConfig.appearance.padding.scale = v / 100;
                 root.applyHypr("padding-scale", v / 100);
-            }
-        }
-
-        StepperRow {
-            Layout.fillWidth: true
-            last: true
-            label: qsTr("Font scale")
-            subtext: qsTr("Shell typography size (%)")
-            value: Math.round(GlobalConfig.appearance.font.scale * 100)
-            from: 75
-            to: 150
-            stepSize: 5
-            onMoved: v => {
-                GlobalConfig.appearance.font.scale = v / 100;
-                root.applyHypr("font-scale", v / 100);
             }
         }
 

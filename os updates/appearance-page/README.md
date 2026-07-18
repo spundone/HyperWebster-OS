@@ -1,13 +1,14 @@
 # Appearance settings page
 
 Adds **Appearance** under Settings → Wallpaper & style, next to Wallpapers and
-Colours. Continuous controls for corner radius, gaps, density, motion, and
+Colours. Continuous controls for corner radius, gaps, density, fonts, motion, and
 glass shortcuts - plus one-tap presets.
 
 ## What you get
 
 - Live corner-radius preview
 - Presets: flat, mild, soft, pillowy, glass
+- **UI font + monospace font** pickers (shell, GTK, kitty)
 - Shell corner scale (0-200%) and window radius (0-32 px)
 - Spacing / padding / font scales
 - Hyprland gaps (inner, outer, workspace, single-window), opacity, border

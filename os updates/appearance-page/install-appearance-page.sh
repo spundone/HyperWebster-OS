@@ -40,12 +40,14 @@ mkdir -p "$SHARE"
 hw_install_file "$SRC/AppearanceSelect.qml" "$SHARE/AppearanceSelect.qml" 0644
 hw_install_file "$SRC/WallpaperAndStyle.qml" "$SHARE/WallpaperAndStyle.qml" 0644
 hw_install_file "$SRC/patch-appearance-page.sh" "$SHARE/patch-appearance-page.sh" 0755
+hw_install_file "$SRC/patch-theme-font.sh" "$SHARE/patch-theme-font.sh" 0755
 hw_install_file "$SRC/README.md" "$SHARE/README.md" 0644
 
 if [ -n "${HYPERWEBSTER_SKIP_SHELL_PATCH:-}" ]; then
   echo ":: skipping Appearance QML patch (HYPERWEBSTER_SKIP_SHELL_PATCH)"
 else
   sudo sh "$SHARE/patch-appearance-page.sh"
+  sudo sh "$SHARE/patch-theme-font.sh" || true
 fi
 
 HOOK=/etc/pacman.d/hooks/hyperwebster-appearance-page.hook

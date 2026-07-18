@@ -16,7 +16,8 @@ usage() {
 Usage: hyperwebster-appearance <command> [args]
 
   get <key>                 Print a value (window-radius, gaps-in, gaps-out,
-                            workspace-gaps, window-opacity, rounding-scale, …)
+                            workspace-gaps, window-opacity, rounding-scale,
+                            font-family, font-mono, …)
   set <key> <value>         Set a value and reload Hyprland when needed
   ensure-rounding           Make sure shell rounding tokens are non-zero
   preset <name>             flat | mild | soft | pillowy | glass
@@ -79,6 +80,14 @@ get_var() {
     font-scale)
       jq -r '.appearance.font.scale // 1' "$SHELLJSON" 2>/dev/null || echo 1
       ;;
+    font-family)
+      jq -r '.appearance.font.body.family // "JetBrainsMono Nerd Font"' "$SHELLJSON" 2>/dev/null \
+        || echo "JetBrainsMono Nerd Font"
+      ;;
+    font-mono)
+      jq -r '.appearance.font.mono.family // "JetBrainsMono Nerd Font"' "$SHELLJSON" 2>/dev/null \
+        || echo "JetBrainsMono Nerd Font"
+      ;;
     anim-scale)
       jq -r '.appearance.anim.durations.scale // 1' "$SHELLJSON" 2>/dev/null || echo 1
       ;;
@@ -129,6 +138,63 @@ set_shell_scale() {
   jq --argjson v "$val" "$path"' = $v' "$SHELLJSON" > "$tmp" && mv "$tmp" "$SHELLJSON"
 }
 
+set_shell_font_family() {
+  local role=$1 family=$2
+  command -v jq >/dev/null 2>&1 || return 0
+  mkdir -p "$(dirname "$SHELLJSON")"
+  [ -f "$SHELLJSON" ] || echo '{}' > "$SHELLJSON"
+  local tmp
+  tmp=$(mktemp)
+  if [ "$role" = "ui" ]; then
+    jq --arg f "$family" '
+      .appearance = (.appearance // {})
+      | .appearance.font = (.appearance.font // {})
+      | .appearance.font.headline = ((.appearance.font.headline // {}) | .family = $f)
+      | .appearance.font.title = ((.appearance.font.title // {}) | .family = $f)
+      | .appearance.font.body = ((.appearance.font.body // {}) | .family = $f)
+      | .appearance.font.label = ((.appearance.font.label // {}) | .family = $f)
+      | .appearance.font.clock = $f
+    ' "$SHELLJSON" > "$tmp" && mv "$tmp" "$SHELLJSON"
+  else
+    jq --arg f "$family" '
+      .appearance = (.appearance // {})
+      | .appearance.font = (.appearance.font // {})
+      | .appearance.font.mono = ((.appearance.font.mono // {}) | .family = $f)
+    ' "$SHELLJSON" > "$tmp" && mv "$tmp" "$SHELLJSON"
+  fi
+}
+
+sync_gtk_font() {
+  local family=$1
+  # GNOME/GTK apps (11pt is a sensible desktop default).
+  if command -v gsettings >/dev/null 2>&1; then
+    gsettings set org.gnome.desktop.interface font-name "${family} 11" 2>/dev/null || true
+  fi
+  local gtk3="${HOME}/.config/gtk-3.0/settings.ini"
+  local gtk4="${HOME}/.config/gtk-4.0/settings.ini"
+  for ini in "$gtk3" "$gtk4"; do
+    mkdir -p "$(dirname "$ini")"
+    if [ -f "$ini" ] && grep -q '^gtk-font-name=' "$ini" 2>/dev/null; then
+      sed -i "s/^gtk-font-name=.*/gtk-font-name=${family} 11/" "$ini"
+    elif [ -f "$ini" ] && grep -q '^\[Settings\]' "$ini" 2>/dev/null; then
+      printf 'gtk-font-name=%s 11\n' "$family" >> "$ini"
+    else
+      printf '[Settings]\ngtk-font-name=%s 11\n' "$family" > "$ini"
+    fi
+  done
+}
+
+sync_kitty_font() {
+  local family=$1
+  local conf="${HOME}/.config/kitty/kitty.conf"
+  [ -f "$conf" ] || return 0
+  if grep -qE '^font_family ' "$conf" 2>/dev/null; then
+    sed -i "s/^font_family .*/font_family ${family}/" "$conf"
+  else
+    printf '\nfont_family %s\n' "$family" >> "$conf"
+  fi
+}
+
 reload_hypr() {
   if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
     hyprctl reload >/dev/null 2>&1 || true
@@ -176,6 +242,17 @@ cmd_set() {
     spacing-scale) set_shell_scale '.appearance.spacing.scale' "$val" ;;
     padding-scale) set_shell_scale '.appearance.padding.scale' "$val" ;;
     font-scale) set_shell_scale '.appearance.font.scale' "$val" ;;
+    font-family)
+      set_shell_font_family ui "$val"
+      sync_gtk_font "$val"
+      ;;
+    font-mono)
+      set_shell_font_family mono "$val"
+      if command -v gsettings >/dev/null 2>&1; then
+        gsettings set org.gnome.desktop.interface monospace-font-name "${val} 11" 2>/dev/null || true
+      fi
+      sync_kitty_font "$val"
+      ;;
     anim-scale) set_shell_scale '.appearance.anim.durations.scale' "$val" ;;
     deform-scale) set_shell_scale '.appearance.deformScale' "$val" ;;
     *)
@@ -287,6 +364,8 @@ vals = {
   "spacingScale": 1,
   "paddingScale": 1,
   "fontScale": 1,
+  "fontFamily": "JetBrainsMono Nerd Font",
+  "fontMono": "JetBrainsMono Nerd Font",
   "animScale": 1,
   "deformScale": 1,
 }
@@ -321,6 +400,8 @@ if shell.exists():
     vals["spacingScale"] = float((a.get("spacing") or {}).get("scale") or 1)
     vals["paddingScale"] = float((a.get("padding") or {}).get("scale") or 1)
     vals["fontScale"] = float((a.get("font") or {}).get("scale") or 1)
+    vals["fontFamily"] = str(((a.get("font") or {}).get("body") or {}).get("family") or "JetBrainsMono Nerd Font")
+    vals["fontMono"] = str(((a.get("font") or {}).get("mono") or {}).get("family") or "JetBrainsMono Nerd Font")
     vals["animScale"] = float(((a.get("anim") or {}).get("durations") or {}).get("scale") or 1)
     vals["deformScale"] = float(a.get("deformScale") or 1)
   except Exception:
