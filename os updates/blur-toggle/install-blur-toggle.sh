@@ -42,5 +42,9 @@ run_patch() {
 }
 run_patch patch-colours-nsbar-blur.sh
 run_patch patch-theme-nsbar-blur.sh
+if [ -f "$SHARE/patch-theme-nsbar-size.sh" ] || [ -f "$HERE/patch-theme-nsbar-size.sh" ]; then
+  hw_install_file "$HERE/patch-theme-nsbar-size.sh" "$SHARE/patch-theme-nsbar-size.sh" 0755
+  run_patch patch-theme-nsbar-size.sh
+fi
 
 echo "blur-toggle: run hyperwebster-blur-toggle enable for frosted glass"

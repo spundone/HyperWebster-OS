@@ -1,4 +1,6 @@
 # 4K HDR TV - 3840x2160 @ 144 Hz, VRR (FreeSync)
 # Apply with: hyprmoncfg apply tv-gaming-4k
 # Edit the HDMI/DP output name to match `hyprctl monitors` on your box.
-monitor=HDMI-A-1,3840x2160@144,auto,1,vrr,2,hdr
+# Scale 1.5: 38-52px shell chrome stays readable from the couch. Use 2 for
+# larger UI (1080p-effective) or 1 only if you sit desk-close to the panel.
+monitor=HDMI-A-1,3840x2160@144,auto,1.5,vrr,2,hdr
