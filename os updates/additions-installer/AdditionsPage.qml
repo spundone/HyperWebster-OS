@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Quickshell.Io
 import Caelestia.Config
 import qs.components
@@ -20,6 +21,11 @@ PageBase {
     property var status: ({})
     readonly property var sections: status.sections || []
 
+    property var hypr: ({
+            windowRadius: 0,
+            roundingScale: 0
+        })
+
     function sectionToggles(section) {
         const t = section && section.toggles;
         if (t && t.length)
@@ -34,6 +40,17 @@ PageBase {
             return inst;
         const items = (section && section.items) || [];
         return items.filter(i => (i.kind || "install") !== "toggle");
+    }
+
+    function applyRadius(key: string, value): void {
+        Quickshell.execDetached(["hyperwebster-appearance", "set", key, String(value)]);
+        appearanceProc.running = true;
+    }
+
+    function openFullAppearance(): void {
+        // Wallpaper & style is Nexus page 0; Appearance is stack index 4.
+        root.nState.currentPageIdx = 0;
+        Qt.callLater(() => root.nState.openSubPage(4));
     }
 
     ColumnLayout {
@@ -59,12 +76,29 @@ PageBase {
         }
 
         Process {
+            id: appearanceProc
+
+            running: true
+            command: ["hyperwebster-appearance", "status-json"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        root.hypr = Object.assign({}, root.hypr, JSON.parse(text));
+                    } catch (e) {}
+                }
+            }
+        }
+
+        Process {
             id: checkProc
 
             // Always rewrite status (toggles/installs split) before re-read.
             command: ["sh", "-c", "\"$HOME/.local/bin/hyperwebster-additions\" status >/dev/null 2>&1"]
             running: true
-            onExited: readProc.running = true
+            onExited: {
+                readProc.running = true;
+                appearanceProc.running = true;
+            }
         }
 
         Process {
@@ -99,6 +133,7 @@ PageBase {
 
                 readonly property var toggleItems: root.sectionToggles(modelData)
                 readonly property var installItems: root.sectionInstalls(modelData)
+                readonly property bool isAppearance: (modelData.id || "") === "appearance"
 
                 Layout.fillWidth: true
                 spacing: Tokens.spacing.extraSmall / 2
@@ -116,7 +151,8 @@ PageBase {
 
                         Layout.fillWidth: true
                         first: index === 0
-                        last: index === sectionBlock.toggleItems.length - 1
+                        // Keep the connected group open when radius steppers follow.
+                        last: index === sectionBlock.toggleItems.length - 1 && !sectionBlock.isAppearance
                         text: modelData.name || ""
                         subtext: modelData.desc || ""
                         checked: modelData.enabled === true
@@ -128,6 +164,50 @@ PageBase {
                             toggleProc.running = true;
                         }
                     }
+                }
+
+                // Corner radius knobs under Appearance toggles (same place as Rounded corners).
+                StepperRow {
+                    visible: sectionBlock.isAppearance
+                    Layout.fillWidth: true
+                    label: qsTr("Shell corner scale")
+                    subtext: qsTr("UI radii multiplier (0 = square)")
+                    value: Math.round((root.hypr.roundingScale ?? GlobalConfig.appearance.rounding.scale) * 100)
+                    from: 0
+                    to: 200
+                    stepSize: 5
+                    onMoved: v => {
+                        const s = v / 100;
+                        GlobalConfig.appearance.rounding.scale = s;
+                        if (s > 0)
+                            Quickshell.execDetached(["hyperwebster-appearance", "ensure-rounding"]);
+                        root.applyRadius("rounding-scale", s);
+                    }
+                }
+
+                StepperRow {
+                    visible: sectionBlock.isAppearance
+                    Layout.fillWidth: true
+                    label: qsTr("Window corner radius")
+                    subtext: qsTr("Hyprland window rounding (px)")
+                    value: root.hypr.windowRadius ?? 0
+                    from: 0
+                    to: 32
+                    stepSize: 1
+                    onMoved: v => {
+                        root.hypr.windowRadius = v;
+                        root.applyRadius("window-radius", v);
+                    }
+                }
+
+                NavRow {
+                    visible: sectionBlock.isAppearance
+                    Layout.fillWidth: true
+                    last: true
+                    icon: "tune"
+                    label: qsTr("More appearance…")
+                    status: qsTr("Gaps, density, presets, glass")
+                    onClicked: root.openFullAppearance()
                 }
 
                 Repeater {

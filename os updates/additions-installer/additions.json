@@ -23,7 +23,7 @@
       "kind": "toggle",
       "category": "appearance",
       "name": "Rounded corners",
-      "desc": "Caelestia-style rounding on shell and windows (fine-tune in Wallpaper & style → Appearance)",
+      "desc": "Enable/disable rounding — use the radius steppers below",
       "icon": "web_asset",
       "check": "hyperwebster-rounding-toggle status",
       "enable": "hyperwebster-rounding-toggle enable",
