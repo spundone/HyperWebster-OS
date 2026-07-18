@@ -1,11 +1,11 @@
 #!/bin/bash
-# hyperwebster-deckify-install — ChimeraOS gamescope session stack (AUR PKGBUILDs
-# maintained by the ChimeraOS community). Installs gamescope-session-steam and
-# session-switch helpers compatible with deckshift-login overlays.
+# hyperwebster-deckify-install — gamescope Steam Big Picture session stack.
+# Prefers CachyOS's gamescope-session-cachyos (already conflicts with AUR
+# gamescope-session-git). Falls back to Chimera AUR -git packages only when
+# the CachyOS package is unavailable.
 set -euo pipefail
 
 HELPER="${HOME}/.local/bin/omarchy-pkg-add"
-SESSION_HELPER="/usr/local/bin/hyperwebster-gaming-session"
 LAYER="${HOME}/.local/share/hyperwebster"
 
 echo "==> HyperWebster Deckify / Chimera gaming install"
@@ -15,29 +15,60 @@ if [ -x "$LAYER/gaming-enablement/install-gaming-enablement.sh" ]; then
   sh "$LAYER/gaming-enablement/install-gaming-enablement.sh"
 fi
 
-if ! command -v yay >/dev/null 2>&1; then
-  echo "Error: yay is required (ships with HyperWebster)." >&2
+if ! command -v yay >/dev/null 2>&1 && ! command -v pacman >/dev/null 2>&1; then
+  echo "Error: pacman/yay required." >&2
   exit 1
 fi
 
-# omarchy-pkg-add already runs `yay -S --needed --noconfirm` — do not pass -S
-# again (pacman: "only one operation may be used at a time").
-if [ -x "$HELPER" ]; then
-  PKG_ADD="$HELPER"
+pkg_available() {
+  pacman -Si "$1" >/dev/null 2>&1 || pacman -Q "$1" >/dev/null 2>&1
+}
+
+pkg_installed() {
+  pacman -Q "$1" >/dev/null 2>&1
+}
+
+pkg_add() {
+  # omarchy-pkg-add already runs `yay -S --needed --noconfirm` — do not pass -S
+  # again (pacman: "only one operation may be used at a time").
+  if [ -x "$HELPER" ]; then
+    "$HELPER" "$@"
+  elif command -v yay >/dev/null 2>&1; then
+    yay -S --needed --noconfirm "$@"
+  else
+    sudo pacman -S --needed --noconfirm "$@"
+  fi
+}
+
+pkg_remove() {
+  local p
+  for p in "$@"; do
+    pkg_installed "$p" || continue
+    echo "==> Removing conflicting package: $p"
+    sudo pacman -Rdd --noconfirm "$p" 2>/dev/null \
+      || sudo pacman -R --noconfirm "$p" 2>/dev/null \
+      || true
+  done
+}
+
+# --- Session packages -------------------------------------------------------
+# gamescope-session-cachyos Provides/Conflicts with the Chimera AUR -git
+# session packages. Installing both fails noninteractively (yay defaults N).
+if pkg_available gamescope-session-cachyos; then
+  echo "==> Using CachyOS gamescope-session-cachyos (Steam Big Picture session)"
+  pkg_remove gamescope-session-git gamescope-session-steam-git \
+    gamescope-session-plus gamescope-session-steam
+  pkg_add gamescope-session-cachyos gamescope mangohud
 else
-  PKG_ADD="yay"
+  echo "==> CachyOS session package unavailable — installing Chimera AUR stack"
+  pkg_remove gamescope-session-cachyos
+  pkg_add gamescope-session-git gamescope-session-steam-git gamescope mangohud
 fi
-echo "==> Installing Chimera gamescope session packages (AUR)…"
-if [ "$PKG_ADD" = "yay" ]; then
-  yay -S --needed --noconfirm \
-    gamescope-session-git \
-    gamescope-session-steam-git \
-    gamescope mangohud
-else
-  "$PKG_ADD" \
-    gamescope-session-git \
-    gamescope-session-steam-git \
-    gamescope mangohud
+
+# Steam client (repo) if missing — session needs it for Big Picture.
+if ! pkg_installed steam && ! pkg_installed steam-native-runtime; then
+  echo "==> Installing Steam…"
+  pkg_add steam || true
 fi
 
 # Session switch scripts (Deckify-compatible interface).
@@ -48,9 +79,16 @@ sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/gaming-session-switch" /usr/
 sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/os-session-select" /usr/lib/os-session-select
 sudo install -Dm0755 "$LAYER/chimera-deckify-gaming/hyperwebster-gaming-session" /usr/local/bin/hyperwebster-gaming-session
 
+SESSION=$(/usr/local/bin/hyperwebster-gaming-session 2>/dev/null || true)
+if [ -z "${SESSION:-}" ]; then
+  echo "WARNING: no gamescope Wayland session desktop found after install." >&2
+  echo "         Check: ls /usr/share/wayland-sessions/gamescope*" >&2
+else
+  echo "==> Detected gamescope session: $SESSION"
+fi
+
 # Password-at-boot overlay (reuses deckshift-login gate).
 if [ -x "$LAYER/deckshift-login/install-deckshift-login.sh" ]; then
-  # Relax deckshift-login's hard DeckShift check by pre-installing switch-to-gaming.
   sh "$LAYER/deckshift-login/install-deckshift-login.sh" || true
 fi
 

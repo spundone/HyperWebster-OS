@@ -26,7 +26,7 @@ StyledRect {
     Process {
         id: deckshiftProbe
         running: true
-        command: ["sh", "-c", "[ -f /usr/share/wayland-sessions/gamescope-session-steam-nm.desktop ] || [ -f /usr/share/wayland-sessions/gamescope-session-steam.desktop ] || [ -f /usr/share/wayland-sessions/gamescope-session-steam-plus.desktop ]"]
+        command: ["sh", "-c", "/usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1"]
         onExited: (exitCode, exitStatus) => root.deckshiftInstalled = exitCode === 0
     }
 
@@ -163,7 +163,7 @@ StyledRect {
                             gmTog.launching = true;
                             gmTog.internalChecked = false; // don't latch "on"
                             relockTimer.start();
-                            Quickshell.execDetached(["sh", "-c", "[ -x /usr/local/bin/switch-to-gaming ] && { [ -f /usr/share/wayland-sessions/gamescope-session-steam-nm.desktop ] || [ -f /usr/share/wayland-sessions/gamescope-session-steam.desktop ] || [ -f /usr/share/wayland-sessions/gamescope-session-steam-plus.desktop ]; } && exec /usr/local/bin/switch-to-gaming"]);
+                            Quickshell.execDetached(["sh", "-c", "[ -x /usr/local/bin/switch-to-gaming ] && /usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1 && exec /usr/local/bin/switch-to-gaming"]);
                         }
 
                         Timer {

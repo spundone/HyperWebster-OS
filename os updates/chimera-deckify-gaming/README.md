@@ -1,10 +1,25 @@
-# chimera-deckify-gaming - ChimeraOS gamescope session (Deckify path)
+# chimera-deckify-gaming - gamescope Steam Big Picture session
 
-Installs the **ChimeraOS gamescope session** stack on Arch via the community
-AUR PKGBUILDs (`gamescope-session-git`, `gamescope-session-steam-git`).
-This is the same session family used by [Arch Deckify](https://github.com/unlbslk/arch-deckify)
-and ChimeraOS - not a separate proprietary repo (Chimera ships PKGBUILDs on the
-AUR; CachyOS may mirror some packages once online).
+Installs a **Steam Big Picture / gamescope** session on HyperWebster.
+
+## Package choice (important)
+
+HyperWebster enables CachyOS repos. Prefer:
+
+| Stack | Packages |
+|-------|----------|
+| **CachyOS (default)** | `gamescope-session-cachyos` → `/usr/share/wayland-sessions/gamescope-session.desktop` |
+| Chimera AUR fallback | `gamescope-session-git` + `gamescope-session-steam-git` |
+
+`gamescope-session-git` **conflicts** with `gamescope-session-cachyos`. The
+installer never installs both. If you previously saw:
+
+```text
+gamescope-session-git and gamescope-session-cachyos are in conflict
+```
+
+re-run `hyperwebster-deckify-install` (or Additions → Deckify / Chimera) - it
+keeps CachyOS and skips the AUR -git session packages.
 
 ## Quick install
 
@@ -12,26 +27,18 @@ Settings → Additions → **Deckify / Chimera Gaming**, or:
 
 ```sh
 hyperwebster-deckify-install
-sh ~/.local/share/hyperwebster/deckshift-login/install-deckshift-login.sh
 ```
-
-The second step applies the password-at-boot gate (same overlay as DeckShift).
 
 ## Starman / Limine boot
 
 Pick **Starman (Gaming / Steam)** in Limine. `hyperwebster.starman=1` arms
 one-shot SDDM autologin into the detected gamescope session
-(`gamescope-session-steam-nm` or `gamescope-session-steam`).
+(`gamescope-session`, `gamescope-session-steam-nm`, or `gamescope-session-steam`).
 
-## DeckShift vs Deckify
+## Switching
 
-| | DeckShift | Deckify / Chimera (this) |
-|---|-----------|---------------------------|
-| Session | `gamescope-session-steam-nm` | `gamescope-session-steam` |
-| Install | `deckshift.sh` git repo | `hyperwebster-deckify-install` (AUR) |
-| Switching | Same `gaming-session-switch` | Same helper (auto-detects session) |
-
-Do not install both - pick one gaming stack.
+`Super+Shift+S` calls `hyperwebster-gaming-session` to find any installed
+gamescope desktop, then restarts SDDM into that session.
 
 ## HDR / VRR
 
@@ -42,7 +49,12 @@ displays. Pair with the `tv-gaming-display` hyprmoncfg profile on the desktop.
 
 | File | Role |
 |------|------|
-| `hyperwebster-deckify-install` | User-facing installer (AUR + switch scripts) |
+| `hyperwebster-deckify-install` | User-facing installer (CachyOS or AUR) |
 | `hyperwebster-gaming-session` | Resolve installed session desktop name |
 | `gaming-session-switch` | SDDM one-shot autologin helper |
 | `gamescope-hdr.env` | HDR/VRR environment defaults |
+
+## Credit
+
+- [CachyOS gamescope-session](https://github.com/CachyOS/gamescope-session)
+- [Arch Deckify](https://github.com/unlbslk/arch-deckify) / ChimeraOS AUR session packages

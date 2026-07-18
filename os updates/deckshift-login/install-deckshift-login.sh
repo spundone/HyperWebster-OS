@@ -23,9 +23,7 @@ if [ ! -x /usr/local/bin/switch-to-gaming ]; then
   echo "ERROR: gaming switch scripts missing (run deckshift.sh or hyperwebster-deckify-install first)."
   exit 1
 fi
-if ! /usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1 \
-   && [ ! -f /usr/share/wayland-sessions/gamescope-session-steam-nm.desktop ] \
-   && [ ! -f /usr/share/wayland-sessions/gamescope-session-steam.desktop ]; then
+if ! /usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1; then
   echo "ERROR: no gamescope session installed (run deckshift.sh or hyperwebster-deckify-install first)."
   exit 1
 fi
@@ -87,7 +85,7 @@ else
       case "$line" in
         'bind = Super+Shift, S, exec,'*switch-to-gaming*)
           cat <<'BINDLINE'
-bind = Super+Shift, S, exec, sh -c '[ -x /usr/local/bin/switch-to-gaming ] && { [ -f /usr/share/wayland-sessions/gamescope-session-steam-nm.desktop ] || [ -f /usr/share/wayland-sessions/gamescope-session-steam.desktop ] || [ -f /usr/share/wayland-sessions/gamescope-session-steam-plus.desktop ]; } && exec /usr/local/bin/switch-to-gaming'
+bind = Super+Shift, S, exec, sh -c '[ -x /usr/local/bin/switch-to-gaming ] && /usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1 && exec /usr/local/bin/switch-to-gaming'
 BINDLINE
           ;;
         *)
@@ -105,7 +103,7 @@ BINDLINE
 # Super+Shift+S = Gaming Mode IF a gamescope session is installed; otherwise no-op.
 # Accepts DeckShift (-nm) and Chimera/Deckify (steam / steam-plus).
 unbind = Super+Shift, S
-bind = Super+Shift, S, exec, sh -c '[ -x /usr/local/bin/switch-to-gaming ] && { [ -f /usr/share/wayland-sessions/gamescope-session-steam-nm.desktop ] || [ -f /usr/share/wayland-sessions/gamescope-session-steam.desktop ] || [ -f /usr/share/wayland-sessions/gamescope-session-steam-plus.desktop ]; } && exec /usr/local/bin/switch-to-gaming'
+bind = Super+Shift, S, exec, sh -c '[ -x /usr/local/bin/switch-to-gaming ] && /usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1 && exec /usr/local/bin/switch-to-gaming'
 # <<< deckshift gaming keys <<<
 EOF
     echo ":: added guarded Super+Shift+S -> switch-to-gaming"

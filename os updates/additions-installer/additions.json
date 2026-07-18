@@ -77,7 +77,7 @@
       "kind": "install",
       "category": "gaming",
       "name": "Deckify / Chimera Gaming",
-      "desc": "ChimeraOS gamescope session — Starman boot path (Super+Shift+S)",
+      "desc": "CachyOS/Chimera gamescope Steam session — Starman + Super+Shift+S",
       "icon": "gamepad",
       "check": "test -x /usr/local/bin/hyperwebster-deckify-install && /usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1",
       "install": "hyperwebster-deckify-install; sh \"$HOME/.local/share/hyperwebster/deckshift-login/install-deckshift-login.sh\""

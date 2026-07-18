@@ -7,9 +7,7 @@ if ! [ -x /usr/local/bin/gaming-session-switch ]; then
   exit 1
 fi
 
-if ! { [ -f /usr/share/wayland-sessions/gamescope-session-steam-nm.desktop ] \
-    || [ -f /usr/share/wayland-sessions/gamescope-session-steam.desktop ] \
-    || [ -f /usr/share/wayland-sessions/gamescope-session-steam-plus.desktop ]; }; then
+if ! /usr/local/bin/hyperwebster-gaming-session >/dev/null 2>&1; then
   notify-send -u critical "Gaming Mode" "No gamescope session installed — open Additions → Deckify / Chimera" 2>/dev/null || true
   exit 1
 fi
