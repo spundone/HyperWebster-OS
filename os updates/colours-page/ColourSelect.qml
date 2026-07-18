@@ -158,7 +158,7 @@ PageBase {
                 required property string modelData
 
                 text: modelData
-                icon: modelData === Colours.scheme ? "check" : ""
+                icon: modelData === Colours.scheme ? "check" : "palette"
                 activeIcon: "palette"
             }
         }
@@ -172,7 +172,7 @@ PageBase {
                 required property string modelData
 
                 text: modelData
-                icon: modelData === Colours.flavour ? "check" : ""
+                icon: modelData === Colours.flavour ? "check" : "tune"
                 activeIcon: "tune"
             }
         }
@@ -186,8 +186,8 @@ PageBase {
                 required property var modelData
 
                 text: modelData.name
-                icon: modelData.id === root.currentVariant ? "check" : ""
-                activeIcon: "brush"
+                icon: modelData.id === root.currentVariant ? "check" : "palette"
+                activeIcon: "palette"
             }
         }
 

@@ -91,6 +91,7 @@ done
 [ -d "$SRC/appearance-toggles" ] && hw_cp "$SRC/appearance-toggles" "$DEST/"
 [ -d "$SRC/appearance-page" ] && hw_cp "$SRC/appearance-page" "$DEST/"
 [ -d "$SRC/colours-page" ] && hw_cp "$SRC/colours-page" "$DEST/"
+[ -d "$SRC/glyphs-fix" ] && hw_cp "$SRC/glyphs-fix" "$DEST/"
 [ -d "$SRC/cachyos-repo-switch" ] && hw_cp "$SRC/cachyos-repo-switch" "$DEST/"
 [ -d "$SRC/theme-polish" ] && hw_cp "$SRC/theme-polish" "$DEST/"
 [ -d "$SRC/drive-automount" ] && hw_cp "$SRC/drive-automount" "$DEST/"
