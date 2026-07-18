@@ -11,7 +11,8 @@ Waybar/Walker theme engine).
 | Extra stock themes | matte-black, hackerman, miasma, kanagawa, osaka-jade, ethereal, lumon, vantablack, ristretto, retro-82, flexoki-light, white, last-horizon, solitude |
 | Overlap with caelestia | tokyo-night → `tokyonight`, rose-pine → `rosepine`, catppuccin / nord / gruvbox / everforest already present |
 | Community Omarchy packs | `hyperwebster-theme install <git-url>` (same repos as [Extra themes](https://learn.omacom.io/2/the-omarchy-manual/90/extra-themes)) |
-| Wallpaper generator | `hyperwebster-theme generate [image] [name]` — Material You dynamic → named scheme + Omarchy `colors.toml` pack |
+| Wallpaper generator | `hyperwebster-theme generate [image] [name]` — applies Material You **dynamic** from the image, then snapshots a named user scheme (needs the caelestia user-scheme overlay to appear in Colours) |
+
 | Colours settings UI | Settings → Wallpaper & style → Colours |
 | Hotkey | `Super+Ctrl+Shift+Space` (Omarchy theme-picker chord) |
 
