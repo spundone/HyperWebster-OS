@@ -13,7 +13,8 @@ Settings → Wallpaper & style → Colours.
 - Sync login screen colours (`sddm-theme-sync`)
 - Omarchy themes: install community git packs, wallpaper generator, theme TUI
 
-Frosted-glass blur and window rounding stay on **Additions** (existing toggles).
+Frosted-glass blur stays on **Additions**. Corner radius and other continuous
+appearance knobs live on **Wallpaper & style → Appearance**.
 
 ## Install
 

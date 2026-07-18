@@ -1,0 +1,340 @@
+#!/bin/bash
+# hyperwebster-appearance — Hyprland + shell appearance knobs for the Nexus UI.
+# Complements hyperwebster-rounding-toggle (on/off) with continuous controls.
+set -euo pipefail
+
+HYPRVARS="${HOME}/.config/caelestia/hypr-vars.conf"
+SHELLJSON="${HOME}/.config/caelestia/shell.json"
+SHELLTOKENS="${HOME}/.config/caelestia/shell-tokens.json"
+LAYER="${HOME}/.local/share/hyperwebster/appearance-toggles"
+ROUND_FRAG="${LAYER}/rounding-tokens.json"
+STATE_DIR="${HOME}/.local/state/hyperwebster"
+ROUND_STATE="${STATE_DIR}/rounding-enabled"
+
+usage() {
+  cat >&2 <<EOF
+Usage: hyperwebster-appearance <command> [args]
+
+  get <key>                 Print a value (window-radius, gaps-in, gaps-out,
+                            workspace-gaps, window-opacity, rounding-scale, …)
+  set <key> <value>         Set a value and reload Hyprland when needed
+  ensure-rounding           Make sure shell rounding tokens are non-zero
+  preset <name>             flat | mild | soft | pillowy | glass
+  status-json               Machine-readable snapshot for the settings page
+EOF
+}
+
+ensure_hyprvars() {
+  mkdir -p "$(dirname "$HYPRVARS")"
+  [ -f "$HYPRVARS" ] || cat > "$HYPRVARS" <<'EOF'
+# HyperWebster hypr-vars
+$windowRounding = 0
+$workspaceGaps = 10
+$windowGapsIn = 4
+$windowGapsOut = 8
+$singleWindowGapsOut = 12
+$windowOpacity = 1.0
+$windowBorderSize = 1
+EOF
+}
+
+get_var() {
+  local key=$1
+  ensure_hyprvars
+  case "$key" in
+    window-radius|rounding)
+      awk -F' = ' '/^\$windowRounding/{print $2; exit}' "$HYPRVARS" || echo 0
+      ;;
+    gaps-in)
+      awk -F' = ' '/^\$windowGapsIn/{print $2; exit}' "$HYPRVARS" || echo 4
+      ;;
+    gaps-out)
+      awk -F' = ' '/^\$windowGapsOut/{print $2; exit}' "$HYPRVARS" || echo 8
+      ;;
+    workspace-gaps)
+      awk -F' = ' '/^\$workspaceGaps/{print $2; exit}' "$HYPRVARS" || echo 10
+      ;;
+    single-gaps-out)
+      awk -F' = ' '/^\$singleWindowGapsOut/{print $2; exit}' "$HYPRVARS" || echo 12
+      ;;
+    window-opacity)
+      awk -F' = ' '/^\$windowOpacity/{print $2; exit}' "$HYPRVARS" || echo 1.0
+      ;;
+    border-size)
+      awk -F' = ' '/^\$windowBorderSize/{print $2; exit}' "$HYPRVARS" || echo 1
+      ;;
+    rounding-scale)
+      if command -v jq >/dev/null 2>&1 && [ -f "$SHELLJSON" ]; then
+        jq -r '.appearance.rounding.scale // 0' "$SHELLJSON"
+      else
+        echo 0
+      fi
+      ;;
+    spacing-scale)
+      jq -r '.appearance.spacing.scale // 1' "$SHELLJSON" 2>/dev/null || echo 1
+      ;;
+    padding-scale)
+      jq -r '.appearance.padding.scale // 1' "$SHELLJSON" 2>/dev/null || echo 1
+      ;;
+    font-scale)
+      jq -r '.appearance.font.scale // 1' "$SHELLJSON" 2>/dev/null || echo 1
+      ;;
+    anim-scale)
+      jq -r '.appearance.anim.durations.scale // 1' "$SHELLJSON" 2>/dev/null || echo 1
+      ;;
+    deform-scale)
+      jq -r '.appearance.deformScale // 1' "$SHELLJSON" 2>/dev/null || echo 1
+      ;;
+    *)
+      echo "unknown key: $key" >&2
+      return 1
+      ;;
+  esac
+}
+
+set_hypr() {
+  local bare=$1 val=$2
+  ensure_hyprvars
+  if grep -q "^\\\$${bare} = " "$HYPRVARS"; then
+    sed -i "s/^\\\$${bare} = .*/\$${bare} = ${val}/" "$HYPRVARS"
+  else
+    printf '$%s = %s\n' "$bare" "$val" >> "$HYPRVARS"
+  fi
+}
+
+ensure_rounding_tokens() {
+  command -v jq >/dev/null 2>&1 || return 0
+  [ -f "$SHELLTOKENS" ] || return 0
+  local frag="$ROUND_FRAG"
+  [ -f "$frag" ] || frag="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/rounding-tokens.json"
+  [ -f "$frag" ] || return 0
+  local med
+  med=$(jq -r '.appearance.rounding.medium // 0' "$SHELLTOKENS")
+  if [ "$med" = "0" ] || [ -z "$med" ] || [ "$med" = "null" ]; then
+    local tmp
+    tmp=$(mktemp)
+    jq -s '.[0] * {appearance: {rounding: .[1].appearance.rounding}}' \
+      "$SHELLTOKENS" "$frag" > "$tmp" && mv "$tmp" "$SHELLTOKENS"
+  fi
+  mkdir -p "$STATE_DIR"
+  echo 1 > "$ROUND_STATE"
+}
+
+set_shell_scale() {
+  local path=$1 val=$2
+  command -v jq >/dev/null 2>&1 || return 0
+  [ -f "$SHELLJSON" ] || return 0
+  local tmp
+  tmp=$(mktemp)
+  jq --argjson v "$val" "$path"' = $v' "$SHELLJSON" > "$tmp" && mv "$tmp" "$SHELLJSON"
+}
+
+reload_hypr() {
+  if command -v hyprctl >/dev/null 2>&1 && hyprctl version >/dev/null 2>&1; then
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+}
+
+cmd_set() {
+  local key=$1 val=$2
+  case "$key" in
+    window-radius|rounding)
+      set_hypr windowRounding "$val"
+      if awk "BEGIN{exit !($val > 0)}"; then
+        ensure_rounding_tokens
+        # keep shell scale sensible if still zero
+        local sc
+        sc=$(get_var rounding-scale)
+        if awk "BEGIN{exit !($sc <= 0)}"; then
+          set_shell_scale '.appearance.rounding.scale' 1
+        fi
+      fi
+      reload_hypr
+      ;;
+    gaps-in) set_hypr windowGapsIn "$val"; reload_hypr ;;
+    gaps-out) set_hypr windowGapsOut "$val"; reload_hypr ;;
+    workspace-gaps) set_hypr workspaceGaps "$val"; reload_hypr ;;
+    single-gaps-out) set_hypr singleWindowGapsOut "$val"; reload_hypr ;;
+    window-opacity) set_hypr windowOpacity "$val"; reload_hypr ;;
+    border-size) set_hypr windowBorderSize "$val"; reload_hypr ;;
+    rounding-scale)
+      ensure_rounding_tokens
+      set_shell_scale '.appearance.rounding.scale' "$val"
+      if awk "BEGIN{exit !($val > 0)}"; then
+        # sync a proportional window radius if currently 0
+        local wr
+        wr=$(get_var window-radius)
+        if [ "$wr" = "0" ]; then
+          local px
+          px=$(awk "BEGIN{printf \"%d\", 8 * $val}")
+          [ "$px" -lt 1 ] && px=1
+          set_hypr windowRounding "$px"
+          reload_hypr
+        fi
+      fi
+      ;;
+    spacing-scale) set_shell_scale '.appearance.spacing.scale' "$val" ;;
+    padding-scale) set_shell_scale '.appearance.padding.scale' "$val" ;;
+    font-scale) set_shell_scale '.appearance.font.scale' "$val" ;;
+    anim-scale) set_shell_scale '.appearance.anim.durations.scale' "$val" ;;
+    deform-scale) set_shell_scale '.appearance.deformScale' "$val" ;;
+    *)
+      echo "unknown key: $key" >&2
+      exit 1
+      ;;
+  esac
+  echo "ok $key=$val"
+}
+
+cmd_preset() {
+  local name=$1
+  case "$name" in
+    flat)
+      cmd_set window-radius 0
+      cmd_set rounding-scale 0
+      if command -v hyperwebster-rounding-toggle >/dev/null 2>&1; then
+        hyperwebster-rounding-toggle disable || true
+      fi
+      cmd_set gaps-in 4
+      cmd_set gaps-out 8
+      cmd_set workspace-gaps 10
+      cmd_set window-opacity 1.0
+      cmd_set spacing-scale 1
+      cmd_set padding-scale 1
+      cmd_set font-scale 1
+      cmd_set anim-scale 1
+      ;;
+    mild)
+      ensure_rounding_tokens
+      cmd_set rounding-scale 1
+      cmd_set window-radius 8
+      cmd_set gaps-in 5
+      cmd_set gaps-out 10
+      cmd_set workspace-gaps 16
+      cmd_set window-opacity 0.97
+      cmd_set spacing-scale 1
+      cmd_set padding-scale 1
+      echo 1 > "$ROUND_STATE"
+      ;;
+    soft)
+      ensure_rounding_tokens
+      cmd_set rounding-scale 1.25
+      cmd_set window-radius 12
+      cmd_set gaps-in 6
+      cmd_set gaps-out 12
+      cmd_set workspace-gaps 20
+      cmd_set window-opacity 0.95
+      cmd_set spacing-scale 1.05
+      cmd_set padding-scale 1.05
+      echo 1 > "$ROUND_STATE"
+      ;;
+    pillowy)
+      ensure_rounding_tokens
+      cmd_set rounding-scale 1.6
+      cmd_set window-radius 18
+      cmd_set gaps-in 8
+      cmd_set gaps-out 14
+      cmd_set workspace-gaps 24
+      cmd_set window-opacity 0.94
+      cmd_set spacing-scale 1.1
+      cmd_set padding-scale 1.1
+      echo 1 > "$ROUND_STATE"
+      ;;
+    glass)
+      ensure_rounding_tokens
+      cmd_set rounding-scale 1.35
+      cmd_set window-radius 14
+      cmd_set gaps-in 6
+      cmd_set gaps-out 12
+      cmd_set workspace-gaps 20
+      cmd_set window-opacity 0.92
+      if command -v hyperwebster-blur-toggle >/dev/null 2>&1; then
+        hyperwebster-blur-toggle enable || true
+      fi
+      if command -v jq >/dev/null 2>&1 && [ -f "$SHELLJSON" ]; then
+        local tmp
+        tmp=$(mktemp)
+        jq '.appearance.transparency.enabled = true
+            | .appearance.transparency.base = 0.78
+            | .appearance.transparency.layers = 0.45' \
+          "$SHELLJSON" > "$tmp" && mv "$tmp" "$SHELLJSON"
+      fi
+      echo 1 > "$ROUND_STATE"
+      ;;
+    *)
+      echo "unknown preset: $name (flat|mild|soft|pillowy|glass)" >&2
+      exit 1
+      ;;
+  esac
+  echo "preset $name applied"
+}
+
+cmd_status_json() {
+  python3 - <<'PY'
+import json, pathlib, re
+home = pathlib.Path.home()
+hypr = home / ".config/caelestia/hypr-vars.conf"
+shell = home / ".config/caelestia/shell.json"
+vals = {
+  "windowRadius": 0,
+  "gapsIn": 4,
+  "gapsOut": 8,
+  "workspaceGaps": 10,
+  "singleGapsOut": 12,
+  "windowOpacity": 1.0,
+  "borderSize": 1,
+  "roundingScale": 0,
+  "spacingScale": 1,
+  "paddingScale": 1,
+  "fontScale": 1,
+  "animScale": 1,
+  "deformScale": 1,
+}
+if hypr.exists():
+  text = hypr.read_text()
+  def grab(name, cast=float):
+    m = re.search(r"^\$" + re.escape(name) + r" = (.+)$", text, re.M)
+    if not m:
+      return None
+    try:
+      return cast(m.group(1).strip())
+    except Exception:
+      return None
+  mapping = [
+    ("windowRadius", "windowRounding", int),
+    ("gapsIn", "windowGapsIn", int),
+    ("gapsOut", "windowGapsOut", int),
+    ("workspaceGaps", "workspaceGaps", int),
+    ("singleGapsOut", "singleWindowGapsOut", int),
+    ("windowOpacity", "windowOpacity", float),
+    ("borderSize", "windowBorderSize", int),
+  ]
+  for key, name, cast in mapping:
+    v = grab(name, cast)
+    if v is not None:
+      vals[key] = v
+if shell.exists():
+  try:
+    d = json.loads(shell.read_text())
+    a = d.get("appearance") or {}
+    vals["roundingScale"] = float((a.get("rounding") or {}).get("scale") or 0)
+    vals["spacingScale"] = float((a.get("spacing") or {}).get("scale") or 1)
+    vals["paddingScale"] = float((a.get("padding") or {}).get("scale") or 1)
+    vals["fontScale"] = float((a.get("font") or {}).get("scale") or 1)
+    vals["animScale"] = float(((a.get("anim") or {}).get("durations") or {}).get("scale") or 1)
+    vals["deformScale"] = float(a.get("deformScale") or 1)
+  except Exception:
+    pass
+print(json.dumps(vals))
+PY
+}
+
+case "${1:-}" in
+  get) shift; get_var "${1:?}" ;;
+  set) shift; cmd_set "${1:?}" "${2:?}" ;;
+  ensure-rounding) ensure_rounding_tokens; echo ok ;;
+  preset) shift; cmd_preset "${1:?}" ;;
+  status-json) cmd_status_json ;;
+  help|-h|--help) usage ;;
+  *) usage; exit 1 ;;
+esac

@@ -1,5 +1,5 @@
 #!/bin/sh
-# install-appearance-toggles.sh — shell blur companion: rounded-corner toggle.
+# install-appearance-toggles.sh — rounded-corner toggle + continuous appearance CLI.
 set -eu
 
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -27,7 +27,9 @@ fi
 
 install -d -m755 "$BIN" "$LAYER"
 hw_install_file "$HERE/hyperwebster-rounding-toggle" "$BIN/hyperwebster-rounding-toggle" 0755
+hw_install_file "$HERE/hyperwebster-appearance" "$BIN/hyperwebster-appearance" 0755
 hw_install_file "$HERE/rounding-tokens.json" "$LAYER/rounding-tokens.json" 0644
 hw_install_file "$HERE/README.md" "$LAYER/README.md" 0644
 
 echo "appearance-toggles: hyperwebster-rounding-toggle {enable|disable|toggle|status}"
+echo "appearance-toggles: hyperwebster-appearance {get|set|preset|status-json|ensure-rounding}"
