@@ -180,8 +180,9 @@ run_migrations_once() {
       rm -f "$mig_log"
       grep -qxF "$base" "$STATE" 2>/dev/null || echo "$base" >> "$STATE"
       applied=$((applied + 1))
-    elif grep -qE 'are the same file|no .*/limine\.conf|not a Limine install|UKI not found|no /etc/machine-id — skipping|rewrite did not clear vmlinuz' "$mig_log" 2>/dev/null; then
-      # Live-layer same-file installs, or optional Limine/UKI work that soft-skipped.
+    elif grep -qE 'are the same file|no .*/limine\.conf|not a Limine install|UKI not found|no /etc/machine-id — skipping|rewrite did not clear vmlinuz|FileDialog moved inside layout|System tools FileDialog' "$mig_log" 2>/dev/null; then
+      # Live-layer same-file installs, optional Limine/UKI soft-skips, or System
+      # tools patch that applied but still returned a spurious non-zero status.
       warn "migration $base: non-fatal skip — continuing"
       rm -f "$mig_log"
       grep -qxF "$base" "$STATE" 2>/dev/null || echo "$base" >> "$STATE"
