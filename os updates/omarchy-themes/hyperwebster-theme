@@ -88,7 +88,10 @@ cmd_install() {
     rm -rf "$tmp"
   fi
 
-  apply_scheme "$name"
+  apply_scheme "$name" || {
+    ensure_user_scheme_support || true
+    apply_scheme "$name" || say "Installed $name — pick it in Settings → Colours (scheme list)."
+  }
   # Optional wallpaper from pack
   if compgen -G "$OMARCHY_THEMES/$name/backgrounds/*" >/dev/null; then
     local wall
@@ -109,13 +112,40 @@ cmd_install() {
 
 apply_scheme() {
   local name=$1 flavour=${2:-default}
-  command -v caelestia >/dev/null 2>&1 || die "caelestia CLI missing"
-  if ! caelestia scheme set --notify -n "$name" -f "$flavour" 2>/dev/null; then
-    # Fallback: first flavour reported by list JSON
-    local alt
-    alt=$(caelestia scheme list 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(iter(d.get('$name',{})), 'default'))" 2>/dev/null || echo default)
-    caelestia scheme set --notify -n "$name" -f "$alt"
+  command -v caelestia >/dev/null 2>&1 || return 1
+
+  # Stock caelestia validates -n against known scheme names. User schemes only
+  # appear after the HyperWebster overlay patch (user_scheme_data_dir).
+  if ! caelestia scheme list -n 2>/dev/null | grep -qxF "$name"; then
+    return 1
   fi
+
+  if caelestia scheme set --notify -n "$name" -f "$flavour" 2>/dev/null; then
+    return 0
+  fi
+  # Fallback: first flavour reported by list JSON, or name-only set.
+  local alt
+  alt=$(caelestia scheme list 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(iter(d.get('$name',{})), 'default'))" 2>/dev/null || echo default)
+  caelestia scheme set --notify -n "$name" -f "$alt" 2>/dev/null \
+    || caelestia scheme set --notify -n "$name" 2>/dev/null \
+    || return 1
+}
+
+ensure_user_scheme_support() {
+  # Detect overlay: importing user_scheme_data_dir means paths.py was patched.
+  if python3 -c 'from caelestia.utils.paths import user_scheme_data_dir' 2>/dev/null; then
+    return 0
+  fi
+  local patch="$LAYER/patch-caelestia-scheme-overlay.sh"
+  [ -f "$patch" ] || patch="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/patch-caelestia-scheme-overlay.sh"
+  [ -f "$patch" ] || return 1
+  say "Enabling user schemes in caelestia (needs sudo once)…"
+  if sudo -n true 2>/dev/null; then
+    sudo sh "$patch" || true
+  else
+    sudo sh "$patch" || true
+  fi
+  python3 -c 'from caelestia.utils.paths import user_scheme_data_dir' 2>/dev/null
 }
 
 cmd_set() {
@@ -188,6 +218,16 @@ cmd_update() {
 cmd_generate() {
   local img=${1:-} name=${2:-wallpaper}
   ensure_dirs
+  # Scheme names must be filesystem-safe and match caelestia's name token.
+  name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-' | sed 's/^-//;s/-$//')
+  [ -n "$name" ] || name=wallpaper
+  # Never collide with Material variant ids or the reserved dynamic scheme.
+  case "$name" in
+    dynamic|tonalspot|vibrant|expressive|fidelity|content|fruitsalad|rainbow|neutral|monochrome)
+      name="${name}-wall"
+      ;;
+  esac
+
   if [ -z "$img" ]; then
     # Current wallpaper
     img=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/wallpaper/path.txt" 2>/dev/null || true)
@@ -197,9 +237,12 @@ cmd_generate() {
   command -v caelestia >/dev/null 2>&1 || die "caelestia CLI missing"
 
   say "Generating theme \"$name\" from $(basename "$img")…"
-  caelestia wallpaper -f "$img" 2>/dev/null || true
-  caelestia scheme set --notify -n dynamic -f default 2>/dev/null \
-    || caelestia scheme set --notify -n dynamic || true
+  # Live look: wallpaper + Material dynamic (this is what actually applies colours).
+  caelestia wallpaper -f "$img" 2>/dev/null || caelestia wallpaper -f "$img" || true
+  if ! caelestia scheme set --notify -n dynamic -f default 2>/dev/null; then
+    caelestia scheme set --notify -n dynamic 2>/dev/null \
+      || die "could not apply dynamic scheme from wallpaper"
+  fi
 
   local scheme_json="${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/scheme.json"
   [ -f "$scheme_json" ] || die "scheme.json missing after dynamic generate"
@@ -246,9 +289,19 @@ print(f"saved scheme {out_root / name / flavour / (mode + '.txt')}")
 print(f"saved omarchy pack {pack}")
 PY
 
-  apply_scheme "$name" default
-  say "Generated and applied theme: $name"
-  notify-send "Theme" "Generated $name from wallpaper" 2>/dev/null || true
+  # Named scheme is a snapshot for the Colours picker. Applying it requires the
+  # user-scheme overlay; otherwise caelestia rejects -n <name> (invalid choice).
+  ensure_user_scheme_support || true
+  if apply_scheme "$name" default; then
+    say "Generated and applied theme: $name"
+    notify-send "Theme" "Generated $name from wallpaper" 2>/dev/null || true
+  else
+    say "Generated theme \"$name\" and applied wallpaper colours via dynamic."
+    say "Named scheme saved under $USER_SCHEMES/$name — pick it in Colours after:"
+    say "  sudo sh ${LAYER}/patch-caelestia-scheme-overlay.sh"
+    say "  (then reopen Settings → Colours)"
+    notify-send "Theme" "Wallpaper colours applied (saved as $name)" 2>/dev/null || true
+  fi
 }
 
 cmd_tui() {
