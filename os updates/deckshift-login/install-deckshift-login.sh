@@ -73,7 +73,9 @@ else
   echo "NOTE: hyperwebster-restart-sddm missing — Super+Shift+S may not leave the desktop"
 fi
 
-# 5. Remove the withdrawn nested-gaming-mode bits if this box ever had them.rm -f "$HOME/.local/bin/hyperwebster-gaming-mode" "$HOME/.local/bin/hyperwebster-gaming-mode-exit" \
+# 5. Remove the withdrawn nested-gaming-mode bits if this box ever had them.
+rm -f "$HOME/.local/bin/hyperwebster-gaming-mode" \
+      "$HOME/.local/bin/hyperwebster-gaming-mode-exit" \
       "$HOME/.local/share/applications/gaming-mode.desktop"
 if [ -f "$HYPRUSER" ] && grep -qF 'gaming-mode (nested)' "$HYPRUSER"; then
   sed -i '/# >>> gaming-mode (nested) >>>/,/# <<< gaming-mode (nested) <<</d' "$HYPRUSER"

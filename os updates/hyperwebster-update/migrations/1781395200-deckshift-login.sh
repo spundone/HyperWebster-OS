@@ -10,7 +10,7 @@ set -euo pipefail
 : "${HYPERWEBSTER_SRC:?HYPERWEBSTER_SRC must point at the HyperWebster source root}"
 
 if [ -x /usr/local/bin/switch-to-gaming ]; then
-  sh "$HYPERWEBSTER_SRC/deckshift-login/install-deckshift-login.sh"
+  sh "$HYPERWEBSTER_SRC/deckshift-login/install-deckshift-login.sh" || true
 else
   echo ":: DeckShift not installed on this machine — skipping (opt-in component)"
 fi
