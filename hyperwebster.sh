@@ -1176,6 +1176,10 @@ sed -i "s|^#${LOCALE} |${LOCALE} |" /mnt/etc/locale.gen
 # en_US.UTF-8 as an always-present fallback locale.
 sed -i 's|^#en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' /mnt/etc/locale.gen
 echo "LANG=$LOCALE" > /mnt/etc/locale.conf
+# Guard: never leave a bare language tag (en_US) — Qt requires UTF-8.
+if ! grep -qE '\.UTF-8|\.utf8' /mnt/etc/locale.conf; then
+  sed -i 's/^LANG=\([^.]*\)$/LANG=\1.UTF-8/' /mnt/etc/locale.conf
+fi
 echo "KEYMAP=$KEYMAP" > /mnt/etc/vconsole.conf
 # Resolve .local hostnames via Avahi (printers, other LAN boxes): insert
 # mdns_minimal before the resolve/dns sources, the standard nss-mdns setup.

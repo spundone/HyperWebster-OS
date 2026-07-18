@@ -106,6 +106,7 @@ done
 [ -d "$SRC/omarchy-themes" ] && hw_cp "$SRC/omarchy-themes" "$DEST/"
 [ -d "$SRC/lockscreen-polish" ] && hw_cp "$SRC/lockscreen-polish" "$DEST/"
 [ -d "$SRC/system-tools" ] && hw_cp "$SRC/system-tools" "$DEST/"
+[ -d "$SRC/locale-utf8" ] && hw_cp "$SRC/locale-utf8" "$DEST/"
 [ -d "$SRC/shell-branding" ] && hw_cp "$SRC/shell-branding" "$DEST/"
 [ -d "$SRC/update-alias" ] && hw_cp "$SRC/update-alias" "$DEST/"
 

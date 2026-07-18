@@ -194,7 +194,7 @@ run_migrations_once() {
       rm -f "$mig_log"
       grep -qxF "$base" "$STATE" 2>/dev/null || echo "$base" >> "$STATE"
       applied=$((applied + 1))
-    elif grep -qE 'are the same file|no .*/limine\.conf|not a Limine install|UKI not found|no /etc/machine-id — skipping|rewrite did not clear vmlinuz|FileDialog moved inside layout|System tools FileDialog|nsbar font \+ blur restored|deckshift-login install newline fixed|DeckShift not installed|gaming-mode\.desktop' "$mig_log" 2>/dev/null; then
+    elif grep -qE 'are the same file|no .*/limine\.conf|not a Limine install|UKI not found|no /etc/machine-id — skipping|rewrite did not clear vmlinuz|FileDialog moved inside layout|System tools FileDialog|nsbar font \+ blur restored|deckshift-login install newline fixed|DeckShift not installed|gaming-mode\.desktop|UTF-8 locale enforced' "$mig_log" 2>/dev/null; then
       # Live-layer same-file installs, optional Limine/UKI soft-skips, or System
       # tools / nsbar / deckshift patches that applied but still returned a
       # spurious status (or opt-in components not present on this machine).
