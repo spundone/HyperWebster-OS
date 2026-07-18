@@ -1,11 +1,23 @@
 #!/bin/sh
 # install-shell-branding.sh — apply HyperWebster branding to the installed shell.
 # Idempotent. Safe in chroot (patch only; no user session needed).
+# Always runs the QML overlay as root when targeting /etc (package-owned files).
 set -eu
 
 SELF_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
-sh "$SELF_DIR/patch-shell-branding.sh"
+run_patch() {
+  # ISO / fork builds set SHELL_ROOT to a writable checkout — no sudo needed.
+  if [ -n "${SHELL_ROOT:-}" ]; then
+    SHELL_ROOT="$SHELL_ROOT" sh "$SELF_DIR/patch-shell-branding.sh"
+  elif [ "$(id -u)" -eq 0 ]; then
+    sh "$SELF_DIR/patch-shell-branding.sh"
+  else
+    sudo sh "$SELF_DIR/patch-shell-branding.sh"
+  fi
+}
+
+run_patch
 
 # Re-apply branding after every shell package upgrade (nosignal-shell overwrites
 # package-owned QML under /etc/xdg/quickshell/caelestia).
