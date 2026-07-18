@@ -4,11 +4,19 @@ Rebrands the pinned `nosignal-shell` package for HyperWebster: Settings → Abou
 Updates, Additions, and Services toggles reference `hyperwebster-*` CLIs and state
 paths instead of leftover `nosignal-*` names from the upstream fork.
 
-## About logo
+## About page
 
-`hyperwebster-logo.png` is the circular Starman mark shown on Settings → About.
-The patch always installs it to `…/quickshell/caelestia/assets/hyperwebster-logo.png`
-(overwriting any renamed NoSignal placeholder from older images).
+`AboutPage.qml` overlays Settings → About with:
+
+- Starman / HyperWebster hero (`hyperwebster-logo.png`)
+- Personal-use vibecoded disclaimer
+- **Credits** - tappable rows for NoSignal OS, caelestia, Omarchy, CachyOS,
+  Hyprland, Chimera/Deckify, Limine, Tailscale, and more
+- Link to full `docs/CREDITS.md` on GitHub
+
+`hyperwebster-logo.png` is the circular Starman mark. The patch always installs
+it to `…/quickshell/caelestia/assets/hyperwebster-logo.png` (overwriting any
+renamed NoSignal placeholder from older images).
 
 ## Apply on an installed system
 

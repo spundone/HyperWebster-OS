@@ -55,6 +55,22 @@ overlay_updates_page() {
   fi
 }
 
+overlay_about_page() {
+  ABOUT_SRC="$SELF_DIR/AboutPage.qml"
+  [ -f "$ABOUT_SRC" ] || return 0
+  if [ -n "$SHELL_ROOT" ] && [ -d "$SHELL_ROOT/modules/nexus/pages" ]; then
+    cp -n "$SHELL_ROOT/modules/nexus/pages/AboutPage.qml" \
+      "$SHELL_ROOT/modules/nexus/pages/AboutPage.qml.pre-hyperwebster-credits" 2>/dev/null || true
+    install -m 0644 "$ABOUT_SRC" "$SHELL_ROOT/modules/nexus/pages/AboutPage.qml"
+    echo "shell-branding: overlaid AboutPage.qml with credits (fork build)"
+  elif [ -d "$NEXUS/modules/nexus/pages" ]; then
+    cp -n "$NEXUS/modules/nexus/pages/AboutPage.qml" \
+      "$NEXUS/modules/nexus/pages/AboutPage.qml.pre-hyperwebster-credits" 2>/dev/null || true
+    install -m 0644 "$ABOUT_SRC" "$NEXUS/modules/nexus/pages/AboutPage.qml"
+    echo "shell-branding: overlaid AboutPage.qml with credits (installed shell)"
+  fi
+}
+
 if [ -n "$SHELL_ROOT" ] && [ -d "$SHELL_ROOT" ]; then
   NEXUS_MODULES="$SHELL_ROOT/modules/nexus"
   PKG="$SHELL_ROOT/packaging/PKGBUILD"
@@ -87,6 +103,7 @@ for dir in "$NEXUS_MODULES/pages" "$NEXUS_MODULES/common"; do
 done
 
 overlay_updates_page
+overlay_about_page
 
 if [ -n "$PKG" ] && [ -f "$PKG" ]; then
   if grep -q 'NoSignal' "$PKG" 2>/dev/null; then
